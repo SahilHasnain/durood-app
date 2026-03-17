@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "durood-app",
-    "slug": "durood-app",
+    "name": "Durood e Pak",
+    "slug": "durood-e-pak",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.duroodepak.app"
     },
     "web": {
       "output": "static",
@@ -44,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "be7e3858-a350-4145-b177-a63698b95e80"
+      }
     }
   }
 }
