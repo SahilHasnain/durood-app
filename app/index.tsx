@@ -45,20 +45,29 @@ export default function Index() {
 
       <View style={styles.container}>
         <View style={styles.counterWrapper}>
-          <Text style={styles.title}>تسبيح</Text>
-          
           <TouchableOpacity 
             activeOpacity={0.8}
             onPress={handlePress}
             style={styles.counterContainer}
           >
             <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
+              <View 
+                style={[
+                  styles.progressCircle, 
+                  { 
+                    borderTopColor: progress > 0 ? theme.colors.primary.main : 'transparent',
+                    borderRightColor: progress > 25 ? theme.colors.primary.main : 'transparent',
+                    borderBottomColor: progress > 50 ? theme.colors.primary.main : 'transparent',
+                    borderLeftColor: progress > 75 ? theme.colors.primary.main : 'transparent',
+                    transform: [{ rotate: `${progress * 3.6}deg` }]
+                  }
+                ]} 
+              />
               <View style={styles.progressInner}>
                 <Text style={styles.count}>{count}</Text>
                 <Text style={styles.targetText}>of {target}</Text>
               </View>
             </View>
-            <View style={[styles.progressBar, { width: `${progress}%` }]} />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleReset} style={styles.resetBtn}>
@@ -89,12 +98,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
   },
-  title: {
-    fontSize: 24,
-    color: theme.colors.primary.main,
-    marginBottom: 16,
-    fontWeight: "600",
-  },
   counterContainer: {
     position: "relative",
     marginBottom: 20,
@@ -108,13 +111,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.surface.primary,
+    position: "relative",
+  },
+  progressCircle: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 4,
+    borderColor: "transparent",
   },
   progressRingComplete: {
-    borderColor: theme.colors.primary.main,
     ...theme.shadows.glow,
   },
   progressInner: {
     alignItems: "center",
+    zIndex: 1,
   },
   count: {
     fontSize: 48,
@@ -125,14 +137,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.text.tertiary,
     marginTop: 4,
-  },
-  progressBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    height: 3,
-    backgroundColor: theme.colors.primary.main,
-    borderRadius: 2,
   },
   resetBtn: {
     paddingHorizontal: 32,
