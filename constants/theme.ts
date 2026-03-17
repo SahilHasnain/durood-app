@@ -1,54 +1,54 @@
 export const theme = {
   colors: {
     background: {
-      primary: "#0a0a0f", // Very dark, almost black
-      secondary: "#111827", // gray-900
-      tertiary: "#1f2937", // gray-800
+      primary: "#0a1410", // Deep forest green, almost black
+      secondary: "#0f1e1a", // Dark emerald
+      tertiary: "#1a2e27", // Darker green
     },
     surface: {
-      primary: "#1a1a24", // Dark with slight warmth
-      secondary: "#2d2d3a", // Slightly lighter
-      elevated: "#3a3a4a", // Even lighter
+      primary: "#152820", // Dark green with depth
+      secondary: "#1f3a2f", // Medium dark green
+      elevated: "#2a4a3c", // Elevated green
     },
     primary: {
-      main: "#fbbf24", // amber-400 (warm yellow)
-      light: "#fcd34d", // amber-300
-      dark: "#f59e0b", // amber-500
-      darker: "#d97706", // amber-600
-      glow: "rgba(251, 191, 36, 0.4)", // amber glow
+      main: "#10b981", // Emerald-500 (vibrant Islamic green)
+      light: "#34d399", // Emerald-400
+      dark: "#059669", // Emerald-600
+      darker: "#047857", // Emerald-700
+      glow: "rgba(16, 185, 129, 0.4)", // Emerald glow
     },
     text: {
-      primary: "#fef3c7", // amber-100 (warm white)
-      secondary: "#fde68a", // amber-200 (soft yellow)
-      tertiary: "#9ca3af", // gray-400 (muted)
-      accent: "#fbbf24", // amber-400
+      primary: "#d1fae5", // Emerald-100 (soft green-white)
+      secondary: "#a7f3d0", // Emerald-200 (light green)
+      tertiary: "#6ee7b7", // Emerald-300 (muted green)
+      accent: "#10b981", // Emerald-500
     },
     border: {
-      primary: "#374151", // gray-700
-      secondary: "#4b5563", // gray-600
-      accent: "#fbbf24", // amber-400
-      subtle: "#2d3748", // Very subtle border
+      primary: "#2a4a3c", // Dark green border
+      secondary: "#34d399", // Emerald border
+      accent: "#10b981", // Emerald-500
+      subtle: "#1f3a2f", // Very subtle border
     },
-    success: "#fbbf24", // amber-400
-    overlay: "rgba(0, 0, 0, 0.85)",
+    success: "#10b981", // Emerald-500
+    overlay: "rgba(10, 20, 16, 0.85)",
   },
   shadows: {
     glow: {
-      shadowColor: "#fbbf24",
+      shadowColor: "#10b981",
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.6,
       shadowRadius: 20,
       elevation: 8,
     },
     glowStrong: {
-      shadowColor: "#fbbf24",
+      shadowColor: "#10b981",
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.8,
       shadowRadius: 30,
       elevation: 12,
     },
     glowSubtle: {
-      shadowColor: "#fbbf24",
+      shadowColor: "#10b981",
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.3,
       shadowRadius: 15,
