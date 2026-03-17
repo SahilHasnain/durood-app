@@ -85,16 +85,19 @@ export default function Index() {
               />
               <View style={styles.progressInner}>
                 <Text style={styles.count}>{count}</Text>
-                <TouchableOpacity onPress={() => setSheetVisible(true)} activeOpacity={0.7}>
-                  <Text style={styles.targetText}>of {target}</Text>
-                </TouchableOpacity>
+                <Text style={styles.targetText}>of {target}</Text>
               </View>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleReset} style={styles.resetBtn}>
-            <Text style={styles.resetText}>Reset</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity onPress={() => setSheetVisible(true)} style={styles.actionBtn}>
+              <Text style={styles.actionText}>Target</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleReset} style={styles.actionBtn}>
+              <Text style={styles.actionText}>Reset</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
       {sheetVisible && (
@@ -202,7 +205,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.text.tertiary,
     marginTop: 4,
-    opacity: 0.6,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  actionBtn: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: theme.colors.surface.secondary,
+    borderWidth: 1,
+    borderColor: theme.colors.border.secondary,
+    alignItems: "center",
+  },
+  actionText: {
+    fontSize: 14,
+    color: theme.colors.text.secondary,
+    fontWeight: "600",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -272,18 +293,5 @@ const styles = StyleSheet.create({
   },
   sheetBtnTextPrimary: {
     color: theme.colors.background.primary,
-  },
-  resetBtn: {
-    paddingHorizontal: 32,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: theme.colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: theme.colors.border.secondary,
-  },
-  resetText: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-    fontWeight: "600",
   },
 });
