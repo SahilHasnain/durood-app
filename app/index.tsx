@@ -1,12 +1,14 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { ImageBackground, StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { ImageBackground, StyleSheet, View, Text, TouchableOpacity, Modal, TextInput } from "react-native";
 import { theme } from "../constants/theme";
 import "../global.css";
 import { useState } from "react";
 
 export default function Index() {
   const [count, setCount] = useState(0);
-  const [target, setTarget] = useState(33);
+  const [target, setTarget] = useState(100);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [inputValue, setInputValue] = useState("100");
 
   const handlePress = () => {
     setCount(prev => prev + 1);
@@ -14,6 +16,14 @@ export default function Index() {
 
   const handleReset = () => {
     setCount(0);
+  };
+
+  const handleSetTarget = () => {
+    const newTarget = parseInt(inputValue);
+    if (newTarget > 0) {
+      setTarget(newTarget);
+      setModalVisible(false);
+    }
   };
 
   const progress = Math.min((count / target) * 100, 100);
@@ -65,7 +75,9 @@ export default function Index() {
               />
               <View style={styles.progressInner}>
                 <Text style={styles.count}>{count}</Text>
-                <Text style={styles.targetText}>of {target}</Text>
+                <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.7}>
+                  <Text style={styles.targetText}>of {target}</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </TouchableOpacity>
@@ -74,6 +86,40 @@ export default function Index() {
             <Text style={styles.resetText}>Reset</Text>
           </TouchableOpacity>
         </View>
+
+        <Modal
+          visible={modalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlay} 
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
+          >
+            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+              <Text style={styles.modalTitle}>Set Target</Text>
+              <TextInput
+                style={styles.input}
+                value={inputValue}
+                onChangeText={setInputValue}
+                keyboardType="number-pad"
+                placeholder="Enter target"
+                placeholderTextColor={theme.colors.text.tertiary}
+                autoFocus
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalBtn}>
+                  <Text style={styles.modalBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSetTarget} style={[styles.modalBtn, styles.modalBtnPrimary]}>
+                  <Text style={[styles.modalBtnText, styles.modalBtnTextPrimary]}>Set</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </View>
   );
@@ -137,6 +183,64 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.text.tertiary,
     marginTop: 4,
+    opacity: 0.6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: theme.colors.overlay,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: theme.colors.surface.primary,
+    borderRadius: 16,
+    padding: 24,
+    width: 280,
+    borderWidth: 1,
+    borderColor: theme.colors.border.primary,
+  },
+  modalTitle: {
+    fontSize: 18,
+    color: theme.colors.text.primary,
+    fontWeight: "600",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  input: {
+    backgroundColor: theme.colors.surface.secondary,
+    borderWidth: 1,
+    borderColor: theme.colors.border.primary,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    color: theme.colors.text.primary,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: theme.colors.surface.secondary,
+    borderWidth: 1,
+    borderColor: theme.colors.border.secondary,
+    alignItems: "center",
+  },
+  modalBtnPrimary: {
+    backgroundColor: theme.colors.primary.main,
+    borderColor: theme.colors.primary.main,
+  },
+  modalBtnText: {
+    fontSize: 14,
+    color: theme.colors.text.secondary,
+    fontWeight: "600",
+  },
+  modalBtnTextPrimary: {
+    color: theme.colors.background.primary,
   },
   resetBtn: {
     paddingHorizontal: 32,
