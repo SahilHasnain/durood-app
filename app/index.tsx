@@ -195,11 +195,12 @@ export default function Index() {
             style={styles.input}
             value={inputValue}
             onChangeText={setInputValue}
-            keyboardType="number-pad"
+            keyboardType="numeric"
             placeholder="Enter target"
             placeholderTextColor={theme.colors.text.tertiary}
             returnKeyType="done"
             onSubmitEditing={handleSetTarget}
+            blurOnSubmit={true}
           />
           <View style={styles.sheetButtons}>
             <TouchableOpacity
