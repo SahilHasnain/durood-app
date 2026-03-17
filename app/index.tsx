@@ -1,10 +1,19 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { ImageBackground, StyleSheet, View, Text, TouchableOpacity, TextInput, Animated } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import KeyboardSpacer from "../components/KeyboardSpacer";
 import { theme } from "../constants/theme";
 import "../global.css";
-import { useState, useRef, useEffect } from "react";
-import KeyboardSpacer from "../components/KeyboardSpacer";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function Index() {
   const [count, setCount] = useState(0);
@@ -22,7 +31,7 @@ export default function Index() {
   }, [sheetVisible]);
 
   const handlePress = () => {
-    setCount(prev => prev + 1);
+    setCount((prev) => prev + 1);
   };
 
   const handleReset = () => {
@@ -41,8 +50,9 @@ export default function Index() {
   const isComplete = count >= target;
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1"
+      edges={["bottom"]}
       style={{ backgroundColor: theme.colors.background.primary }}
     >
       <View pointerEvents="none" style={styles.backgroundLayer}>
@@ -66,23 +76,32 @@ export default function Index() {
 
       <View style={styles.container}>
         <View style={styles.counterWrapper}>
-          <TouchableOpacity 
+          <TouchableOpacity
             activeOpacity={0.8}
             onPress={handlePress}
             style={styles.counterContainer}
           >
-            <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
-              <View 
+            <View
+              style={[
+                styles.progressRing,
+                isComplete && styles.progressRingComplete,
+              ]}
+            >
+              <View
                 style={[
-                  styles.progressCircle, 
-                  { 
-                    borderTopColor: progress > 0 ? theme.colors.primary.main : 'transparent',
-                    borderRightColor: progress > 25 ? theme.colors.primary.main : 'transparent',
-                    borderBottomColor: progress > 50 ? theme.colors.primary.main : 'transparent',
-                    borderLeftColor: progress > 75 ? theme.colors.primary.main : 'transparent',
-                    transform: [{ rotate: `${progress * 3.6}deg` }]
-                  }
-                ]} 
+                  styles.progressCircle,
+                  {
+                    borderTopColor:
+                      progress > 0 ? theme.colors.primary.main : "transparent",
+                    borderRightColor:
+                      progress > 25 ? theme.colors.primary.main : "transparent",
+                    borderBottomColor:
+                      progress > 50 ? theme.colors.primary.main : "transparent",
+                    borderLeftColor:
+                      progress > 75 ? theme.colors.primary.main : "transparent",
+                    transform: [{ rotate: `${progress * 3.6}deg` }],
+                  },
+                ]}
               />
               <View style={styles.progressInner}>
                 <Text style={styles.count}>{count}</Text>
@@ -92,59 +111,80 @@ export default function Index() {
           </TouchableOpacity>
 
           <View style={styles.buttonRow}>
-            <TouchableOpacity onPress={() => setSheetVisible(true)} style={styles.iconBtn}>
-              <Ionicons name="flag-outline" size={20} color={theme.colors.text.secondary} />
+            <TouchableOpacity
+              onPress={() => setSheetVisible(true)}
+              style={styles.iconBtn}
+            >
+              <Ionicons
+                name="flag-outline"
+                size={20}
+                color={theme.colors.text.secondary}
+              />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleReset} style={styles.iconBtn}>
-              <Ionicons name="refresh-outline" size={20} color={theme.colors.text.secondary} />
+              <Ionicons
+                name="refresh-outline"
+                size={20}
+                color={theme.colors.text.secondary}
+              />
             </TouchableOpacity>
           </View>
         </View>
 
-      {sheetVisible && (
-        <TouchableOpacity 
-          style={styles.overlay} 
-          activeOpacity={1}
-          onPress={() => setSheetVisible(false)}
-        />
-      )}
+        {sheetVisible && (
+          <TouchableOpacity
+            style={styles.overlay}
+            activeOpacity={1}
+            onPress={() => setSheetVisible(false)}
+          />
+        )}
 
-      <Animated.View 
-        style={[
-          styles.bottomSheet,
-          {
-            transform: [{
-              translateY: slideAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [400, 0],
-              }),
-            }],
-          },
-        ]}
-        pointerEvents={sheetVisible ? "auto" : "none"}
-      >
-        <View style={styles.sheetHandle} />
-        <Text style={styles.sheetTitle}>Set Target</Text>
-        <TextInput
-          style={styles.input}
-          value={inputValue}
-          onChangeText={setInputValue}
-          keyboardType="number-pad"
-          placeholder="Enter target"
-          placeholderTextColor={theme.colors.text.tertiary}
-        />
-        <View style={styles.sheetButtons}>
-          <TouchableOpacity onPress={() => setSheetVisible(false)} style={styles.sheetBtn}>
-            <Text style={styles.sheetBtnText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleSetTarget} style={[styles.sheetBtn, styles.sheetBtnPrimary]}>
-            <Text style={[styles.sheetBtnText, styles.sheetBtnTextPrimary]}>Set</Text>
-          </TouchableOpacity>
-        </View>
-        <KeyboardSpacer topSpacing={20} />
-      </Animated.View>
+        <Animated.View
+          style={[
+            styles.bottomSheet,
+            {
+              transform: [
+                {
+                  translateY: slideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [400, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+          pointerEvents={sheetVisible ? "auto" : "none"}
+        >
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>Set Target</Text>
+          <TextInput
+            style={styles.input}
+            value={inputValue}
+            onChangeText={setInputValue}
+            keyboardType="number-pad"
+            placeholder="Enter target"
+            placeholderTextColor={theme.colors.text.tertiary}
+          />
+          <View style={styles.sheetButtons}>
+            <TouchableOpacity
+              onPress={() => setSheetVisible(false)}
+              style={styles.sheetBtn}
+            >
+              <Text style={styles.sheetBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleSetTarget}
+              style={[styles.sheetBtn, styles.sheetBtnPrimary]}
+            >
+              <Text style={[styles.sheetBtnText, styles.sheetBtnTextPrimary]}>
+                Set
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <KeyboardSpacer topSpacing={20} />
+        </Animated.View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -161,7 +201,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "flex-end",
-    paddingBottom: 40,
   },
   counterWrapper: {
     alignItems: "center",
