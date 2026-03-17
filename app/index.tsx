@@ -4,6 +4,7 @@ import { theme } from "../constants/theme";
 import "../global.css";
 import { useState, useRef, useEffect } from "react";
 import KeyboardSpacer from "../components/KeyboardSpacer";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Index() {
   const [count, setCount] = useState(0);
@@ -91,11 +92,11 @@ export default function Index() {
           </TouchableOpacity>
 
           <View style={styles.buttonRow}>
-            <TouchableOpacity onPress={() => setSheetVisible(true)} style={styles.actionBtn}>
-              <Text style={styles.actionText}>Target</Text>
+            <TouchableOpacity onPress={() => setSheetVisible(true)} style={styles.iconBtn}>
+              <Ionicons name="flag-outline" size={20} color={theme.colors.text.secondary} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleReset} style={styles.actionBtn}>
-              <Text style={styles.actionText}>Reset</Text>
+            <TouchableOpacity onPress={handleReset} style={styles.iconBtn}>
+              <Ionicons name="refresh-outline" size={20} color={theme.colors.text.secondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -210,20 +211,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
   },
-  actionBtn: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 10,
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: theme.colors.surface.secondary,
     borderWidth: 1,
     borderColor: theme.colors.border.secondary,
     alignItems: "center",
-  },
-  actionText: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-    fontWeight: "600",
+    justifyContent: "center",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
