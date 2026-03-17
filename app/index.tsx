@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -21,6 +22,37 @@ export default function Index() {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [inputValue, setInputValue] = useState("100");
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    saveData();
+  }, [count, target]);
+
+  const loadData = async () => {
+    try {
+      const savedCount = await AsyncStorage.getItem("tasbeeh_count");
+      const savedTarget = await AsyncStorage.getItem("tasbeeh_target");
+      if (savedCount !== null) setCount(parseInt(savedCount));
+      if (savedTarget !== null) {
+        setTarget(parseInt(savedTarget));
+        setInputValue(savedTarget);
+      }
+    } catch (error) {
+      console.error("Failed to load data", error);
+    }
+  };
+
+  const saveData = async () => {
+    try {
+      await AsyncStorage.setItem("tasbeeh_count", count.toString());
+      await AsyncStorage.setItem("tasbeeh_target", target.toString());
+    } catch (error) {
+      console.error("Failed to save data", error);
+    }
+  };
 
   useEffect(() => {
     Animated.timing(slideAnim, {
