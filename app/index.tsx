@@ -1,14 +1,24 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { ImageBackground, StyleSheet, View, Text, TouchableOpacity, Modal, TextInput } from "react-native";
+import { ImageBackground, StyleSheet, View, Text, TouchableOpacity, TextInput, Animated } from "react-native";
 import { theme } from "../constants/theme";
 import "../global.css";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import KeyboardSpacer from "../components/KeyboardSpacer";
 
 export default function Index() {
   const [count, setCount] = useState(0);
   const [target, setTarget] = useState(100);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const [inputValue, setInputValue] = useState("100");
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: sheetVisible ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [sheetVisible]);
 
   const handlePress = () => {
     setCount(prev => prev + 1);
@@ -22,7 +32,7 @@ export default function Index() {
     const newTarget = parseInt(inputValue);
     if (newTarget > 0) {
       setTarget(newTarget);
-      setModalVisible(false);
+      setSheetVisible(false);
     }
   };
 
@@ -75,7 +85,7 @@ export default function Index() {
               />
               <View style={styles.progressInner}>
                 <Text style={styles.count}>{count}</Text>
-                <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.7}>
+                <TouchableOpacity onPress={() => setSheetVisible(true)} activeOpacity={0.7}>
                   <Text style={styles.targetText}>of {target}</Text>
                 </TouchableOpacity>
               </View>
@@ -87,39 +97,48 @@ export default function Index() {
           </TouchableOpacity>
         </View>
 
-        <Modal
-          visible={modalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <TouchableOpacity 
-            style={styles.modalOverlay} 
-            activeOpacity={1}
-            onPress={() => setModalVisible(false)}
-          >
-            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-              <Text style={styles.modalTitle}>Set Target</Text>
-              <TextInput
-                style={styles.input}
-                value={inputValue}
-                onChangeText={setInputValue}
-                keyboardType="number-pad"
-                placeholder="Enter target"
-                placeholderTextColor={theme.colors.text.tertiary}
-                autoFocus
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalBtn}>
-                  <Text style={styles.modalBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSetTarget} style={[styles.modalBtn, styles.modalBtnPrimary]}>
-                  <Text style={[styles.modalBtnText, styles.modalBtnTextPrimary]}>Set</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+      {sheetVisible && (
+        <TouchableOpacity 
+          style={styles.overlay} 
+          activeOpacity={1}
+          onPress={() => setSheetVisible(false)}
+        />
+      )}
+
+      <Animated.View 
+        style={[
+          styles.bottomSheet,
+          {
+            transform: [{
+              translateY: slideAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [400, 0],
+              }),
+            }],
+          },
+        ]}
+        pointerEvents={sheetVisible ? "auto" : "none"}
+      >
+        <View style={styles.sheetHandle} />
+        <Text style={styles.sheetTitle}>Set Target</Text>
+        <TextInput
+          style={styles.input}
+          value={inputValue}
+          onChangeText={setInputValue}
+          keyboardType="number-pad"
+          placeholder="Enter target"
+          placeholderTextColor={theme.colors.text.tertiary}
+        />
+        <View style={styles.sheetButtons}>
+          <TouchableOpacity onPress={() => setSheetVisible(false)} style={styles.sheetBtn}>
+            <Text style={styles.sheetBtnText}>Cancel</Text>
           </TouchableOpacity>
-        </Modal>
+          <TouchableOpacity onPress={handleSetTarget} style={[styles.sheetBtn, styles.sheetBtnPrimary]}>
+            <Text style={[styles.sheetBtnText, styles.sheetBtnTextPrimary]}>Set</Text>
+          </TouchableOpacity>
+        </View>
+        <KeyboardSpacer topSpacing={20} />
+      </Animated.View>
       </View>
     </View>
   );
@@ -185,21 +204,32 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.6,
   },
-  modalOverlay: {
-    flex: 1,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.colors.overlay,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  modalContent: {
+  bottomSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: theme.colors.surface.primary,
-    borderRadius: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 24,
-    width: 280,
-    borderWidth: 1,
+    paddingBottom: 0,
+    borderTopWidth: 1,
     borderColor: theme.colors.border.primary,
   },
-  modalTitle: {
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: theme.colors.border.secondary,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  sheetTitle: {
     fontSize: 18,
     color: theme.colors.text.primary,
     fontWeight: "600",
@@ -217,11 +247,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: "center",
   },
-  modalButtons: {
+  sheetButtons: {
     flexDirection: "row",
     gap: 12,
+    marginBottom: 20,
   },
-  modalBtn: {
+  sheetBtn: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
@@ -230,16 +261,16 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border.secondary,
     alignItems: "center",
   },
-  modalBtnPrimary: {
+  sheetBtnPrimary: {
     backgroundColor: theme.colors.primary.main,
     borderColor: theme.colors.primary.main,
   },
-  modalBtnText: {
+  sheetBtnText: {
     fontSize: 14,
     color: theme.colors.text.secondary,
     fontWeight: "600",
   },
-  modalBtnTextPrimary: {
+  sheetBtnTextPrimary: {
     color: theme.colors.background.primary,
   },
   resetBtn: {
