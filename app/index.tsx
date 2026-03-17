@@ -10,6 +10,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import KeyboardSpacer from "../components/KeyboardSpacer";
@@ -75,6 +76,7 @@ export default function Index() {
     if (newTarget > 0) {
       setTarget(newTarget);
       setSheetVisible(false);
+      Keyboard.dismiss();
     }
   };
 
@@ -196,6 +198,8 @@ export default function Index() {
             keyboardType="number-pad"
             placeholder="Enter target"
             placeholderTextColor={theme.colors.text.tertiary}
+            returnKeyType="done"
+            onSubmitEditing={handleSetTarget}
           />
           <View style={styles.sheetButtons}>
             <TouchableOpacity
