@@ -1,21 +1,18 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { ImageBackground, StyleSheet, View, Text, TouchableOpacity, Vibration } from "react-native";
+import { ImageBackground, StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { theme } from "../constants/theme";
 import "../global.css";
 import { useState } from "react";
-import * as Haptics from "expo-haptics";
 
 export default function Index() {
   const [count, setCount] = useState(0);
   const [target, setTarget] = useState(33);
 
-  const handlePress = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const handlePress = () => {
     setCount(prev => prev + 1);
   };
 
-  const handleReset = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const handleReset = () => {
     setCount(0);
   };
 
@@ -47,39 +44,27 @@ export default function Index() {
       </View>
 
       <View style={styles.container}>
-        <Text style={styles.title}>تسبيح</Text>
-        
-        <TouchableOpacity 
-          activeOpacity={0.8}
-          onPress={handlePress}
-          style={styles.counterContainer}
-        >
-          <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
-            <View style={styles.progressInner}>
-              <Text style={styles.count}>{count}</Text>
-              <Text style={styles.targetText}>of {target}</Text>
+        <View style={styles.counterWrapper}>
+          <Text style={styles.title}>تسبيح</Text>
+          
+          <TouchableOpacity 
+            activeOpacity={0.8}
+            onPress={handlePress}
+            style={styles.counterContainer}
+          >
+            <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
+              <View style={styles.progressInner}>
+                <Text style={styles.count}>{count}</Text>
+                <Text style={styles.targetText}>of {target}</Text>
+              </View>
             </View>
-          </View>
-          <View style={[styles.progressBar, { width: `${progress}%` }]} />
-        </TouchableOpacity>
+            <View style={[styles.progressBar, { width: `${progress}%` }]} />
+          </TouchableOpacity>
 
-        <View style={styles.targetButtons}>
-          {[33, 99, 100].map(num => (
-            <TouchableOpacity
-              key={num}
-              onPress={() => setTarget(num)}
-              style={[styles.targetBtn, target === num && styles.targetBtnActive]}
-            >
-              <Text style={[styles.targetBtnText, target === num && styles.targetBtnTextActive]}>
-                {num}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <TouchableOpacity onPress={handleReset} style={styles.resetBtn}>
+            <Text style={styles.resetText}>Reset</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity onPress={handleReset} style={styles.resetBtn}>
-          <Text style={styles.resetText}>Reset</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -97,92 +82,68 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    justifyContent: "flex-end",
+    paddingBottom: 40,
+  },
+  counterWrapper: {
     alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 48,
+    fontSize: 24,
     color: theme.colors.primary.main,
-    marginBottom: 60,
+    marginBottom: 16,
     fontWeight: "600",
-    ...theme.shadows.glow,
   },
   counterContainer: {
     position: "relative",
-    marginBottom: 50,
+    marginBottom: 20,
   },
   progressRing: {
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    borderWidth: 8,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 4,
     borderColor: theme.colors.border.primary,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.surface.primary,
-    ...theme.shadows.glowSubtle,
   },
   progressRingComplete: {
     borderColor: theme.colors.primary.main,
-    ...theme.shadows.glowStrong,
+    ...theme.shadows.glow,
   },
   progressInner: {
     alignItems: "center",
   },
   count: {
-    fontSize: 72,
+    fontSize: 48,
     fontWeight: "bold",
     color: theme.colors.text.primary,
   },
   targetText: {
-    fontSize: 18,
+    fontSize: 14,
     color: theme.colors.text.tertiary,
-    marginTop: 8,
+    marginTop: 4,
   },
   progressBar: {
     position: "absolute",
     bottom: 0,
     left: 0,
-    height: 4,
+    height: 3,
     backgroundColor: theme.colors.primary.main,
     borderRadius: 2,
   },
-  targetButtons: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 40,
-  },
-  targetBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: theme.colors.border.primary,
-    backgroundColor: theme.colors.surface.primary,
-  },
-  targetBtnActive: {
-    borderColor: theme.colors.primary.main,
-    backgroundColor: theme.colors.surface.secondary,
-  },
-  targetBtnText: {
-    fontSize: 18,
-    color: theme.colors.text.tertiary,
-    fontWeight: "600",
-  },
-  targetBtnTextActive: {
-    color: theme.colors.primary.main,
-  },
   resetBtn: {
-    paddingHorizontal: 40,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 10,
+    borderRadius: 10,
     backgroundColor: theme.colors.surface.secondary,
     borderWidth: 1,
     borderColor: theme.colors.border.secondary,
   },
   resetText: {
-    fontSize: 16,
+    fontSize: 14,
     color: theme.colors.text.secondary,
     fontWeight: "600",
   },
