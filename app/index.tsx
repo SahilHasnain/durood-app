@@ -137,7 +137,7 @@ export default function Index() {
   }, []);
 
   const handlePress = () => {
-    setCount((prev) => (prev >= target ? 1 : prev + 1));
+    setCount((prev) => (prev >= target ? 0 : prev + 1));
   };
 
   const handleReset = () => {
