@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Easing,
   ImageBackground,
   Keyboard,
   Pressable,
@@ -13,12 +14,17 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
 import KeyboardSpacer from "../components/KeyboardSpacer";
 import { theme } from "../constants/theme";
 import "../global.css";
 
 export default function Index() {
   const ACTIONS_SLEEP_MS = 10000;
+  const RING_SIZE = 160;
+  const RING_STROKE_WIDTH = 6;
+  const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
+  const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
   const [count, setCount] = useState(0);
   const [target, setTarget] = useState(100);
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -26,7 +32,11 @@ export default function Index() {
   const [actionsVisible, setActionsVisible] = useState(true);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const actionsAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
   const hideActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [animatedProgressOffset, setAnimatedProgressOffset] = useState(
+    RING_CIRCUMFERENCE
+  );
 
   useEffect(() => {
     loadData();
@@ -75,6 +85,16 @@ export default function Index() {
     }).start();
   }, [actionsAnim, actionsVisible]);
 
+  useEffect(() => {
+    const listenerId = progressAnim.addListener(({ value }) => {
+      setAnimatedProgressOffset(value);
+    });
+
+    return () => {
+      progressAnim.removeListener(listenerId);
+    };
+  }, [progressAnim]);
+
   const clearHideActionsTimer = () => {
     if (hideActionsTimerRef.current) {
       clearTimeout(hideActionsTimerRef.current);
@@ -117,7 +137,7 @@ export default function Index() {
   }, []);
 
   const handlePress = () => {
-    setCount((prev) => prev + 1);
+    setCount((prev) => (prev >= target ? 1 : prev + 1));
   };
 
   const handleReset = () => {
@@ -141,6 +161,17 @@ export default function Index() {
 
   const progress = Math.min((count / target) * 100, 100);
   const isComplete = count >= target;
+  const progressOffset =
+    RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progressOffset,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [progressAnim, progressOffset]);
 
   return (
     <SafeAreaView
@@ -180,22 +211,34 @@ export default function Index() {
                 isComplete && styles.progressRingComplete,
               ]}
             >
-              <View
-                style={[
-                  styles.progressCircle,
-                  {
-                    borderTopColor:
-                      progress > 0 ? theme.colors.primary.main : "transparent",
-                    borderRightColor:
-                      progress > 25 ? theme.colors.primary.main : "transparent",
-                    borderBottomColor:
-                      progress > 50 ? theme.colors.primary.main : "transparent",
-                    borderLeftColor:
-                      progress > 75 ? theme.colors.primary.main : "transparent",
-                    transform: [{ rotate: `${progress * 3.6}deg` }],
-                  },
-                ]}
-              />
+              <Svg
+                width={RING_SIZE}
+                height={RING_SIZE}
+                style={styles.progressSvg}
+                viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+              >
+                <Circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_RADIUS}
+                  stroke={theme.colors.border.primary}
+                  strokeWidth={RING_STROKE_WIDTH}
+                  fill="none"
+                  opacity={0.55}
+                />
+                <Circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_RADIUS}
+                  stroke={theme.colors.primary.main}
+                  strokeWidth={RING_STROKE_WIDTH}
+                  strokeLinecap="round"
+                  strokeDasharray={RING_CIRCUMFERENCE}
+                  strokeDashoffset={animatedProgressOffset}
+                  fill="none"
+                  transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+                />
+              </Svg>
               <View style={styles.progressInner}>
                 <Text style={styles.count}>{count}</Text>
                 <Text style={styles.targetText}>of {target}</Text>
@@ -333,13 +376,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.primary,
     position: "relative",
   },
-  progressCircle: {
+  progressSvg: {
     position: "absolute",
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 4,
-    borderColor: "transparent",
   },
   progressRingComplete: {
     ...theme.shadows.glow,
