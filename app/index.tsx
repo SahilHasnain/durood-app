@@ -1,16 +1,16 @@
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   ImageBackground,
+  Keyboard,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import KeyboardSpacer from "../components/KeyboardSpacer";
@@ -18,11 +18,15 @@ import { theme } from "../constants/theme";
 import "../global.css";
 
 export default function Index() {
+  const ACTIONS_SLEEP_MS = 10000;
   const [count, setCount] = useState(0);
   const [target, setTarget] = useState(100);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [inputValue, setInputValue] = useState("100");
+  const [actionsVisible, setActionsVisible] = useState(true);
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const actionsAnim = useRef(new Animated.Value(1)).current;
+  const hideActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadData();
@@ -63,6 +67,55 @@ export default function Index() {
     }).start();
   }, [sheetVisible]);
 
+  useEffect(() => {
+    Animated.timing(actionsAnim, {
+      toValue: actionsVisible ? 1 : 0,
+      duration: actionsVisible ? 260 : 360,
+      useNativeDriver: true,
+    }).start();
+  }, [actionsAnim, actionsVisible]);
+
+  const clearHideActionsTimer = () => {
+    if (hideActionsTimerRef.current) {
+      clearTimeout(hideActionsTimerRef.current);
+      hideActionsTimerRef.current = null;
+    }
+  };
+
+  const startHideActionsTimer = () => {
+    clearHideActionsTimer();
+    hideActionsTimerRef.current = setTimeout(() => {
+      setActionsVisible(false);
+    }, ACTIONS_SLEEP_MS);
+  };
+
+  const showActionsTemporarily = () => {
+    setActionsVisible(true);
+    startHideActionsTimer();
+  };
+
+  useEffect(() => {
+    if (sheetVisible) {
+      clearHideActionsTimer();
+      setActionsVisible(true);
+      return;
+    }
+
+    if (actionsVisible) {
+      startHideActionsTimer();
+    }
+
+    return () => {
+      clearHideActionsTimer();
+    };
+  }, [sheetVisible, actionsVisible]);
+
+  useEffect(() => {
+    return () => {
+      clearHideActionsTimer();
+    };
+  }, []);
+
   const handlePress = () => {
     setCount((prev) => prev + 1);
   };
@@ -77,6 +130,12 @@ export default function Index() {
       setTarget(newTarget);
       setSheetVisible(false);
       Keyboard.dismiss();
+    }
+  };
+
+  const handleBackgroundPress = () => {
+    if (!sheetVisible && !actionsVisible) {
+      showActionsTemporarily();
     }
   };
 
@@ -108,7 +167,7 @@ export default function Index() {
         </ImageBackground>
       </View>
 
-      <View style={styles.container}>
+      <Pressable style={styles.container} onPress={handleBackgroundPress}>
         <View style={styles.counterWrapper}>
           <TouchableOpacity
             activeOpacity={0.8}
@@ -144,25 +203,41 @@ export default function Index() {
             </View>
           </TouchableOpacity>
 
-          <View style={styles.buttonRow}>
+          <Animated.View
+            pointerEvents={actionsVisible ? "auto" : "none"}
+            style={[
+              styles.buttonRow,
+              {
+                opacity: actionsAnim,
+                transform: [
+                  {
+                    translateY: actionsAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [14, 0],
+                    }),
+                  },
+                  {
+                    scale: actionsAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.96, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <TouchableOpacity
-              onPress={() => setSheetVisible(true)}
+              onPress={() => {
+                setSheetVisible(true);
+              }}
               style={styles.iconBtn}
             >
-              <Ionicons
-                name="flag-outline"
-                size={20}
-                color={theme.colors.text.secondary}
-              />
+              <Text style={styles.iconBtnLabel}>Target</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleReset} style={styles.iconBtn}>
-              <Ionicons
-                name="refresh-outline"
-                size={20}
-                color={theme.colors.text.secondary}
-              />
+              <Text style={styles.iconBtnLabel}>Reset</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </View>
 
         {sheetVisible && (
@@ -220,7 +295,7 @@ export default function Index() {
           </View>
           <KeyboardSpacer topSpacing={20} />
         </Animated.View>
-      </View>
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -285,17 +360,24 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    width: "100%",
   },
   iconBtn: {
-    width: 40,
-    height: 40,
+    width: 92,
+    height: 56,
     borderRadius: 20,
     backgroundColor: theme.colors.surface.secondary,
     borderWidth: 1,
     borderColor: theme.colors.border.secondary,
     alignItems: "center",
     justifyContent: "center",
+  },
+  iconBtnLabel: {
+    fontSize: 13,
+    color: theme.colors.text.secondary,
+    fontWeight: "600",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
