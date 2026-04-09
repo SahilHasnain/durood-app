@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import KeyboardSpacer from "@/components/KeyboardSpacer";
+import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,14 +19,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { withTiming } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSharedValue, withTiming } from "react-native-reanimated";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import "../global.css";
 
 const TASBEEH_PROGRESS_COLOR = "#10b981";
 
 export default function Home() {
+  const HEADER_HEIGHT = 60;
   const RING_SIZE = 160;
   const RING_STROKE_WIDTH = 6;
   const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
@@ -43,10 +45,15 @@ export default function Home() {
   );
   const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } =
     useTabBarVisibility();
+  const insets = useSafeAreaInsets();
+  const headerTranslateY = useSharedValue(0);
 
   useFocusEffect(
     useCallback(() => {
       showTabBar();
+      headerTranslateY.value = withTiming(0, {
+        duration: 300,
+      });
     }, [showTabBar])
   );
 
@@ -112,6 +119,9 @@ export default function Home() {
     tabBarTranslateY.value = withTiming(tabBarHeight + 50, {
       duration: 300,
     });
+    headerTranslateY.value = withTiming(-(HEADER_HEIGHT + insets.top + 20), {
+      duration: 300,
+    });
     setActionsVisible(false);
     setCount((prev) => (prev >= target ? 0 : prev + 1));
   };
@@ -131,6 +141,9 @@ export default function Home() {
 
   const handleBackgroundPress = () => {
     showTabBar();
+    headerTranslateY.value = withTiming(0, {
+      duration: 300,
+    });
     if (!sheetVisible) {
       setActionsVisible(true);
     }
@@ -143,11 +156,13 @@ export default function Home() {
 
   useEffect(() => {
     progressAnim.stopAnimation();
-    Animated.timing(progressAnim, {
+    Animated.spring(progressAnim, {
       toValue: progressOffset,
-      duration: 420,
-      easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
+      damping: 16,
+      stiffness: 170,
+      mass: 0.9,
+      overshootClamping: true,
     }).start();
   }, [progressAnim, progressOffset]);
 
@@ -157,6 +172,7 @@ export default function Home() {
       edges={["bottom"]}
       style={{ backgroundColor: theme.colors.background.primary }}
     >
+      <SimpleHeader translateY={headerTranslateY} />
       <View pointerEvents="none" style={styles.backgroundLayer}>
         <ImageBackground
           source={require("../assets/images/gumbad.png")}
@@ -272,6 +288,7 @@ export default function Home() {
         <Animated.View
           style={[
             styles.bottomSheet,
+            { paddingBottom: tabBarHeight },
             {
               transform: [
                 {
@@ -314,7 +331,7 @@ export default function Home() {
               </Text>
             </TouchableOpacity>
           </View>
-          <KeyboardSpacer topSpacing={20} />
+          <KeyboardSpacer topSpacing={-50} />
         </Animated.View>
       </Pressable>
     </SafeAreaView>
@@ -415,7 +432,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
-    paddingBottom: 0,
     borderTopWidth: 1,
     borderColor: theme.colors.border.primary,
   },

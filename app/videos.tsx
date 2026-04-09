@@ -1,4 +1,5 @@
 import EmptyState from "@/components/EmptyState";
+import { SimpleHeader } from "@/components/SimpleHeader";
 import { VideoCard } from "@/components/VideoCard";
 import { colors } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
@@ -16,6 +17,7 @@ import {
     Text,
     View,
 } from "react-native";
+import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -28,6 +30,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const { videos, loading, error, hasMore, loadMore, refresh } = useDuroodVideos();
     const [progressData, setProgressData] = useState<Record<string, VideoProgress>>({});
+    const headerTranslateY = useSharedValue(0);
 
     const { showTabBar } = useTabBarVisibility();
 
@@ -117,6 +120,7 @@ export default function HomeScreen() {
 
     return (
         <SafeAreaView edges={[]} style={styles.container}>
+            <SimpleHeader translateY={headerTranslateY} />
             <FlatList
                 data={videos}
                 renderItem={renderVideo}
@@ -155,6 +159,7 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         flexGrow: 1,
+        paddingTop: 88,
         paddingBottom: 120,
     },
     emptyContainer: {

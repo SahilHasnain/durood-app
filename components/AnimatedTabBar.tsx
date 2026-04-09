@@ -23,7 +23,7 @@ export function AnimatedTabBar({
     }));
 
     const visibleRoutes = state.routes.filter((route) => {
-        return route.name !== "index";
+        return route.name !== "index" && route.name !== "video" && route.name !== "shorts";
     });
 
     return (
