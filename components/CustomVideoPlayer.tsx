@@ -1,11 +1,14 @@
-import { theme } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@/constants/theme";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 import { VideoPlayer, VideoSource, VideoView, useVideoPlayer } from "expo-video";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface CustomVideoPlayerProps {
     videoUrl: string;
+    bottomOffset?: number;
     onTimeUpdate?: (currentTime: number, duration: number) => void;
     onEnd?: () => void;
     initialPosition?: number;
@@ -23,10 +26,14 @@ const formatTime = (seconds: number): string => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
-export const CustomVideoPlayer = React.forwardRef<VideoPlayer, CustomVideoPlayerProps>(
+export const CustomVideoPlayer = React.forwardRef<
+    VideoPlayer,
+    CustomVideoPlayerProps
+>(
     (
         {
             videoUrl,
+            bottomOffset = 0,
             onTimeUpdate,
             onEnd,
             initialPosition = 0,
@@ -36,6 +43,7 @@ export const CustomVideoPlayer = React.forwardRef<VideoPlayer, CustomVideoPlayer
         },
         ref
     ) => {
+        const insets = useSafeAreaInsets();
         const [controlsVisible, setControlsVisible] = React.useState(true);
         const [isLoading, setIsLoading] = React.useState(true);
         const [hasError, setHasError] = React.useState(false);
@@ -109,18 +117,15 @@ export const CustomVideoPlayer = React.forwardRef<VideoPlayer, CustomVideoPlayer
                 }
             });
 
-            const playingSubscription = player.addListener(
-                "playingChange",
-                ({ isPlaying: nextIsPlaying }) => {
-                    setIsPlaying(nextIsPlaying);
-                    if (nextIsPlaying) {
-                        revealControlsTemporarily();
-                    } else {
-                        clearHideTimer();
-                        setControlsVisible(true);
-                    }
+            const playingSubscription = player.addListener("playingChange", ({ isPlaying: nextIsPlaying }) => {
+                setIsPlaying(nextIsPlaying);
+                if (nextIsPlaying) {
+                    revealControlsTemporarily();
+                } else {
+                    clearHideTimer();
+                    setControlsVisible(true);
                 }
-            );
+            });
 
             const timeSubscription = player.addListener("timeUpdate", ({ currentTime }) => {
                 const nextDuration = Number.isFinite(player.duration) ? player.duration : 0;
@@ -183,6 +188,24 @@ export const CustomVideoPlayer = React.forwardRef<VideoPlayer, CustomVideoPlayer
             revealControlsTemporarily();
         }, [player, revealControlsTemporarily]);
 
+        const seekTo = React.useCallback(
+            (nextTime: number) => {
+                const boundedTime = Math.min(Math.max(nextTime, 0), duration || nextTime);
+                player.currentTime = boundedTime;
+                setPosition(boundedTime);
+                onTimeUpdate?.(boundedTime, duration);
+                revealControlsTemporarily();
+            },
+            [duration, onTimeUpdate, player, revealControlsTemporarily]
+        );
+
+        const seekBy = React.useCallback(
+            (delta: number) => {
+                seekTo(position + delta);
+            },
+            [position, seekTo]
+        );
+
         return (
             <View style={styles.container}>
                 <VideoView
@@ -208,6 +231,17 @@ export const CustomVideoPlayer = React.forwardRef<VideoPlayer, CustomVideoPlayer
                         {controlsVisible ? (
                             <View style={styles.centerControlsWrap} pointerEvents="box-none">
                                 <View style={styles.centerControls}>
+                                    {!minimal && (
+                                        <Pressable
+                                            onPress={() => seekBy(-10)}
+                                            style={styles.secondaryButton}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Seek back 10 seconds"
+                                        >
+                                            <MaterialIcons name="replay-10" size={32} color={colors.text.primary} />
+                                        </Pressable>
+                                    )}
+
                                     <Pressable
                                         onPress={togglePlayback}
                                         style={styles.primaryButton}
@@ -217,20 +251,58 @@ export const CustomVideoPlayer = React.forwardRef<VideoPlayer, CustomVideoPlayer
                                         <Ionicons
                                             name={isPlaying ? "pause" : "play"}
                                             size={30}
-                                            color={theme.colors.text.primary}
+                                            color={colors.text.primary}
                                         />
                                     </Pressable>
+
+                                    {!minimal && (
+                                        <Pressable
+                                            onPress={() => seekBy(10)}
+                                            style={styles.secondaryButton}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Seek forward 10 seconds"
+                                        >
+                                            <MaterialIcons name="forward-10" size={32} color={colors.text.primary} />
+                                        </Pressable>
+                                    )}
                                 </View>
                             </View>
                         ) : (
                             <View />
                         )}
+
+                        {!minimal && controlsVisible ? (
+                            <View
+                                style={[
+                                    styles.bottomOverlay,
+                                    { paddingBottom: Math.max(insets.bottom, 12) + 20 },
+                                    bottomOffset > 0 ? { bottom: bottomOffset } : null,
+                                ]}
+                                pointerEvents="box-none"
+                            >
+                                <Slider
+                                    style={styles.slider}
+                                    minimumValue={0}
+                                    maximumValue={Math.max(duration, 0.1)}
+                                    value={Math.min(position, duration || position)}
+                                    onSlidingStart={clearHideTimer}
+                                    onSlidingComplete={seekTo}
+                                    minimumTrackTintColor={colors.accent.secondary}
+                                    maximumTrackTintColor="rgba(255,255,255,0.35)"
+                                    thumbTintColor={colors.accent.secondary}
+                                />
+                                <View style={styles.timeRow}>
+                                    <Text style={styles.timeText}>{formatTime(position)}</Text>
+                                    <Text style={styles.timeText}>{duration > 0 ? formatTime(duration) : "--:--"}</Text>
+                                </View>
+                            </View>
+                        ) : null}
                     </View>
                 ) : null}
 
                 {isLoading && !hasError ? (
                     <View style={styles.loadingContainer} pointerEvents="none">
-                        <ActivityIndicator size="large" color={theme.colors.text.primary} />
+                        <ActivityIndicator size="large" color={colors.text.primary} />
                         <Text style={styles.loadingText}>Loading video...</Text>
                     </View>
                 ) : null}
@@ -282,6 +354,37 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: "rgba(0, 0, 0, 0.58)",
     },
+    secondaryButton: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.42)",
+    },
+    bottomOverlay: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: 12,
+        paddingTop: 28,
+        backgroundColor: "rgba(0, 0, 0, 0.48)",
+    },
+    slider: {
+        width: "100%",
+        height: 36,
+    },
+    timeRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: -2,
+    },
+    timeText: {
+        color: colors.text.primary,
+        fontSize: 12,
+        fontWeight: "500",
+    },
     loadingContainer: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: "center",
@@ -291,7 +394,7 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 12,
         fontSize: 14,
-        color: theme.colors.text.secondary,
+        color: colors.text.secondary,
     },
     errorContainer: {
         ...StyleSheet.absoluteFillObject,
@@ -302,7 +405,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         fontSize: 14,
-        color: theme.colors.text.secondary,
+        color: colors.text.secondary,
         textAlign: "center",
     },
 });

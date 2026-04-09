@@ -1,24 +1,24 @@
 import { CustomVideoPlayer } from "@/components/CustomVideoPlayer";
 import EmptyState from "@/components/EmptyState";
-import { config } from "@/config/appwrite";
-import { theme } from "@/constants/theme";
+import { colors } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useDuroodShorts } from "@/hooks/useDuroodShorts";
 import { useSeenShorts } from "@/hooks/useSeenShorts";
+import { config } from "@/config/appwrite";
 import { getProgress, saveProgress } from "@/services/progressTracking";
 import { Durood } from "@/types";
 import { useFocusEffect } from "expo-router";
 import { VideoPlayer } from "expo-video";
 import React, { useCallback, useRef } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    View,
-    ViewToken,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+  ViewToken,
 } from "react-native";
 import { withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,313 +26,305 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface ShortItemProps {
-    durood: Durood;
-    isActive: boolean;
-    onWatchProgress: (shortId: string, percentage: number) => void;
+  durood: Durood;
+  isActive: boolean;
+  onWatchProgress: (shortId: string, percentage: number) => void;
 }
 
-const ShortItem = React.memo(
-    ({ durood, isActive, onWatchProgress }: ShortItemProps) => {
-        const videoRef = useRef<VideoPlayer>(null);
-        const [initialPosition, setInitialPosition] = React.useState(0);
-        const lastSavedProgressRef = React.useRef<number>(0);
-        const hasLoadedProgressRef = React.useRef(false);
+const ShortItem = React.memo(({ durood, isActive, onWatchProgress }: ShortItemProps) => {
+  const videoRef = useRef<VideoPlayer>(null);
+  const [initialPosition, setInitialPosition] = React.useState(0);
+  const lastSavedProgressRef = React.useRef<number>(0);
+  const hasLoadedProgressRef = React.useRef(false);
 
-        const videoUrl = `${config.endpoint}/storage/buckets/${config.storageBucketId}/files/${durood.videoId}/view?project=${config.projectId}`;
+  const videoUrl = `${config.endpoint}/storage/buckets/${config.storageBucketId}/files/${durood.videoId}/view?project=${config.projectId}`;
 
-        React.useEffect(() => {
-            if (hasLoadedProgressRef.current) return;
-            hasLoadedProgressRef.current = true;
+  React.useEffect(() => {
+    if (hasLoadedProgressRef.current) return;
+    hasLoadedProgressRef.current = true;
 
-            const loadProgress = async () => {
-                try {
-                    const progress = await getProgress(durood.$id);
-                    if (progress && progress.progress > 0) {
-                        const percentage = (progress.progress / progress.duration) * 100;
-                        if (percentage >= 5 && percentage <= 95) {
-                            setInitialPosition(progress.progress);
-                            lastSavedProgressRef.current = progress.progress;
-                        }
-                    }
-                } catch (error) {
-                    console.error("Failed to load progress:", error);
-                }
-            };
-            loadProgress();
-        }, [durood.$id]);
+    const loadProgress = async () => {
+      try {
+        const progress = await getProgress(durood.$id);
+        if (progress && progress.progress > 0) {
+          const percentage = (progress.progress / progress.duration) * 100;
+          if (percentage >= 5 && percentage <= 95) {
+            setInitialPosition(progress.progress);
+            lastSavedProgressRef.current = progress.progress;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load progress:", error);
+      }
+    };
+    loadProgress();
+  }, [durood.$id]);
 
-        React.useEffect(() => {
-            const player = videoRef.current;
-            if (!player) return;
+  React.useEffect(() => {
+    const player = videoRef.current;
+    if (!player) return;
 
-            if (isActive) {
-                player.play();
-            } else {
-                player.pause();
-                if (durood.$id && player.duration > 0) {
-                    saveProgress(durood.$id, player.currentTime, player.duration).catch(
-                        console.error
-                    );
-                }
-            }
-        }, [isActive, durood.$id]);
-
-        React.useEffect(() => {
-            return () => {
-                const player = videoRef.current;
-                if (player) {
-                    player.pause();
-                    if (durood.$id && player.duration > 0) {
-                        saveProgress(durood.$id, player.currentTime, player.duration).catch(
-                            console.error
-                        );
-                    }
-                }
-            };
-        }, [durood.$id]);
-
-        return (
-            <View style={[styles.shortContainer, { height: SCREEN_HEIGHT }]}>
-                <CustomVideoPlayer
-                    ref={videoRef}
-                    videoUrl={videoUrl}
-                    initialPosition={initialPosition}
-                    autoPlay={false}
-                    minimal={true}
-                    loop={true}
-                    onTimeUpdate={async (currentTime, duration) => {
-                        if (isActive && duration > 0) {
-                            const percentage = (currentTime / duration) * 100;
-                            onWatchProgress(durood.$id, percentage);
-
-                            if (Math.abs(currentTime - lastSavedProgressRef.current) >= 5) {
-                                await saveProgress(durood.$id, currentTime, duration);
-                                lastSavedProgressRef.current = currentTime;
-                            }
-                        }
-                    }}
-                    onEnd={() => {
-                        if (durood.$id && videoRef.current) {
-                            onWatchProgress(durood.$id, 100);
-                            saveProgress(
-                                durood.$id,
-                                videoRef.current.duration,
-                                videoRef.current.duration
-                            ).catch(console.error);
-                        }
-                    }}
-                />
-            </View>
-        );
+    if (isActive) {
+      player.play();
+    } else {
+      player.pause();
+      if (durood.$id && player.duration > 0) {
+        saveProgress(durood.$id, player.currentTime, player.duration).catch(console.error);
+      }
     }
-);
+  }, [isActive, durood.$id]);
+
+  React.useEffect(() => {
+    return () => {
+      const player = videoRef.current;
+      if (player) {
+        player.pause();
+        if (durood.$id && player.duration > 0) {
+          saveProgress(durood.$id, player.currentTime, player.duration).catch(console.error);
+        }
+      }
+    };
+  }, [durood.$id]);
+
+  return (
+    <View style={[styles.shortContainer, { height: SCREEN_HEIGHT }]}>
+      <CustomVideoPlayer
+        ref={videoRef}
+        videoUrl={videoUrl}
+        bottomOffset={0}
+        initialPosition={initialPosition}
+        autoPlay={false}
+        minimal={true}
+        loop={true}
+        onTimeUpdate={async (currentTime, duration) => {
+          if (isActive && duration > 0) {
+            const percentage = (currentTime / duration) * 100;
+            onWatchProgress(durood.$id, percentage);
+
+            if (Math.abs(currentTime - lastSavedProgressRef.current) >= 5) {
+              await saveProgress(durood.$id, currentTime, duration);
+              lastSavedProgressRef.current = currentTime;
+            }
+          }
+        }}
+        onEnd={() => {
+          if (durood.$id && videoRef.current) {
+            onWatchProgress(durood.$id, 100);
+            saveProgress(
+              durood.$id,
+              videoRef.current.duration,
+              videoRef.current.duration
+            ).catch(console.error);
+          }
+        }}
+      />
+    </View>
+  );
+});
 
 ShortItem.displayName = "ShortItem";
 
-export default function Shorts() {
-    const { seenShortIds, markAsSeen, loading: seenLoading } = useSeenShorts();
-    const { shorts, loading, error, hasMore, loadMore, refresh, getStats } =
-        useDuroodShorts({
-            seenShortIds,
+export default function Index() {
+  const { seenShortIds, markAsSeen, loading: seenLoading } = useSeenShorts();
+  const { shorts, loading, error, hasMore, loadMore, refresh, getStats } = useDuroodShorts({
+    seenShortIds,
+  });
+  const { translateY: tabBarTranslateY, tabBarHeight } = useTabBarVisibility();
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const flatListRef = useRef<FlatList>(null);
+  const watchProgressRef = useRef<Map<string, number>>(new Map());
+
+  useFocusEffect(
+    useCallback(() => {
+      tabBarTranslateY.value = withTiming(tabBarHeight + 50, {
+        duration: 300,
+      });
+
+      return () => {
+        tabBarTranslateY.value = withTiming(0, {
+          duration: 300,
         });
-    const { translateY: tabBarTranslateY, tabBarHeight } = useTabBarVisibility();
-    const [activeIndex, setActiveIndex] = React.useState(0);
-    const flatListRef = useRef<FlatList>(null);
-    const watchProgressRef = useRef<Map<string, number>>(new Map());
+        setActiveIndex(-1);
+      };
+    }, [tabBarTranslateY, tabBarHeight])
+  );
 
-    useFocusEffect(
-        useCallback(() => {
-            tabBarTranslateY.value = withTiming(tabBarHeight + 50, {
-                duration: 300,
-            });
+  const handleWatchProgress = useCallback(
+    (shortId: string, percentage: number) => {
+      watchProgressRef.current.set(shortId, percentage);
 
-            return () => {
-                tabBarTranslateY.value = withTiming(0, {
-                    duration: 300,
-                });
-                setActiveIndex(-1);
-            };
-        }, [tabBarTranslateY, tabBarHeight])
-    );
+      if (percentage >= 80 && !seenShortIds.includes(shortId)) {
+        markAsSeen(shortId);
+        console.log(`✅ Marked short as seen: ${shortId} (${percentage.toFixed(0)}%)`);
+      }
+    },
+    [markAsSeen, seenShortIds]
+  );
 
-    const handleWatchProgress = useCallback(
-        (shortId: string, percentage: number) => {
-            watchProgressRef.current.set(shortId, percentage);
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+        const newIndex = viewableItems[0].index;
+        setActiveIndex(newIndex);
 
-            if (percentage >= 80 && !seenShortIds.includes(shortId)) {
-                markAsSeen(shortId);
-                console.log(`✅ Marked short as seen: ${shortId} (${percentage.toFixed(0)}%)`);
+        if (newIndex > 0) {
+          const prevShort = shorts[newIndex - 1];
+          if (prevShort) {
+            const watchedPercentage = watchProgressRef.current.get(prevShort.$id) || 0;
+            if (watchedPercentage >= 80 && !seenShortIds.includes(prevShort.$id)) {
+              markAsSeen(prevShort.$id);
             }
-        },
-        [markAsSeen, seenShortIds]
+          }
+        }
+      }
+    }
+  ).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 80,
+  }).current;
+
+  const renderShort = useCallback(
+    ({ item, index }: { item: Durood; index: number }) => (
+      <ShortItem
+        durood={item}
+        isActive={index === activeIndex}
+        onWatchProgress={handleWatchProgress}
+      />
+    ),
+    [activeIndex, handleWatchProgress]
+  );
+
+  const renderFooter = () => {
+    if (!loading || shorts.length === 0) return null;
+    return (
+      <View style={styles.footer}>
+        <ActivityIndicator size="small" color={colors.accent.secondary} />
+      </View>
     );
+  };
 
-    const onViewableItemsChanged = useRef(
-        ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-            if (viewableItems.length > 0 && viewableItems[0].index !== null) {
-                const newIndex = viewableItems[0].index;
-                setActiveIndex(newIndex);
+  const renderEmpty = () => {
+    if ((loading || seenLoading) && shorts.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={colors.accent.secondary} />
+          <Text style={styles.emptyText}>Loading shorts...</Text>
+        </View>
+      );
+    }
+    if (error) {
+      return (
+        <EmptyState
+          message="Unable to load shorts. Check your connection."
+          iconName="alert-circle"
+          actionLabel="Retry"
+          onAction={refresh}
+        />
+      );
+    }
 
-                if (newIndex > 0) {
-                    const prevShort = shorts[newIndex - 1];
-                    if (prevShort) {
-                        const watchedPercentage = watchProgressRef.current.get(prevShort.$id) || 0;
-                        if (watchedPercentage >= 80 && !seenShortIds.includes(prevShort.$id)) {
-                            markAsSeen(prevShort.$id);
-                        }
-                    }
-                }
-            }
-        }
-    ).current;
-
-    const viewabilityConfig = useRef({
-        itemVisiblePercentThreshold: 80,
-    }).current;
-
-    const renderShort = useCallback(
-        ({ item, index }: { item: Durood; index: number }) => (
-            <ShortItem
-                durood={item}
-                isActive={index === activeIndex}
-                onWatchProgress={handleWatchProgress}
-            />
-        ),
-        [activeIndex, handleWatchProgress]
-    );
-
-    const renderFooter = () => {
-        if (!loading || shorts.length === 0) return null;
-        return (
-            <View style={styles.footer}>
-                <ActivityIndicator size="small" color={theme.colors.primary.main} />
-            </View>
-        );
-    };
-
-    const renderEmpty = () => {
-        if ((loading || seenLoading) && shorts.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <ActivityIndicator size="large" color={theme.colors.primary.main} />
-                    <Text style={styles.emptyText}>Loading shorts...</Text>
-                </View>
-            );
-        }
-        if (error) {
-            return (
-                <EmptyState
-                    message="Unable to load shorts. Check your connection."
-                    iconName="alert-circle"
-                    actionLabel="Retry"
-                    onAction={refresh}
-                />
-            );
-        }
-
-        const stats = getStats();
-        if (stats.isExhausted && shorts.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.caughtUpEmoji}>🎉</Text>
-                    <Text style={styles.caughtUpText}>You're all caught up!</Text>
-                    <Text style={styles.caughtUpSubtext}>You've seen all available shorts.</Text>
-                    <Text style={styles.caughtUpSubtext}>Check back later for new content!</Text>
-                </View>
-            );
-        }
-
-        return (
-            <EmptyState
-                message="No shorts available yet. Check back soon!"
-                iconName="film"
-            />
-        );
-    };
+    const stats = getStats();
+    if (stats.isExhausted && shorts.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.caughtUpEmoji}>🎉</Text>
+          <Text style={styles.caughtUpText}>You&apos;re all caught up!</Text>
+          <Text style={styles.caughtUpSubtext}>You&apos;ve seen all available shorts.</Text>
+          <Text style={styles.caughtUpSubtext}>Check back later for new content!</Text>
+        </View>
+      );
+    }
 
     return (
-        <SafeAreaView edges={[]} style={styles.container}>
-            <FlatList
-                ref={flatListRef}
-                data={shorts}
-                renderItem={renderShort}
-                keyExtractor={(item) => item.$id}
-                pagingEnabled
-                showsVerticalScrollIndicator={false}
-                snapToInterval={SCREEN_HEIGHT}
-                snapToAlignment="start"
-                decelerationRate="fast"
-                onViewableItemsChanged={onViewableItemsChanged}
-                viewabilityConfig={viewabilityConfig}
-                ListEmptyComponent={renderEmpty}
-                ListFooterComponent={renderFooter}
-                onEndReached={() => {
-                    if (hasMore && !loading) {
-                        loadMore();
-                    }
-                }}
-                onEndReachedThreshold={0.5}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={false}
-                        onRefresh={refresh}
-                        colors={[theme.colors.primary.main]}
-                        tintColor={theme.colors.primary.main}
-                    />
-                }
-                removeClippedSubviews
-                maxToRenderPerBatch={3}
-                windowSize={5}
-                initialNumToRender={2}
-                getItemLayout={(_, index) => ({
-                    length: SCREEN_HEIGHT,
-                    offset: SCREEN_HEIGHT * index,
-                    index,
-                })}
-            />
-        </SafeAreaView>
+      <EmptyState message="No shorts available yet. Check back soon!" iconName="film" />
     );
+  };
+
+  return (
+    <SafeAreaView edges={[]} style={styles.container}>
+      <FlatList
+        ref={flatListRef}
+        data={shorts}
+        renderItem={renderShort}
+        keyExtractor={(item) => item.$id}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+        snapToInterval={SCREEN_HEIGHT}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={renderFooter}
+        onEndReached={() => {
+          if (hasMore && !loading) {
+            loadMore();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={refresh}
+            colors={[colors.accent.secondary]}
+            tintColor={colors.accent.secondary}
+          />
+        }
+        removeClippedSubviews
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        initialNumToRender={2}
+        getItemLayout={(_, index) => ({
+          length: SCREEN_HEIGHT,
+          offset: SCREEN_HEIGHT * index,
+          index,
+        })}
+      />
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#000",
-    },
-    shortContainer: {
-        width: "100%",
-        backgroundColor: "#000",
-    },
-    emptyContainer: {
-        height: SCREEN_HEIGHT,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 40,
-    },
-    emptyText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: theme.colors.text.secondary,
-    },
-    caughtUpEmoji: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
-    caughtUpText: {
-        fontSize: 24,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-        marginBottom: 8,
-    },
-    caughtUpSubtext: {
-        fontSize: 16,
-        color: theme.colors.text.secondary,
-        textAlign: "center",
-        marginTop: 4,
-    },
-    footer: {
-        height: SCREEN_HEIGHT,
-        justifyContent: "center",
-        alignItems: "center",
-    },
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  shortContainer: {
+    width: "100%",
+    backgroundColor: "#000",
+  },
+  emptyContainer: {
+    height: SCREEN_HEIGHT,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.text.secondary,
+  },
+  caughtUpEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  caughtUpText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: colors.text.primary,
+    marginBottom: 8,
+  },
+  caughtUpSubtext: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    textAlign: "center",
+    marginTop: 4,
+  },
+  footer: {
+    height: SCREEN_HEIGHT,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
+

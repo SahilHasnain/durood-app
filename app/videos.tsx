@@ -1,6 +1,6 @@
 import EmptyState from "@/components/EmptyState";
 import { VideoCard } from "@/components/VideoCard";
-import { theme } from "@/constants/theme";
+import { colors } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useDuroodVideos } from "@/hooks/useDuroodVideos";
 import { getProgress } from "@/services/progressTracking";
@@ -24,10 +24,11 @@ interface VideoProgress {
     percentage: number;
 }
 
-export default function VideosScreen() {
+export default function HomeScreen() {
     const router = useRouter();
     const { videos, loading, error, hasMore, loadMore, refresh } = useDuroodVideos();
     const [progressData, setProgressData] = useState<Record<string, VideoProgress>>({});
+
     const { showTabBar } = useTabBarVisibility();
 
     // Load progress data
@@ -48,14 +49,13 @@ export default function VideosScreen() {
         }
     }, [videos]);
 
-    // Show tab bar when screen is focused
     useFocusEffect(
         useCallback(() => {
             showTabBar();
         }, [showTabBar])
     );
 
-    const handleVideoPress = (video: Durood) => {
+    const handleVideoPress = useCallback((video: Durood) => {
         router.push({
             pathname: "/video",
             params: {
@@ -64,7 +64,7 @@ export default function VideosScreen() {
                 duroodId: video.$id,
             },
         });
-    };
+    }, [router]);
 
     const renderVideo = useCallback(
         ({ item }: { item: Durood }) => {
@@ -79,14 +79,14 @@ export default function VideosScreen() {
                 />
             );
         },
-        [progressData]
+        [handleVideoPress, progressData]
     );
 
     const renderFooter = () => {
         if (!loading || videos.length === 0) return null;
         return (
             <View style={styles.footer}>
-                <ActivityIndicator size="small" color={theme.colors.primary.main} />
+                <ActivityIndicator size="small" color={colors.accent.secondary} />
             </View>
         );
     };
@@ -95,7 +95,7 @@ export default function VideosScreen() {
         if (loading && videos.length === 0) {
             return (
                 <View style={styles.emptyContainer}>
-                    <ActivityIndicator size="large" color={theme.colors.primary.main} />
+                    <ActivityIndicator size="large" color={colors.accent.secondary} />
                     <Text style={styles.emptyText}>Loading videos...</Text>
                 </View>
             );
@@ -116,10 +116,7 @@ export default function VideosScreen() {
     };
 
     return (
-        <SafeAreaView edges={["top"]} style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Durood Videos</Text>
-            </View>
+        <SafeAreaView edges={[]} style={styles.container}>
             <FlatList
                 data={videos}
                 renderItem={renderVideo}
@@ -138,8 +135,8 @@ export default function VideosScreen() {
                     <RefreshControl
                         refreshing={false}
                         onRefresh={refresh}
-                        colors={[theme.colors.primary.main]}
-                        tintColor={theme.colors.primary.main}
+                        colors={[colors.accent.secondary]}
+                        tintColor={colors.accent.secondary}
                     />
                 }
                 removeClippedSubviews
@@ -154,24 +151,11 @@ export default function VideosScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background.primary,
-    },
-    header: {
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.background.secondary,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: theme.colors.text.primary,
+        backgroundColor: "#000",
     },
     contentContainer: {
         flexGrow: 1,
-        paddingTop: 16,
-        paddingHorizontal: 16,
-        paddingBottom: 100,
+        paddingBottom: 120,
     },
     emptyContainer: {
         height: SCREEN_HEIGHT - 200,
@@ -182,7 +166,7 @@ const styles = StyleSheet.create({
     emptyText: {
         marginTop: 16,
         fontSize: 16,
-        color: theme.colors.text.secondary,
+        color: colors.text.secondary,
     },
     footer: {
         paddingVertical: 20,

@@ -1,8 +1,9 @@
 import { CustomVideoPlayer } from "@/components/CustomVideoPlayer";
+import { colors } from "@/constants/theme";
 import { config } from "@/config/appwrite";
-import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { getProgress, saveProgress } from "@/services/progressTracking";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { VideoPlayer } from "expo-video";
 import React from "react";
@@ -36,16 +37,19 @@ export default function VideoScreen() {
 
     const videoUrl = `${config.endpoint}/storage/buckets/${config.storageBucketId}/files/${videoId}/view?project=${config.projectId}`;
 
+    // Get tab bar visibility context
     const { translateY: tabBarTranslateY, tabBarHeight } = useTabBarVisibility();
 
     // Hide tab bar when this screen is focused
     useFocusEffect(
         React.useCallback(() => {
+            // Hide tab bar by moving it down
             tabBarTranslateY.value = withTiming(tabBarHeight + 50, {
                 duration: 300,
             });
 
             return () => {
+                // Show tab bar when leaving
                 tabBarTranslateY.value = withTiming(0, {
                     duration: 300,
                 });
@@ -70,6 +74,7 @@ export default function VideoScreen() {
                         });
                     }
                 } catch (error) {
+                    // Player already released, ignore
                     console.log("Player already released on blur");
                 }
             };
@@ -114,6 +119,7 @@ export default function VideoScreen() {
                     });
                 }
             } catch (error) {
+                // Player already released, ignore
                 console.log("Player already released on app background");
             }
         });
@@ -172,12 +178,26 @@ export default function VideoScreen() {
         <>
             <StatusBar
                 barStyle="light-content"
-                backgroundColor={theme.colors.background.primary}
+                backgroundColor={colors.background.primary}
                 translucent
             />
 
-            <SafeAreaView edges={[]} style={styles.container}>
-                <View style={styles.videoContainer}>
+            <SafeAreaView edges={[]} className="flex-1 bg-black">
+                <LinearGradient
+                    pointerEvents="none"
+                    colors={[
+                        "rgba(0, 0, 0, 0.46)",
+                        "rgba(6, 10, 20, 0.24)",
+                        "rgba(0, 0, 0, 0.12)",
+                        "rgba(0, 0, 0, 0.36)",
+                    ]}
+                    locations={[0, 0.18, 0.58, 1]}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                />
+
+                <View className="flex-1 bg-black">
                     <CustomVideoPlayer
                         ref={videoRef}
                         videoUrl={videoUrl}
@@ -215,14 +235,3 @@ export default function VideoScreen() {
         </>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#000",
-    },
-    videoContainer: {
-        flex: 1,
-        backgroundColor: "#000",
-    },
-});

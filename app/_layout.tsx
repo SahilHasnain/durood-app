@@ -23,12 +23,6 @@ function RootLayoutContent() {
       tabBar={(props) => <AnimatedTabBar {...props} translateY={translateY} />}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
         name="home"
         options={{
           title: "Home",

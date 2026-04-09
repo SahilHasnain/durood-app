@@ -1,4 +1,4 @@
-import { theme } from "@/constants/theme";
+import { colors } from "@/constants/theme";
 import { Durood } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -43,7 +43,11 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                     {imageError || !video.thumbnailUrl ? (
                         <View style={styles.placeholderContainer}>
                             <View style={styles.placeholderIconWrapper}>
-                                <Ionicons name="musical-notes" size={48} color={theme.colors.primary.main} />
+                                <Image
+                                    source={require("@/assets/images/icon.png")}
+                                    style={{ width: 48, height: 48 }}
+                                    contentFit="contain"
+                                />
                             </View>
                             <Text style={styles.placeholderText}>No Thumbnail</Text>
                         </View>
@@ -65,6 +69,12 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                                 <View style={styles.loadingContainer}>
                                     <Ionicons name="hourglass" size={32} color="#717171" />
                                 </View>
+                            )}
+                            {!imageLoading && (
+                                <View
+                                    style={StyleSheet.absoluteFill}
+                                    pointerEvents="none"
+                                />
                             )}
                         </>
                     )}
@@ -89,7 +99,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                     <View style={styles.titleRow}>
                         <View style={styles.titleContainer}>
                             <View style={styles.titleWrapper}>
-                                <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
+                                <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
                                     {video.title}
                                 </Text>
                             </View>
@@ -105,7 +115,7 @@ const styles = StyleSheet.create({
     thumbnailContainer: {
         width: "100%",
         height: 200,
-        backgroundColor: theme.colors.background.secondary,
+        backgroundColor: colors.background.tertiary || "#1a1a1a",
         position: "relative",
     },
     thumbnail: {
@@ -117,18 +127,18 @@ const styles = StyleSheet.create({
         height: "100%",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: theme.colors.background.secondary,
+        backgroundColor: colors.background.tertiary || "#1a1a1a",
     },
     placeholderIconWrapper: {
         padding: 12,
         borderRadius: 9999,
-        backgroundColor: theme.colors.primary.main + "20",
+        backgroundColor: (colors.accent.secondary || "#FF6B6B") + "20",
     },
     placeholderText: {
         marginTop: 8,
         fontSize: 14,
         fontWeight: "500",
-        color: theme.colors.text.tertiary,
+        color: colors.text.tertiary || "#666",
     },
     loadingContainer: {
         position: "absolute",
@@ -138,7 +148,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: theme.colors.background.secondary,
+        backgroundColor: colors.background.tertiary || "#1a1a1a",
     },
     durationBadge: {
         position: "absolute",
@@ -147,13 +157,13 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 6,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        backgroundColor: colors.overlay?.dark || "rgba(0, 0, 0, 0.8)",
     },
     durationText: {
         fontSize: 12,
         fontWeight: "700",
         letterSpacing: 0.5,
-        color: theme.colors.text.primary,
+        color: colors.text.primary,
     },
     progressBarContainer: {
         position: "absolute",
@@ -165,7 +175,7 @@ const styles = StyleSheet.create({
     },
     progressBar: {
         height: "100%",
-        backgroundColor: theme.colors.primary.main,
+        backgroundColor: colors.accent.secondary,
     },
     infoContainer: {
         paddingHorizontal: 8,
@@ -185,6 +195,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "500",
         lineHeight: 18,
-        color: theme.colors.text.primary,
+        color: colors.text.primary,
     },
 });
+
