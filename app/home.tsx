@@ -8,7 +8,6 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
-  Easing,
   ImageBackground,
   Keyboard,
   GestureResponderEvent,
@@ -54,7 +53,7 @@ export default function Home() {
       headerTranslateY.value = withTiming(0, {
         duration: 300,
       });
-    }, [showTabBar])
+    }, [headerTranslateY, showTabBar])
   );
 
   useEffect(() => {

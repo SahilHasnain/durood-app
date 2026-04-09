@@ -17,10 +17,12 @@ import {
     Text,
     View,
 } from "react-native";
-import { useSharedValue } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SCROLL_THRESHOLD = 5;
+const HEADER_HEIGHT = 60;
 
 interface VideoProgress {
     percentage: number;
@@ -31,8 +33,11 @@ export default function HomeScreen() {
     const { videos, loading, error, hasMore, loadMore, refresh } = useDuroodVideos();
     const [progressData, setProgressData] = useState<Record<string, VideoProgress>>({});
     const headerTranslateY = useSharedValue(0);
+    const insets = useSafeAreaInsets();
+    const previousScrollY = React.useRef(0);
+    const lastDirection = React.useRef<"up" | "down">("up");
 
-    const { showTabBar } = useTabBarVisibility();
+    const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
 
     // Load progress data
     React.useEffect(() => {
@@ -55,8 +60,66 @@ export default function HomeScreen() {
     useFocusEffect(
         useCallback(() => {
             showTabBar();
-        }, [showTabBar])
+            headerTranslateY.value = withTiming(0, {
+                duration: 300,
+                easing: Easing.out(Easing.ease),
+            });
+            previousScrollY.current = 0;
+            lastDirection.current = "up";
+        }, [headerTranslateY, showTabBar])
     );
+
+    const handleScroll = useCallback((event: any) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+
+        if (currentScrollY <= 0) {
+            headerTranslateY.value = withTiming(0, {
+                duration: 300,
+                easing: Easing.out(Easing.ease),
+            });
+            tabBarTranslateY.value = withTiming(0, {
+                duration: 300,
+                easing: Easing.out(Easing.ease),
+            });
+            previousScrollY.current = currentScrollY;
+            lastDirection.current = "up";
+            return;
+        }
+
+        const scrollDiff = currentScrollY - previousScrollY.current;
+        if (Math.abs(scrollDiff) <= SCROLL_THRESHOLD) {
+            return;
+        }
+
+        const direction = scrollDiff > 0 ? "down" : "up";
+        if (direction !== lastDirection.current) {
+            lastDirection.current = direction;
+
+            headerTranslateY.value = withTiming(
+                direction === "down" ? -(HEADER_HEIGHT + insets.top + 20) : 0,
+                {
+                    duration: 300,
+                    easing:
+                        direction === "down"
+                            ? Easing.in(Easing.ease)
+                            : Easing.out(Easing.ease),
+                }
+            );
+
+            tabBarTranslateY.value = withTiming(
+                direction === "down" ? tabBarHeight + 50 : 0,
+                {
+                    duration: 300,
+                    easing:
+                        direction === "down"
+                            ? Easing.in(Easing.ease)
+                            : Easing.out(Easing.ease),
+                }
+            );
+        }
+
+        previousScrollY.current = currentScrollY;
+    }, [headerTranslateY, insets.top, tabBarHeight, tabBarTranslateY]);
 
     const handleVideoPress = useCallback((video: Durood) => {
         router.push({
@@ -135,6 +198,8 @@ export default function HomeScreen() {
                     }
                 }}
                 onEndReachedThreshold={0.5}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
                 refreshControl={
                     <RefreshControl
                         refreshing={false}
