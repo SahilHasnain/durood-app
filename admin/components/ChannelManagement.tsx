@@ -30,6 +30,9 @@ export default function ChannelManagement() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [cleaningUp, setCleaningUp] = useState(false);
+  const [deleteNullVideoOnly, setDeleteNullVideoOnly] = useState(false);
+  const [deleteLogs, setDeleteLogs] = useState<string[]>([]);
+  const [deleteProcessing, setDeleteProcessing] = useState(false);
 
   useEffect(() => {
     fetchChannels();
@@ -76,26 +79,68 @@ export default function ChannelManagement() {
       return;
     }
 
-    const response = await fetch("/api/channels/delete", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ youtubeChannelId: selectedChannel.youtubeChannelId }),
-    });
+    setDeleteProcessing(true);
+    setDeleteLogs(["Starting delete..."]);
 
-    const data = await response.json();
-    if (!response.ok) {
-      alert(data.error || "Failed to delete channel");
-      return;
+    try {
+      const response = await fetch("/api/channels/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          youtubeChannelId: selectedChannel.youtubeChannelId,
+          deleteNullVideoOnly,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Failed to delete channel");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let finalResult: { deletedVideos?: number; deletedFiles?: number } | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        const lines = decoder.decode(value).split("\n");
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) {
+            continue;
+          }
+
+          const event = JSON.parse(line.slice(6));
+          if (event.type === "log") {
+            setDeleteLogs((current) => [...current, event.message]);
+          } else if (event.type === "error") {
+            throw new Error(event.message || "Failed to delete channel");
+          } else if (event.type === "complete") {
+            finalResult = event.result || null;
+          }
+        }
+      }
+
+      await fetchChannels();
+      setSelectedChannel(null);
+      setShowDeleteModal(false);
+      setDeleteNullVideoOnly(false);
+      setDeleteLogs([]);
+      alert(
+        `Deleted ${selectedChannel.name}\n\nVideo documents: ${finalResult?.deletedVideos || 0}\nStorage files: ${
+          finalResult?.deletedFiles || 0
+        }\nMode: ${deleteNullVideoOnly ? "Only videoId null documents" : "Full channel delete"}`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete channel";
+      setDeleteLogs((current) => [...current, `Error: ${message}`]);
+      alert(message);
+    } finally {
+      setDeleteProcessing(false);
     }
-
-    await fetchChannels();
-    setSelectedChannel(null);
-    setShowDeleteModal(false);
-    alert(
-      `Deleted ${selectedChannel.name}\n\nVideo documents: ${data.deletedVideos || 0}\nStorage files: ${
-        data.deletedFiles || 0
-      }`
-    );
   }
 
   if (loading) {
@@ -195,6 +240,9 @@ export default function ChannelManagement() {
                       <button
                         onClick={() => {
                           setSelectedChannel(channel);
+                          setDeleteNullVideoOnly(false);
+                          setDeleteLogs([]);
+                          setDeleteProcessing(false);
                           setShowDeleteModal(true);
                         }}
                         className="text-sm font-medium text-red-400 transition-colors hover:text-red-300"
@@ -225,24 +273,53 @@ export default function ChannelManagement() {
           <div className="w-full max-w-md rounded-lg border border-neutral-700 bg-neutral-800 p-6">
             <h3 className="mb-4 text-xl font-semibold text-white">Delete Source</h3>
             <p className="mb-6 text-neutral-300">
-              Delete <strong>{selectedChannel.name}</strong> and all associated video
-              documents/storage files?
+              Choose how to delete <strong>{selectedChannel.name}</strong>.
             </p>
+            <label className="mb-6 flex items-start gap-3 rounded-lg border border-neutral-700 bg-neutral-900/70 p-4">
+              <input
+                type="checkbox"
+                checked={deleteNullVideoOnly}
+                onChange={(e) => setDeleteNullVideoOnly(e.target.checked)}
+                disabled={deleteProcessing}
+                className="mt-1"
+              />
+              <span className="block text-sm text-neutral-300">
+                <span className="block font-medium text-white">Delete only documents with `videoId = null`</span>
+                <span className="mt-1 block text-xs leading-5 text-neutral-400">
+                  This keeps uploaded videos intact and removes only pending records without a
+                  storage file. Leave this unchecked for a full channel delete.
+                </span>
+              </span>
+            </label>
+            {deleteLogs.length > 0 && (
+              <div className="mb-6 max-h-48 overflow-y-auto rounded-lg border border-neutral-700 bg-neutral-950 p-3">
+                <div className="space-y-1 font-mono text-xs text-neutral-300">
+                  {deleteLogs.map((log, index) => (
+                    <div key={`${log}-${index}`}>{log}</div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => {
                   setShowDeleteModal(false);
                   setSelectedChannel(null);
+                  setDeleteNullVideoOnly(false);
+                  setDeleteLogs([]);
+                  setDeleteProcessing(false);
                 }}
+                disabled={deleteProcessing}
                 className="rounded-lg bg-neutral-700 px-4 py-2 text-white transition-colors hover:bg-neutral-600"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
+                disabled={deleteProcessing}
                 className="rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600"
               >
-                Delete
+                {deleteProcessing ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>

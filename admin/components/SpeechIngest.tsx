@@ -26,7 +26,7 @@ export default function SpeechIngest() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [ingestMode, setIngestMode] = useState<"all" | "shorts" | "videos">("all");
-  const [limit, setLimit] = useState<number | null>(null);
+  const [limit, setLimit] = useState<number>(100);
   const [limitEnabled, setLimitEnabled] = useState(false);
   const [isIngesting, setIsIngesting] = useState(false);
   const [currentChannel, setCurrentChannel] = useState("");
@@ -208,7 +208,13 @@ export default function SpeechIngest() {
             <input
               type="checkbox"
               checked={limitEnabled}
-              onChange={(e) => setLimitEnabled(e.target.checked)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setLimitEnabled(checked);
+                if (checked && (!limit || limit < 1)) {
+                  setLimit(100);
+                }
+              }}
               className="mr-2"
             />
             <span className="text-sm font-medium text-neutral-300">Limit videos per source</span>
@@ -217,7 +223,7 @@ export default function SpeechIngest() {
             <input
               type="number"
               min="1"
-              value={limit || 100}
+              value={limit}
               onChange={(e) => setLimit(parseInt(e.target.value, 10) || 100)}
               className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-white focus:border-sky-500 focus:outline-none"
             />

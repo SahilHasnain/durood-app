@@ -41,6 +41,18 @@ export interface DeleteChannelResult extends ActionResult {
   deletedFiles?: number;
 }
 
+interface DeleteChannelOptions {
+  deleteNullVideoOnly?: boolean;
+}
+
+function isDocumentNotFoundError(error: unknown) {
+  return error instanceof Error && /could not be found/i.test(error.message);
+}
+
+export interface DeleteProgressCallback {
+  (message: string): void;
+}
+
 export async function fetchYouTubeChannelInfo(channelId: string, apiKey: string) {
   return fetchChannelInfo(channelId, apiKey);
 }
@@ -148,7 +160,11 @@ export async function updateChannel(
   }
 }
 
-export async function deleteChannel(youtubeChannelId: string): Promise<DeleteChannelResult> {
+export async function deleteChannel(
+  youtubeChannelId: string,
+  options: DeleteChannelOptions = {},
+  progressCallback?: DeleteProgressCallback
+): Promise<DeleteChannelResult> {
   const { databases, storage } = getAppwriteClient();
 
   try {
@@ -163,30 +179,54 @@ export async function deleteChannel(youtubeChannelId: string): Promise<DeleteCha
       return { success: false, error: "Channel not found" };
     }
 
+    progressCallback?.(
+      options.deleteNullVideoOnly
+        ? `Scanning pending documents for ${channel.name}...`
+        : `Starting full delete for ${channel.name}...`
+    );
+
     let deletedVideos = 0;
     let deletedFiles = 0;
 
     while (true) {
+      const queries = [Query.equal("channelId", youtubeChannelId), Query.limit(100)];
+
+      if (options.deleteNullVideoOnly) {
+        queries.splice(1, 0, Query.isNull("videoId"));
+      }
+
       const videosResponse = await databases.listDocuments(
         appConfig.databaseId,
         appConfig.videosCollectionId,
-        [Query.equal("channelId", youtubeChannelId), Query.limit(100)]
+        queries
       );
 
       if (videosResponse.documents.length === 0) {
         break;
       }
 
+      progressCallback?.(`Fetched ${videosResponse.documents.length} document(s) for deletion...`);
+
       for (const video of videosResponse.documents) {
-        if (video.videoId) {
+        if (video.videoId && !options.deleteNullVideoOnly) {
           try {
             await storage.deleteFile(appConfig.storageBucketId, video.videoId);
             deletedFiles += 1;
+            progressCallback?.(`Deleted storage file ${video.videoId}`);
           } catch {}
         }
 
-        await databases.deleteDocument(appConfig.databaseId, appConfig.videosCollectionId, video.$id);
-        deletedVideos += 1;
+        try {
+          await databases.deleteDocument(appConfig.databaseId, appConfig.videosCollectionId, video.$id);
+          deletedVideos += 1;
+          progressCallback?.(`Deleted video document ${video.$id}`);
+        } catch (error) {
+          if (!isDocumentNotFoundError(error)) {
+            throw error;
+          }
+
+          progressCallback?.(`Skipped missing video document ${video.$id}`);
+        }
       }
 
       if (videosResponse.documents.length < 100) {
@@ -194,7 +234,22 @@ export async function deleteChannel(youtubeChannelId: string): Promise<DeleteCha
       }
     }
 
-    await databases.deleteDocument(appConfig.databaseId, appConfig.channelsCollectionId, channel.$id);
+    if (!options.deleteNullVideoOnly) {
+      try {
+        await databases.deleteDocument(appConfig.databaseId, appConfig.channelsCollectionId, channel.$id);
+        progressCallback?.(`Deleted channel document ${channel.$id}`);
+      } catch (error) {
+        if (!isDocumentNotFoundError(error)) {
+          throw error;
+        }
+
+        progressCallback?.(`Skipped missing channel document ${channel.$id}`);
+      }
+    }
+
+    progressCallback?.(
+      `Delete complete. Documents: ${deletedVideos}, storage files: ${deletedFiles}.`
+    );
 
     return { success: true, deletedVideos, deletedFiles };
   } catch (error) {

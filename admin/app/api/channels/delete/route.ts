@@ -1,23 +1,73 @@
 import { deleteChannel } from "@/lib/channels";
-import { NextResponse } from "next/server";
 
 export async function DELETE(request: Request) {
   try {
-    const { youtubeChannelId } = await request.json();
+    const { youtubeChannelId, deleteNullVideoOnly } = await request.json();
     if (!youtubeChannelId) {
-      return NextResponse.json({ error: "youtubeChannelId is required" }, { status: 400 });
+      return new Response(JSON.stringify({ error: "youtubeChannelId is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    const result = await deleteChannel(youtubeChannelId);
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
-    }
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const result = await deleteChannel(
+            youtubeChannelId,
+            { deleteNullVideoOnly: Boolean(deleteNullVideoOnly) },
+            (message) => {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: "log", message })}\n\n`)
+              );
+            }
+          );
 
-    return NextResponse.json(result);
+          if (!result.success) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: "error",
+                  message: result.error || "Failed to delete channel",
+                })}\n\n`
+              )
+            );
+            controller.close();
+            return;
+          }
+
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "complete", result })}\n\n`)
+          );
+          controller.close();
+        } catch (error) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: "error",
+                message: error instanceof Error ? error.message : "Failed to delete channel",
+              })}\n\n`
+            )
+          );
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete channel" },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Failed to delete channel",
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

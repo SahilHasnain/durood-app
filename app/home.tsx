@@ -127,6 +127,8 @@ export default function Home() {
 
   const handleReset = () => {
     setCount(0);
+    setSheetVisible(false);
+    Keyboard.dismiss();
   };
 
   const handleSetTarget = () => {
