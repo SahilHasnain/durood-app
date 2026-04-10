@@ -35,7 +35,7 @@ export default function Home() {
   const [target, setTarget] = useState(100);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [inputValue, setInputValue] = useState("100");
-  const [actionsVisible, setActionsVisible] = useState(true);
+  const [actionsVisible, setActionsVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const actionsAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
@@ -266,12 +266,9 @@ export default function Home() {
               onPress={() => {
                 setSheetVisible(true);
               }}
-              style={styles.iconBtn}
+              style={styles.targetChip}
             >
-              <Text style={styles.iconBtnLabel}>Target</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleReset} style={styles.iconBtn}>
-              <Text style={styles.iconBtnLabel}>Reset</Text>
+              <Text style={styles.targetChipLabel}>Set target</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -315,6 +312,12 @@ export default function Home() {
             blurOnSubmit={true}
           />
           <View style={styles.sheetButtons}>
+            <TouchableOpacity
+              onPress={handleReset}
+              style={styles.sheetBtn}
+            >
+              <Text style={styles.sheetBtnText}>Reset</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setSheetVisible(false)}
               style={styles.sheetBtn}
@@ -394,29 +397,26 @@ const styles = StyleSheet.create({
   },
   controlsRow: {
     position: "absolute",
-    left: 0,
-    right: 0,
-    top: 52,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    right: 20,
+    bottom: 24,
     alignItems: "center",
-    paddingHorizontal: 12,
   },
-  iconBtn: {
-    width: 74,
-    height: 44,
-    borderRadius: 16,
-    marginHorizontal: 10,
-    backgroundColor: theme.colors.surface.secondary,
+  targetChip: {
+    minWidth: 86,
+    height: 34,
+    borderRadius: 17,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
-    borderColor: theme.colors.border.secondary,
+    borderColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
-  iconBtnLabel: {
-    fontSize: 12,
-    color: theme.colors.text.secondary,
+  targetChipLabel: {
+    fontSize: 11,
+    color: theme.colors.text.tertiary,
     fontWeight: "600",
+    letterSpacing: 0.2,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
