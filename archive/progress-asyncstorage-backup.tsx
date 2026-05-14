@@ -1,20 +1,25 @@
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
-import * as TasbeehService from "@/services/tasbeehService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
     Dimensions,
     ScrollView,
     StyleSheet,
     Text,
-    View,
+    View
 } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Line } from "react-native-svg";
+
+const DAILY_COUNT_KEY = "tasbeeh_count";
+const DAILY_TARGET_KEY = "tasbeeh_target";
+const LIFETIME_TOTAL_KEY = "tasbeeh_lifetime_total";
+const STREAK_KEY = "tasbeeh_streak";
+const DAILY_HISTORY_KEY = "tasbeeh_daily_history";
 
 interface DailyRecord {
     date: string;
@@ -59,54 +64,67 @@ export default function Progress() {
         estimatedFinishDate: "—",
         dailyHistory: [],
     });
-    const [loading, setLoading] = useState(true);
 
     const loadProgressData = useCallback(async () => {
         try {
-            setLoading(true);
-            const [goal, history] = await Promise.all([
-                TasbeehService.getUserGoal(),
-                TasbeehService.getDailyHistory(30),
+            const [
+                lifetimeStr,
+                streakStr,
+                todayCountStr,
+                todayTargetStr,
+                historyStr,
+            ] = await Promise.all([
+                AsyncStorage.getItem(LIFETIME_TOTAL_KEY),
+                AsyncStorage.getItem(STREAK_KEY),
+                AsyncStorage.getItem(DAILY_COUNT_KEY),
+                AsyncStorage.getItem(DAILY_TARGET_KEY),
+                AsyncStorage.getItem(DAILY_HISTORY_KEY),
             ]);
 
-            const lifetimeTotal = goal?.lifetimeTotal ?? 0;
-            const currentStreak = goal?.currentStreak ?? 0;
-            const longestStreak = goal?.longestStreak ?? 0;
+            const lifetimeTotal = lifetimeStr ? parseInt(lifetimeStr, 10) : 0;
+            const currentStreak = streakStr ? parseInt(streakStr, 10) : 0;
+            const todayCount = todayCountStr ? parseInt(todayCountStr, 10) : 0;
+            const todayTarget = todayTargetStr ? parseInt(todayTargetStr, 10) : 100;
+            const dailyHistory: DailyRecord[] = historyStr ? JSON.parse(historyStr) : [];
 
-            // Calculate stats from history
-            const weeklyTotal = history
-                .slice(0, 7)
+            const weeklyTotal = dailyHistory
+                .slice(-7)
                 .reduce((sum, record) => sum + record.count, 0);
 
-            const monthlyTotal = history.reduce((sum, record) => sum + record.count, 0);
+            const monthlyTotal = dailyHistory
+                .slice(-30)
+                .reduce((sum, record) => sum + record.count, 0);
 
-            const bestDay =
-                history.length > 0 ? Math.max(...history.map((r) => r.count)) : 0;
+            const bestDay = dailyHistory.length > 0
+                ? Math.max(...dailyHistory.map((r) => r.count))
+                : 0;
 
-            const averagePerDay =
-                history.length > 0 ? Math.round(lifetimeTotal / history.length) : 0;
+            const averagePerDay = dailyHistory.length > 0
+                ? Math.round(lifetimeTotal / dailyHistory.length)
+                : 0;
 
-            // Estimate finish date
+            let longestStreak = 0;
+            let tempStreak = 0;
+            for (let i = dailyHistory.length - 1; i >= 0; i--) {
+                if (dailyHistory[i].count > 0) {
+                    tempStreak++;
+                    longestStreak = Math.max(longestStreak, tempStreak);
+                } else {
+                    tempStreak = 0;
+                }
+            }
+
             const remainingGoal = 10000000 - lifetimeTotal;
-            const estimatedDays =
-                averagePerDay > 0 ? Math.ceil(remainingGoal / averagePerDay) : 0;
+            const estimatedDays = averagePerDay > 0 ? Math.ceil(remainingGoal / averagePerDay) : 0;
             const finishDate = new Date();
             finishDate.setDate(finishDate.getDate() + estimatedDays);
-            const estimatedFinishDate =
-                averagePerDay > 0
-                    ? finishDate.toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                    })
-                    : "—";
-
-            // Convert history to daily records
-            const dailyHistory = history.map((record) => ({
-                date: record.date,
-                count: record.count,
-                target: record.target,
-            }));
+            const estimatedFinishDate = averagePerDay > 0
+                ? finishDate.toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                })
+                : "—";
 
             setStats({
                 lifetimeTotal,
@@ -114,17 +132,15 @@ export default function Progress() {
                 longestStreak,
                 averagePerDay,
                 bestDay,
-                todayCount: history[0]?.count ?? 0,
-                todayTarget: history[0]?.target ?? 100,
+                todayCount,
+                todayTarget,
                 weeklyTotal,
                 monthlyTotal,
                 estimatedFinishDate,
-                dailyHistory,
+                dailyHistory: dailyHistory.slice(-30),
             });
-            setLoading(false);
         } catch (error) {
             console.error("Failed to load progress data:", error);
-            setLoading(false);
         }
     }, []);
 
@@ -134,17 +150,9 @@ export default function Progress() {
         }, [loadProgressData])
     );
 
-    if (loading) {
-        return (
-            <SafeAreaView style={styles.container} edges={["top"]}>
-                <SimpleHeader translateY={headerTranslateY} />
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={theme.colors.primary.main} />
-                    <Text style={styles.loadingText}>Loading progress...</Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
+    useEffect(() => {
+        loadProgressData();
+    }, [loadProgressData]);
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
@@ -162,7 +170,9 @@ export default function Progress() {
             >
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Your Progress</Text>
-                    <Text style={styles.sectionSubtitle}>Track your journey to 1 Crore</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Track your journey to 1 Crore
+                    </Text>
                 </View>
 
                 <View style={styles.statsGrid}>
@@ -196,16 +206,12 @@ export default function Progress() {
                     <View style={styles.periodCard}>
                         <View style={styles.periodRow}>
                             <Text style={styles.periodLabel}>This Week</Text>
-                            <Text style={styles.periodValue}>
-                                {formatNumber(stats.weeklyTotal)}
-                            </Text>
+                            <Text style={styles.periodValue}>{formatNumber(stats.weeklyTotal)}</Text>
                         </View>
                         <View style={styles.periodDivider} />
                         <View style={styles.periodRow}>
                             <Text style={styles.periodLabel}>This Month</Text>
-                            <Text style={styles.periodValue}>
-                                {formatNumber(stats.monthlyTotal)}
-                            </Text>
+                            <Text style={styles.periodValue}>{formatNumber(stats.monthlyTotal)}</Text>
                         </View>
                     </View>
                 </View>
@@ -247,9 +253,7 @@ function DailyChart({ data }: { data: DailyRecord[] }) {
         return (
             <View style={styles.emptyChart}>
                 <Text style={styles.emptyChartText}>No data yet</Text>
-                <Text style={styles.emptyChartSubtext}>
-                    Start counting to see your progress
-                </Text>
+                <Text style={styles.emptyChartSubtext}>Start counting to see your progress</Text>
             </View>
         );
     }
@@ -277,7 +281,7 @@ function DailyChart({ data }: { data: DailyRecord[] }) {
             })}
 
             {data.map((record, index) => {
-                const barHeight = (record.count / maxValue) * (chartHeight - padding * 2);
+                const barHeight = ((record.count / maxValue) * (chartHeight - padding * 2));
                 const x = padding + index * barWidth + barSpacing / 2;
                 const y = chartHeight - padding - barHeight;
 
@@ -299,16 +303,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    loadingText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: theme.colors.text.secondary,
     },
     scrollView: {
         flex: 1,

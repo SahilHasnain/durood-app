@@ -1,11 +1,10 @@
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
-import * as TasbeehService from "@/services/tasbeehService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
@@ -16,6 +15,8 @@ import {
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+const LIFETIME_TOTAL_KEY = "tasbeeh_lifetime_total";
+const DAILY_TARGET_KEY = "tasbeeh_target";
 const DEFAULT_TOTAL_GOAL = 10000000;
 
 const MILESTONES = [
@@ -79,27 +80,31 @@ export default function Planner() {
     const [dailyAmount, setDailyAmount] = useState("");
     const [targetDate, setTargetDate] = useState("");
     const [calculationResult, setCalculationResult] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [updating, setUpdating] = useState(false);
 
-    const loadData = useCallback(async () => {
+    const loadLifetimeTotal = useCallback(async () => {
         try {
-            setLoading(true);
-            const goal = await TasbeehService.getUserGoal();
-            setLifetimeTotal(goal?.lifetimeTotal ?? 0);
-            setDailyTarget(goal?.dailyTarget ?? 100);
-            setLoading(false);
+            const [lifetimeStr, targetStr] = await Promise.all([
+                AsyncStorage.getItem(LIFETIME_TOTAL_KEY),
+                AsyncStorage.getItem(DAILY_TARGET_KEY),
+            ]);
+            const total = lifetimeStr ? parseInt(lifetimeStr, 10) : 0;
+            const target = targetStr ? parseInt(targetStr, 10) : 100;
+            setLifetimeTotal(total);
+            setDailyTarget(target);
         } catch (error) {
             console.error("Failed to load data:", error);
-            setLoading(false);
         }
     }, []);
 
     useFocusEffect(
         useCallback(() => {
-            loadData();
-        }, [loadData])
+            loadLifetimeTotal();
+        }, [loadLifetimeTotal])
     );
+
+    useEffect(() => {
+        loadLifetimeTotal();
+    }, [loadLifetimeTotal]);
 
     const remainingGoal = Math.max(0, DEFAULT_TOTAL_GOAL - lifetimeTotal);
 
@@ -146,33 +151,23 @@ export default function Planner() {
         }
 
         try {
-            setUpdating(true);
-            await TasbeehService.createOrUpdateUserGoal({
-                dailyTarget: newTarget,
-            });
+            await AsyncStorage.setItem(DAILY_TARGET_KEY, newTarget.toString());
             setDailyTarget(newTarget);
             setNewDailyTarget("");
             setCalculationResult(`Daily target updated to ${formatNumber(newTarget)}`);
-            setUpdating(false);
         } catch (error) {
             console.error("Failed to update target:", error);
             setCalculationResult("Failed to update target");
-            setUpdating(false);
         }
     };
 
     const applyCalculatedTarget = async (calculatedDaily: number) => {
         try {
-            setUpdating(true);
-            await TasbeehService.createOrUpdateUserGoal({
-                dailyTarget: calculatedDaily,
-            });
+            await AsyncStorage.setItem(DAILY_TARGET_KEY, calculatedDaily.toString());
             setDailyTarget(calculatedDaily);
             setCalculationResult(`Daily target set to ${formatNumber(calculatedDaily)}`);
-            setUpdating(false);
         } catch (error) {
             console.error("Failed to set target:", error);
-            setUpdating(false);
         }
     };
 
@@ -194,18 +189,6 @@ export default function Planner() {
         return `${formatNumber(remaining)} remaining • ${formatNumber(daysNeeded)} days at ${formatNumber(daily)}/day (${formatDateLabel(finishDate)})`;
     };
 
-    if (loading) {
-        return (
-            <SafeAreaView style={styles.container} edges={["top"]}>
-                <SimpleHeader translateY={headerTranslateY} />
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={theme.colors.primary.main} />
-                    <Text style={styles.loadingText}>Loading planner...</Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <SimpleHeader translateY={headerTranslateY} />
@@ -222,9 +205,12 @@ export default function Planner() {
             >
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Planning Tools</Text>
-                    <Text style={styles.sectionSubtitle}>Calculate your path to 1 Crore</Text>
+                    <Text style={styles.sectionSubtitle}>
+                        Calculate your path to 1 Crore
+                    </Text>
                 </View>
 
+                {/* Current Progress */}
                 <View style={styles.card}>
                     <Text style={styles.cardLabel}>Current Progress</Text>
                     <Text style={styles.cardValue}>{formatNumber(lifetimeTotal)}</Text>
@@ -233,6 +219,7 @@ export default function Planner() {
                     </Text>
                 </View>
 
+                {/* Daily Target Adjustment */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Daily Target</Text>
                     <View style={styles.calculatorCard}>
@@ -250,19 +237,19 @@ export default function Planner() {
                         <TouchableOpacity
                             style={styles.calculateButton}
                             onPress={updateDailyTarget}
-                            disabled={updating}
                         >
-                            <Text style={styles.calculateButtonText}>
-                                {updating ? "Updating..." : "Update Target"}
-                            </Text>
+                            <Text style={styles.calculateButtonText}>Update Target</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
 
+                {/* Calculator 1: From Daily Amount */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Calculate Finish Date</Text>
                     <View style={styles.calculatorCard}>
-                        <Text style={styles.calculatorLabel}>If I do this much per day:</Text>
+                        <Text style={styles.calculatorLabel}>
+                            If I do this much per day:
+                        </Text>
                         <TextInput
                             style={styles.input}
                             placeholder="e.g., 1000"
@@ -284,7 +271,6 @@ export default function Planner() {
                                     const daily = parsePositiveInt(dailyAmount);
                                     if (daily) applyCalculatedTarget(daily);
                                 }}
-                                disabled={updating}
                             >
                                 <Text style={styles.calculateButtonText}>Apply as Target</Text>
                             </TouchableOpacity>
@@ -292,10 +278,13 @@ export default function Planner() {
                     </View>
                 </View>
 
+                {/* Calculator 2: From Target Date */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Calculate Daily Target</Text>
                     <View style={styles.calculatorCard}>
-                        <Text style={styles.calculatorLabel}>If I want to finish by:</Text>
+                        <Text style={styles.calculatorLabel}>
+                            If I want to finish by:
+                        </Text>
                         <TextInput
                             style={styles.input}
                             placeholder="YYYY-MM-DD (e.g., 2027-12-31)"
@@ -323,7 +312,6 @@ export default function Planner() {
                                         }
                                     }
                                 }}
-                                disabled={updating}
                             >
                                 <Text style={styles.calculateButtonText}>Apply as Target</Text>
                             </TouchableOpacity>
@@ -331,12 +319,14 @@ export default function Planner() {
                     </View>
                 </View>
 
+                {/* Result Display */}
                 {calculationResult && (
                     <View style={styles.resultCard}>
                         <Text style={styles.resultText}>{calculationResult}</Text>
                     </View>
                 )}
 
+                {/* Milestone Planner */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Milestone Planner</Text>
                     <Text style={styles.sectionSubtitle}>
@@ -345,12 +335,17 @@ export default function Planner() {
                     <View style={styles.milestonesContainer}>
                         {MILESTONES.map((milestone) => {
                             const isAchieved = lifetimeTotal >= milestone.value;
-                            const progress = Math.min((lifetimeTotal / milestone.value) * 100, 100);
+                            const progress = Math.min(
+                                (lifetimeTotal / milestone.value) * 100,
+                                100
+                            );
 
                             return (
                                 <View key={milestone.value} style={styles.milestoneCard}>
                                     <View style={styles.milestoneHeader}>
-                                        <Text style={styles.milestoneLabel}>{milestone.label}</Text>
+                                        <Text style={styles.milestoneLabel}>
+                                            {milestone.label}
+                                        </Text>
                                         {isAchieved && (
                                             <Text style={styles.achievedBadge}>✓ Achieved</Text>
                                         )}
@@ -385,16 +380,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    loadingText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: theme.colors.text.secondary,
     },
     scrollView: {
         flex: 1,

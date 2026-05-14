@@ -2,13 +2,12 @@ import KeyboardSpacer from "@/components/KeyboardSpacer";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
-import { useTasbeehData } from "@/hooks/useTasbeehData";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
     Animated,
     ImageBackground,
     Keyboard,
@@ -25,9 +24,29 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = "#10b981";
+const DAILY_COUNT_KEY = "tasbeeh_count";
+const DAILY_TARGET_KEY = "tasbeeh_target";
+const LAST_ACTIVE_DATE_KEY = "tasbeeh_last_active_date";
+const LIFETIME_TOTAL_KEY = "tasbeeh_lifetime_total";
+const STREAK_KEY = "tasbeeh_streak";
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
+}
+
+function getTodayKey(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+        now.getDate()
+    ).padStart(2, "0")}`;
+}
+
+function getYesterdayKey(): string {
+    const now = new Date();
+    now.setDate(now.getDate() - 1);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+        now.getDate()
+    ).padStart(2, "0")}`;
 }
 
 function formatDuration(totalSeconds: number): string {
@@ -43,10 +62,10 @@ export default function Home() {
     const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
     const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-    // Use Appwrite hook
-    const { count, target, lifetimeTotal, streak, loading, syncing, saveData, reload } =
-        useTasbeehData();
-
+    const [count, setCount] = useState(0);
+    const [target, setTarget] = useState(100);
+    const [lifetimeTotal, setLifetimeTotal] = useState(0);
+    const [streak, setStreak] = useState(0);
     const [manualAddValue, setManualAddValue] = useState("");
     const [showManualSheet, setShowManualSheet] = useState(false);
     const [sessionActive, setSessionActive] = useState(false);
@@ -63,6 +82,8 @@ export default function Home() {
     const insets = useSafeAreaInsets();
     const headerTranslateY = useSharedValue(0);
 
+    const todayKey = getTodayKey();
+    const todaysRemaining = Math.max(0, target - count);
     const progress = target > 0 ? Math.min((count / target) * 100, 100) : 0;
     const isComplete = count >= target;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
@@ -75,8 +96,7 @@ export default function Home() {
         useCallback(() => {
             showTabBar();
             headerTranslateY.value = withTiming(0, { duration: 300 });
-            reload();
-        }, [headerTranslateY, showTabBar, reload])
+        }, [headerTranslateY, showTabBar])
     );
 
     useEffect(() => {
@@ -86,6 +106,78 @@ export default function Home() {
         }, 1000);
         return () => clearInterval(interval);
     }, [sessionActive, sessionPaused, sessionStartedAt]);
+
+    const loadData = useCallback(async () => {
+        try {
+            const [savedCount, savedTarget, savedLastActiveDate, savedLifetimeTotal, savedStreak] =
+                await Promise.all([
+                    AsyncStorage.getItem(DAILY_COUNT_KEY),
+                    AsyncStorage.getItem(DAILY_TARGET_KEY),
+                    AsyncStorage.getItem(LAST_ACTIVE_DATE_KEY),
+                    AsyncStorage.getItem(LIFETIME_TOTAL_KEY),
+                    AsyncStorage.getItem(STREAK_KEY),
+                ]);
+
+            const savedCountValue = savedCount ? Number.parseInt(savedCount, 10) : 0;
+            const savedTargetValue = savedTarget ? Number.parseInt(savedTarget, 10) : 100;
+            const savedLifetimeValue = savedLifetimeTotal
+                ? Number.parseInt(savedLifetimeTotal, 10)
+                : savedCountValue;
+            let savedStreakValue = savedStreak ? Number.parseInt(savedStreak, 10) : 0;
+
+            if (savedLastActiveDate && savedLastActiveDate !== todayKey) {
+                if (savedLastActiveDate !== getYesterdayKey()) {
+                    savedStreakValue = 0;
+                }
+                setCount(0);
+            } else {
+                setCount(savedCountValue);
+            }
+
+            setTarget(savedTargetValue);
+            setLifetimeTotal(savedLifetimeValue);
+            setStreak(savedStreakValue);
+        } catch (error) {
+            console.error("Failed to load data", error);
+        }
+    }, [todayKey]);
+
+    const saveData = useCallback(async () => {
+        try {
+            const historyStr = await AsyncStorage.getItem("tasbeeh_daily_history");
+            const dailyHistory: Array<{ date: string; count: number; target: number }> = historyStr
+                ? JSON.parse(historyStr)
+                : [];
+
+            const todayIndex = dailyHistory.findIndex((r) => r.date === todayKey);
+            if (todayIndex >= 0) {
+                dailyHistory[todayIndex] = { date: todayKey, count, target };
+            } else {
+                dailyHistory.push({ date: todayKey, count, target });
+            }
+
+            const recentHistory = dailyHistory.slice(-90);
+
+            await Promise.all([
+                AsyncStorage.setItem(DAILY_COUNT_KEY, count.toString()),
+                AsyncStorage.setItem(DAILY_TARGET_KEY, target.toString()),
+                AsyncStorage.setItem(LIFETIME_TOTAL_KEY, lifetimeTotal.toString()),
+                AsyncStorage.setItem(STREAK_KEY, streak.toString()),
+                AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
+                AsyncStorage.setItem("tasbeeh_daily_history", JSON.stringify(recentHistory)),
+            ]);
+        } catch (error) {
+            console.error("Failed to save data", error);
+        }
+    }, [count, lifetimeTotal, streak, target, todayKey]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    useEffect(() => {
+        saveData();
+    }, [saveData]);
 
     useEffect(() => {
         Animated.timing(slideAnim, {
@@ -117,23 +209,18 @@ export default function Home() {
     }, [progressAnim, progressOffset, sessionActive, sessionProgressOffset]);
 
     const applyIncrement = useCallback(
-        async (amount: number) => {
+        (amount: number) => {
             if (amount <= 0) return;
-            const newCount = count + amount;
-            const newLifetimeTotal = lifetimeTotal + amount;
-            let newStreak = streak;
-
-            if (count < target && newCount >= target) {
-                newStreak = streak + 1;
-            }
-
-            await saveData({
-                count: newCount,
-                lifetimeTotal: newLifetimeTotal,
-                streak: newStreak,
+            setCount((prev) => {
+                const nextCount = prev + amount;
+                if (prev < target && nextCount >= target) {
+                    setStreak((current) => current + 1);
+                }
+                return nextCount;
             });
+            setLifetimeTotal((prev) => prev + amount);
         },
-        [count, lifetimeTotal, streak, target, saveData]
+        [target]
     );
 
     const beginSession = useCallback(() => {
@@ -189,25 +276,15 @@ export default function Home() {
         Keyboard.dismiss();
     };
 
-    if (loading) {
-        return (
-            <SafeAreaView style={styles.container} edges={["top"]}>
-                <SimpleHeader translateY={headerTranslateY} />
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={theme.colors.primary.main} />
-                    <Text style={styles.loadingText}>Loading your progress...</Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
     if (sessionActive) {
         return (
-            <SafeAreaView style={styles.sessionContainer} edges={["top", "bottom"]}>
+            <SafeAreaView
+                style={styles.sessionContainer}
+                edges={["top", "bottom"]}
+            >
                 <View style={styles.sessionHeader}>
                     <Text style={styles.sessionTimer}>{formatDuration(sessionElapsedSeconds)}</Text>
                     <Text style={styles.sessionCount}>{formatNumber(sessionCount)}</Text>
-                    {syncing && <Text style={styles.syncingText}>Syncing...</Text>}
                 </View>
 
                 <Pressable style={styles.sessionTapArea} onPress={addToSession}>
@@ -243,13 +320,8 @@ export default function Home() {
                     <TouchableOpacity onPress={pauseOrResumeSession} style={styles.sessionButton}>
                         <Text style={styles.sessionButtonText}>{sessionPaused ? "Resume" : "Pause"}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={endSession}
-                        style={[styles.sessionButton, styles.sessionButtonEnd]}
-                    >
-                        <Text style={[styles.sessionButtonText, styles.sessionButtonEndText]}>
-                            End Session
-                        </Text>
+                    <TouchableOpacity onPress={endSession} style={[styles.sessionButton, styles.sessionButtonEnd]}>
+                        <Text style={[styles.sessionButtonText, styles.sessionButtonEndText]}>End Session</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -295,7 +367,6 @@ export default function Home() {
                             <Text style={styles.summaryValue}>{streak} days</Text>
                         </View>
                     </View>
-                    {syncing && <Text style={styles.syncingBadge}>Syncing...</Text>}
                 </View>
 
                 {/* Counter Ring */}
@@ -334,13 +405,8 @@ export default function Home() {
 
                 {/* Actions */}
                 <View style={styles.actionRow}>
-                    <TouchableOpacity
-                        onPress={beginSession}
-                        style={[styles.actionButton, styles.actionButtonPrimary]}
-                    >
-                        <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>
-                            Start Session
-                        </Text>
+                    <TouchableOpacity onPress={beginSession} style={[styles.actionButton, styles.actionButtonPrimary]}>
+                        <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>Start Session</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setShowManualSheet(true)} style={styles.actionButton}>
                         <Text style={styles.actionButtonText}>Manual Add</Text>
@@ -398,16 +464,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.colors.background.primary,
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    loadingText: {
-        marginTop: 16,
-        fontSize: 16,
-        color: theme.colors.text.secondary,
-    },
     backgroundLayer: {
         position: "absolute",
         top: 0,
@@ -462,17 +518,6 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: theme.colors.text.primary,
     },
-    syncingBadge: {
-        marginTop: 12,
-        fontSize: 12,
-        color: theme.colors.primary.main,
-        textAlign: "center",
-    },
-    syncingText: {
-        fontSize: 12,
-        color: theme.colors.primary.main,
-        marginTop: 8,
-    },
     counterContainer: {
         alignItems: "center",
         marginBottom: 24,
@@ -504,6 +549,47 @@ const styles = StyleSheet.create({
     tapHint: {
         fontSize: 13,
         color: theme.colors.text.tertiary,
+    },
+    statusCard: {
+        width: "100%",
+        backgroundColor: theme.colors.surface.secondary,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+    },
+    statusCardComplete: {
+        backgroundColor: "rgba(16, 185, 129, 0.1)",
+        borderColor: "rgba(16, 185, 129, 0.3)",
+    },
+    statusText: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        textAlign: "center",
+    },
+    statusTextComplete: {
+        color: "#10b981",
+    },
+    quickAddRow: {
+        flexDirection: "row",
+        gap: 8,
+        marginBottom: 24,
+        flexWrap: "wrap",
+        justifyContent: "center",
+    },
+    quickAddChip: {
+        backgroundColor: theme.colors.surface.primary,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+    },
+    quickAddChipText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: theme.colors.text.primary,
     },
     actionRow: {
         width: "100%",

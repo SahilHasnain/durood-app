@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
@@ -88,7 +89,32 @@ function RootLayoutContent() {
         }}
       />
       <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="video"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="auth"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
         options={{
           href: null,
         }}
@@ -105,10 +131,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <TabBarVisibilityProvider tabBarHeight={68}>
-          <StatusBar style="light" />
-          <RootLayoutContent />
-        </TabBarVisibilityProvider>
+        <AuthProvider>
+          <TabBarVisibilityProvider tabBarHeight={68}>
+            <StatusBar style="light" />
+            <RootLayoutContent />
+          </TabBarVisibilityProvider>
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
