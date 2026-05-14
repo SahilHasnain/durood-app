@@ -46,12 +46,12 @@ export default {
       typedRoutes: true,
     },
     extra: {
-      appwriteEndpoint: process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT,
-      appwriteProjectId: process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID,
-      appwriteDatabaseId: process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID,
-      appwriteVideosCollectionId: process.env.EXPO_PUBLIC_APPWRITE_VIDEOS_COLLECTION_ID,
-      appwriteChannelsCollectionId: process.env.EXPO_PUBLIC_APPWRITE_CHANNELS_COLLECTION_ID,
-      appwriteStorageBucketId: process.env.EXPO_PUBLIC_APPWRITE_STORAGE_BUCKET_ID,
+      appwriteEndpoint: "https://fra.cloud.appwrite.io/v1",
+      appwriteProjectId: "6946f98a001db8a3ab3a",
+      appwriteDatabaseId: "69d787ad002831c59b48",
+      appwriteVideosCollectionId: "69d787af0003b92d2963",
+      appwriteChannelsCollectionId: "69d787ba001af3838dc9",
+      appwriteStorageBucketId: "69d787c10015ff7916f7",
     },
   },
 };

@@ -1,31 +1,23 @@
 import { Client, Databases, Storage } from "appwrite";
-import Constants from "expo-constants";
 
-const frontendConfig = {
-  endpoint: Constants.expoConfig?.extra?.appwriteEndpoint || "",
-  projectId: Constants.expoConfig?.extra?.appwriteProjectId || "",
-  databaseId: Constants.expoConfig?.extra?.appwriteDatabaseId || "",
-  videosCollectionId: Constants.expoConfig?.extra?.appwriteVideosCollectionId || "",
-  channelsCollectionId: Constants.expoConfig?.extra?.appwriteChannelsCollectionId || "",
-  storageBucketId: Constants.expoConfig?.extra?.appwriteStorageBucketId || "",
+const config = {
+  endpoint: "https://fra.cloud.appwrite.io/v1",
+  projectId: "6946f98a001db8a3ab3a",
+  databaseId: "69d787ad002831c59b48",
+  videosCollectionId: "69d787af0003b92d2963",
+  channelsCollectionId: "69d787ba001af3838dc9",
+  storageBucketId: "69d787c10015ff7916f7",
 } as const;
 
 const client = new Client();
 
 client
-  .setEndpoint(frontendConfig.endpoint)
-  .setProject(frontendConfig.projectId);
+  .setEndpoint(config.endpoint)
+  .setProject(config.projectId);
 
 export const databases = new Databases(client);
 export const storage = new Storage(client);
 
-export const config = {
-  endpoint: frontendConfig.endpoint,
-  projectId: frontendConfig.projectId,
-  databaseId: frontendConfig.databaseId,
-  videosCollectionId: frontendConfig.videosCollectionId,
-  channelsCollectionId: frontendConfig.channelsCollectionId,
-  storageBucketId: frontendConfig.storageBucketId,
-};
+export { config };
 
 export default client;
