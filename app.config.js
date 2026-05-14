@@ -15,16 +15,15 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.duroodepak.app",
+      bundleIdentifier: "com.duroodepak",
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#0A0A0F",
+        foregroundImage: "./assets/images/icon.png",
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: "com.duroodepak.app",
+      package: "com.duroodepak",
     },
     web: {
       bundler: "metro",
@@ -33,6 +32,7 @@ export default {
     },
     plugins: [
       "expo-router",
+      "expo-web-browser",
       [
         "expo-splash-screen",
         {

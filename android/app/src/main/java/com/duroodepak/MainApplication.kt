@@ -1,4 +1,4 @@
-package com.duroodepak.app
+package com.duroodepak
 
 import android.app.Application
 import android.content.res.Configuration
