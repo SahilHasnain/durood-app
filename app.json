@@ -17,7 +17,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.duroodepak.app"
+      "package": "com.duroodepak"
     },
     "web": {
       "output": "static",
