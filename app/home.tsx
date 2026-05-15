@@ -298,53 +298,56 @@ export default function Home() {
                     {syncing && <Text style={styles.syncingBadge}>Syncing...</Text>}
                 </View>
 
-                {/* Counter Ring */}
-                <TouchableOpacity activeOpacity={0.85} onPress={beginSession} style={styles.counterContainer}>
-                    <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
-                        <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-                            <Circle
-                                cx={RING_SIZE / 2}
-                                cy={RING_SIZE / 2}
-                                r={RING_RADIUS}
-                                stroke={theme.colors.border.primary}
-                                strokeWidth={RING_STROKE_WIDTH}
-                                fill="none"
-                                opacity={0.55}
-                            />
-                            <Circle
-                                cx={RING_SIZE / 2}
-                                cy={RING_SIZE / 2}
-                                r={RING_RADIUS}
-                                stroke={TASBEEH_PROGRESS_COLOR}
-                                strokeWidth={RING_STROKE_WIDTH}
-                                strokeLinecap="round"
-                                strokeDasharray={RING_CIRCUMFERENCE}
-                                strokeDashoffset={animatedProgressOffset}
-                                fill="none"
-                                transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
-                            />
-                        </Svg>
-                        <View style={styles.progressInner}>
-                            <Text style={styles.count}>{formatNumber(count)}</Text>
-                            <Text style={styles.targetText}>of {formatNumber(target)}</Text>
-                            <Text style={styles.tapHint}>Tap to start session</Text>
+                {/* Counter and Actions Group */}
+                <View style={styles.bottomGroup}>
+                    {/* Counter Ring */}
+                    <TouchableOpacity activeOpacity={0.85} onPress={beginSession} style={styles.counterContainer}>
+                        <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
+                            <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
+                                <Circle
+                                    cx={RING_SIZE / 2}
+                                    cy={RING_SIZE / 2}
+                                    r={RING_RADIUS}
+                                    stroke={theme.colors.border.primary}
+                                    strokeWidth={RING_STROKE_WIDTH}
+                                    fill="none"
+                                    opacity={0.55}
+                                />
+                                <Circle
+                                    cx={RING_SIZE / 2}
+                                    cy={RING_SIZE / 2}
+                                    r={RING_RADIUS}
+                                    stroke={TASBEEH_PROGRESS_COLOR}
+                                    strokeWidth={RING_STROKE_WIDTH}
+                                    strokeLinecap="round"
+                                    strokeDasharray={RING_CIRCUMFERENCE}
+                                    strokeDashoffset={animatedProgressOffset}
+                                    fill="none"
+                                    transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+                                />
+                            </Svg>
+                            <View style={styles.progressInner}>
+                                <Text style={styles.count}>{formatNumber(count)}</Text>
+                                <Text style={styles.targetText}>of {formatNumber(target)}</Text>
+                                <Text style={styles.tapHint}>Tap to start session</Text>
+                            </View>
                         </View>
-                    </View>
-                </TouchableOpacity>
+                    </TouchableOpacity>
 
-                {/* Actions */}
-                <View style={styles.actionRow}>
-                    <TouchableOpacity
-                        onPress={beginSession}
-                        style={[styles.actionButton, styles.actionButtonPrimary]}
-                    >
-                        <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>
-                            Start Session
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setShowManualSheet(true)} style={styles.actionButton}>
-                        <Text style={styles.actionButtonText}>Manual Add</Text>
-                    </TouchableOpacity>
+                    {/* Actions */}
+                    <View style={styles.actionRow}>
+                        <TouchableOpacity
+                            onPress={beginSession}
+                            style={[styles.actionButton, styles.actionButtonPrimary]}
+                        >
+                            <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>
+                                Start Session
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setShowManualSheet(true)} style={styles.actionButton}>
+                            <Text style={styles.actionButtonText}>Manual Add</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </ScrollView>
 
@@ -427,7 +430,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
+        flexGrow: 1,
         paddingHorizontal: 16,
+        justifyContent: "space-between",
+    },
+    bottomGroup: {
+        width: "100%",
         alignItems: "center",
     },
     summaryCard: {
