@@ -7,6 +7,7 @@ import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     Dimensions,
+    ImageBackground,
     ScrollView,
     StyleSheet,
     Text,
@@ -33,11 +34,31 @@ interface ProgressStats {
     weeklyTotal: number;
     monthlyTotal: number;
     estimatedFinishDate: string;
+    estimatedFinishDistance: string;
     dailyHistory: DailyRecord[];
 }
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
+}
+
+function formatTimeFromNow(totalDays: number): string {
+    if (totalDays <= 0) return "today";
+
+    const years = Math.floor(totalDays / 365);
+    const months = Math.floor((totalDays % 365) / 30);
+
+    if (years <= 0) {
+        return months > 0
+            ? `${months} month${months === 1 ? "" : "s"}`
+            : `${totalDays} day${totalDays === 1 ? "" : "s"}`;
+    }
+
+    if (months <= 0) {
+        return `${years} year${years === 1 ? "" : "s"}`;
+    }
+
+    return `${years} year${years === 1 ? "" : "s"} ${months} month${months === 1 ? "" : "s"}`;
 }
 
 export default function Progress() {
@@ -57,6 +78,7 @@ export default function Progress() {
         weeklyTotal: 0,
         monthlyTotal: 0,
         estimatedFinishDate: "—",
+        estimatedFinishDistance: "?",
         dailyHistory: [],
     });
     const [loading, setLoading] = useState(true);
@@ -101,6 +123,8 @@ export default function Progress() {
                     })
                     : "—";
 
+            const estimatedFinishDistance =
+                averagePerDay > 0 ? formatTimeFromNow(estimatedDays) : "?";
             // Convert history to daily records
             const dailyHistory = history.map((record) => ({
                 date: record.date,
@@ -119,6 +143,7 @@ export default function Progress() {
                 weeklyTotal,
                 monthlyTotal,
                 estimatedFinishDate,
+                estimatedFinishDistance,
                 dailyHistory,
             });
             setLoading(false);
@@ -149,6 +174,16 @@ export default function Progress() {
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <SimpleHeader translateY={headerTranslateY} />
+            <View pointerEvents="none" style={styles.backgroundLayer}>
+                <ImageBackground
+                    source={require("../assets/images/gumbad.png")}
+                    resizeMode="cover"
+                    style={styles.backgroundImage}
+                    imageStyle={styles.backgroundImageAsset}
+                >
+                    <View style={styles.backgroundTint} />
+                </ImageBackground>
+            </View>
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={[
@@ -167,18 +202,22 @@ export default function Progress() {
 
                 <View style={styles.statsGrid}>
                     <View style={styles.statCard}>
+                        <View style={styles.statGlow} />
                         <Text style={styles.statValue}>{formatNumber(stats.lifetimeTotal)}</Text>
                         <Text style={styles.statLabel}>Lifetime Total</Text>
                     </View>
                     <View style={styles.statCard}>
+                        <View style={styles.statGlow} />
                         <Text style={styles.statValue}>{stats.currentStreak}</Text>
                         <Text style={styles.statLabel}>Current Streak</Text>
                     </View>
                     <View style={styles.statCard}>
+                        <View style={styles.statGlow} />
                         <Text style={styles.statValue}>{formatNumber(stats.averagePerDay)}</Text>
                         <Text style={styles.statLabel}>Avg Per Day</Text>
                     </View>
                     <View style={styles.statCard}>
+                        <View style={styles.statGlow} />
                         <Text style={styles.statValue}>{formatNumber(stats.bestDay)}</Text>
                         <Text style={styles.statLabel}>Best Day</Text>
                     </View>
@@ -230,6 +269,9 @@ export default function Progress() {
                     <View style={styles.projectionCard}>
                         <Text style={styles.projectionLabel}>At current pace, finish by</Text>
                         <Text style={styles.projectionDate}>{stats.estimatedFinishDate}</Text>
+                        <Text style={styles.projectionDistance}>
+                            About {stats.estimatedFinishDistance} from now
+                        </Text>
                     </View>
                 </View>
             </ScrollView>
@@ -300,6 +342,25 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.colors.background.primary,
     },
+    backgroundLayer: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    backgroundImage: {
+        flex: 1,
+        width: "100%",
+        height: "100%",
+    },
+    backgroundImageAsset: {
+        opacity: 0.18,
+    },
+    backgroundTint: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(5, 7, 9, 0.72)",
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
@@ -315,6 +376,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 16,
+        paddingBottom: 24,
     },
     section: {
         marginBottom: 24,
@@ -338,28 +400,38 @@ const styles = StyleSheet.create({
     statCard: {
         flex: 1,
         minWidth: "47%",
-        backgroundColor: theme.colors.surface.primary,
-        borderRadius: 16,
+        backgroundColor: "rgba(20, 20, 22, 0.76)",
+        borderRadius: 22,
         padding: 20,
         borderWidth: 1,
-        borderColor: theme.colors.border.primary,
+        borderColor: "rgba(255,255,255,0.06)",
+        overflow: "hidden",
+    },
+    statGlow: {
+        position: "absolute",
+        top: -30,
+        right: -24,
+        width: 84,
+        height: 84,
+        borderRadius: 42,
+        backgroundColor: "rgba(16,185,129,0.08)",
     },
     statValue: {
         fontSize: 28,
         fontWeight: "700",
         color: theme.colors.text.primary,
-        marginBottom: 4,
+        marginBottom: 8,
     },
     statLabel: {
         fontSize: 13,
-        color: theme.colors.text.secondary,
+        color: "rgba(255,255,255,0.62)",
     },
     chartCard: {
-        backgroundColor: theme.colors.surface.primary,
-        borderRadius: 16,
-        padding: 16,
+        backgroundColor: "rgba(18, 18, 20, 0.82)",
+        borderRadius: 24,
+        padding: 18,
         borderWidth: 1,
-        borderColor: theme.colors.border.primary,
+        borderColor: "rgba(255,255,255,0.05)",
     },
     emptyChart: {
         height: 180,
@@ -377,11 +449,11 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
     },
     periodCard: {
-        backgroundColor: theme.colors.surface.primary,
-        borderRadius: 16,
+        backgroundColor: "rgba(18, 18, 20, 0.8)",
+        borderRadius: 22,
         padding: 20,
         borderWidth: 1,
-        borderColor: theme.colors.border.primary,
+        borderColor: "rgba(255,255,255,0.05)",
     },
     periodRow: {
         flexDirection: "row",
@@ -399,15 +471,15 @@ const styles = StyleSheet.create({
     },
     periodDivider: {
         height: 1,
-        backgroundColor: theme.colors.border.primary,
+        backgroundColor: "rgba(255,255,255,0.06)",
         marginVertical: 16,
     },
     projectionCard: {
-        backgroundColor: theme.colors.surface.primary,
-        borderRadius: 16,
+        backgroundColor: "rgba(16,185,129,0.08)",
+        borderRadius: 24,
         padding: 24,
         borderWidth: 1,
-        borderColor: theme.colors.border.primary,
+        borderColor: "rgba(16,185,129,0.18)",
         alignItems: "center",
     },
     projectionLabel: {
@@ -419,5 +491,10 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: "700",
         color: "#10b981",
+    },
+    projectionDistance: {
+        marginTop: 8,
+        fontSize: 13,
+        color: theme.colors.text.secondary,
     },
 });
