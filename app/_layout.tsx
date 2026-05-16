@@ -1,5 +1,6 @@
 import { AnimatedTabBar } from "@/components/AnimatedTabBar";
 import { theme } from "@/constants/theme";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
@@ -9,7 +10,6 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
-import { AuthProvider } from "@/contexts/AuthContext";
 
 function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
@@ -103,6 +103,12 @@ function RootLayoutContent() {
       />
       <Tabs.Screen
         name="video"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="privacy-policy"
         options={{
           href: null,
         }}

@@ -40,6 +40,20 @@ export interface UserGoal {
   updatedAt: string;
 }
 
+function parseStoredSessions(
+  sessions: DailyProgress["sessions"] | string | undefined
+): SessionRecord[] {
+  if (!sessions) return [];
+  if (Array.isArray(sessions)) return sessions;
+
+  try {
+    const parsed = JSON.parse(sessions);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 // Get user ID (authenticated or anonymous)
 async function getUserId(): Promise<string> {
   try {
@@ -48,7 +62,7 @@ async function getUserId(): Promise<string> {
     if (user?.$id) {
       return user.$id;
     }
-  } catch (error) {
+  } catch {
     // User not authenticated, use anonymous ID
   }
 
@@ -105,12 +119,12 @@ export async function createOrUpdateUserGoal(data: Partial<UserGoal>): Promise<U
 
     const goalData = {
       userId,
-      totalGoal: data.totalGoal ?? 10000000,
-      lifetimeTotal: data.lifetimeTotal ?? 0,
-      currentStreak: data.currentStreak ?? 0,
-      longestStreak: data.longestStreak ?? 0,
-      dailyTarget: data.dailyTarget ?? 100,
-      targetDate: data.targetDate,
+      totalGoal: data.totalGoal ?? existing?.totalGoal ?? 10000000,
+      lifetimeTotal: data.lifetimeTotal ?? existing?.lifetimeTotal ?? 0,
+      currentStreak: data.currentStreak ?? existing?.currentStreak ?? 0,
+      longestStreak: data.longestStreak ?? existing?.longestStreak ?? 0,
+      dailyTarget: data.dailyTarget ?? existing?.dailyTarget ?? 100,
+      targetDate: data.targetDate ?? existing?.targetDate,
       updatedAt: new Date().toISOString(),
     };
 
@@ -153,7 +167,14 @@ export async function getTodayProgress(): Promise<DailyProgress | null> {
     );
 
     if (response.documents.length > 0) {
-      return response.documents[0] as unknown as DailyProgress;
+      const progress = response.documents[0] as unknown as DailyProgress & {
+        sessions?: string | SessionRecord[];
+      };
+
+      return {
+        ...progress,
+        sessions: parseStoredSessions(progress.sessions),
+      };
     }
     return null;
   } catch (error) {
@@ -220,7 +241,12 @@ export async function getDailyHistory(days: number = 30): Promise<DailyProgress[
       ]
     );
 
-    return response.documents as unknown as DailyProgress[];
+    return (response.documents as (
+      DailyProgress & { sessions?: string | SessionRecord[] }
+    )[]).map((progress) => ({
+      ...progress,
+      sessions: parseStoredSessions(progress.sessions),
+    }));
   } catch (error) {
     console.error("Failed to get daily history:", error);
     return [];
@@ -263,7 +289,7 @@ export async function syncFromLocalStorage(): Promise<void> {
 
     // Sync history if available
     if (historyStr) {
-      const history: Array<{ date: string; count: number; target: number }> =
+      const history: { date: string; count: number; target: number }[] =
         JSON.parse(historyStr);
 
       for (const record of history) {
@@ -315,31 +341,45 @@ export async function calculateStreak(): Promise<{
 
     let currentStreak = 0;
     let longestStreak = 0;
-    let tempStreak = 0;
 
     // Sort by date descending
-    const sorted = history.sort((a, b) => b.date.localeCompare(a.date));
+    const sorted = history
+      .filter((entry) => entry.count >= entry.target && entry.target > 0)
+      .sort((a, b) => b.date.localeCompare(a.date));
 
     // Check if today or yesterday has progress
     const hasRecentProgress =
       sorted.length > 0 &&
-      (sorted[0].date === today || sorted[0].date === yesterday) &&
-      sorted[0].count > 0;
+      (sorted[0].date === today || sorted[0].date === yesterday);
 
     if (!hasRecentProgress) {
       return { currentStreak: 0, longestStreak: 0 };
     }
 
-    // Calculate streaks
-    for (let i = 0; i < sorted.length; i++) {
-      if (sorted[i].count > 0) {
-        tempStreak++;
-        if (i === 0 || sorted[i - 1].date === getDateBefore(sorted[i].date, 1)) {
-          currentStreak = tempStreak;
-        }
-        longestStreak = Math.max(longestStreak, tempStreak);
+    let runLength = 1;
+    longestStreak = sorted.length > 0 ? 1 : 0;
+    currentStreak = sorted.length > 0 ? 1 : 0;
+
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].date === getDateBefore(sorted[i - 1].date, 1)) {
+        runLength += 1;
       } else {
-        tempStreak = 0;
+        runLength = 1;
+      }
+
+      if (i < sorted.length && sorted[i - 1].date === getDateBefore(sorted[i].date, 1)) {
+        currentStreak = Math.max(currentStreak, i === currentStreak ? currentStreak + 1 : currentStreak);
+      }
+
+      longestStreak = Math.max(longestStreak, runLength);
+    }
+
+    currentStreak = 1;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i - 1].date === getDateBefore(sorted[i].date, 1)) {
+        currentStreak += 1;
+      } else {
+        break;
       }
     }
 

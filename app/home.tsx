@@ -159,11 +159,11 @@ export default function Home() {
         setSessionCount((prev) => prev + 1);
     }, [sessionActive, sessionPaused]);
 
-    const endSession = useCallback(() => {
+    const endSession = useCallback(async () => {
         if (!sessionActive) return;
         const finalCount = sessionCount;
         if (finalCount > 0) {
-            applyIncrement(finalCount);
+            await applyIncrement(finalCount);
         }
         setSessionActive(false);
         setSessionPaused(false);
@@ -180,10 +180,10 @@ export default function Home() {
         setSessionPaused((prev) => !prev);
     };
 
-    const handleManualAdd = () => {
+    const handleManualAdd = async () => {
         const amount = parseInt(manualAddValue.replace(/,/g, ""), 10);
         if (!amount || amount <= 0) return;
-        applyIncrement(amount);
+        await applyIncrement(amount);
         setManualAddValue("");
         setShowManualSheet(false);
         Keyboard.dismiss();

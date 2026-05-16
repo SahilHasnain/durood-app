@@ -11,6 +11,15 @@ interface TasbeehData {
   syncing: boolean;
 }
 
+const LAST_ACTIVE_DATE_KEY = "tasbeeh_last_active_date";
+
+function getTodayKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
+}
+
 export function useTasbeehData() {
   const [data, setData] = useState<TasbeehData>({
     count: 0,
@@ -33,14 +42,27 @@ export function useTasbeehData() {
         TasbeehService.getTodayProgress(),
       ]);
 
+      const calculatedStreak = await TasbeehService.calculateStreak();
+
       setData({
         count: todayProgress?.count ?? 0,
         target: goal?.dailyTarget ?? 100,
         lifetimeTotal: goal?.lifetimeTotal ?? 0,
-        streak: goal?.currentStreak ?? 0,
+        streak: calculatedStreak.currentStreak ?? goal?.currentStreak ?? 0,
         loading: false,
         syncing: false,
       });
+
+      if (
+        goal &&
+        (goal.currentStreak !== calculatedStreak.currentStreak ||
+          goal.longestStreak !== calculatedStreak.longestStreak)
+      ) {
+        await TasbeehService.createOrUpdateUserGoal({
+          currentStreak: calculatedStreak.currentStreak,
+          longestStreak: calculatedStreak.longestStreak,
+        });
+      }
     } catch (error) {
       console.error("Failed to load data from Appwrite:", error);
       // Fallback to AsyncStorage
@@ -51,21 +73,29 @@ export function useTasbeehData() {
   // Fallback: Load from AsyncStorage
   const loadFromAsyncStorage = async () => {
     try {
-      const [countStr, targetStr, lifetimeStr, streakStr] = await Promise.all([
+      const [countStr, targetStr, lifetimeStr, streakStr, lastActiveDate] = await Promise.all([
         AsyncStorage.getItem("tasbeeh_count"),
         AsyncStorage.getItem("tasbeeh_target"),
         AsyncStorage.getItem("tasbeeh_lifetime_total"),
         AsyncStorage.getItem("tasbeeh_streak"),
+        AsyncStorage.getItem(LAST_ACTIVE_DATE_KEY),
       ]);
 
+      const todayKey = getTodayKey();
+      const isToday = lastActiveDate === todayKey;
+
       setData({
-        count: countStr ? parseInt(countStr, 10) : 0,
+        count: isToday && countStr ? parseInt(countStr, 10) : 0,
         target: targetStr ? parseInt(targetStr, 10) : 100,
         lifetimeTotal: lifetimeStr ? parseInt(lifetimeStr, 10) : 0,
         streak: streakStr ? parseInt(streakStr, 10) : 0,
         loading: false,
         syncing: false,
       });
+
+      if (!isToday && countStr && parseInt(countStr, 10) > 0) {
+        await AsyncStorage.setItem("tasbeeh_count", "0");
+      }
     } catch (error) {
       console.error("Failed to load from AsyncStorage:", error);
       setData((prev) => ({ ...prev, loading: false }));
@@ -76,50 +106,64 @@ export function useTasbeehData() {
   const saveData = useCallback(
     async (newData: Partial<Omit<TasbeehData, "loading" | "syncing">>) => {
       try {
+        const currentData = { ...data, ...newData };
+        const todayKey = getTodayKey();
+
+        // Update local state immediately for responsive UI
+        setData((prev) => ({ ...prev, ...newData, syncing: true }));
+
         const now = Date.now();
         // Debounce: only sync every 2 seconds
         if (now - lastSyncTime < 2000) {
           // Save to AsyncStorage immediately for responsiveness
-          if (newData.count !== undefined) {
-            await AsyncStorage.setItem("tasbeeh_count", newData.count.toString());
-          }
-          if (newData.target !== undefined) {
-            await AsyncStorage.setItem("tasbeeh_target", newData.target.toString());
-          }
-          if (newData.lifetimeTotal !== undefined) {
-            await AsyncStorage.setItem(
+          await Promise.all([
+            AsyncStorage.setItem("tasbeeh_count", currentData.count.toString()),
+            AsyncStorage.setItem("tasbeeh_target", currentData.target.toString()),
+            AsyncStorage.setItem(
               "tasbeeh_lifetime_total",
-              newData.lifetimeTotal.toString()
-            );
-          }
-          if (newData.streak !== undefined) {
-            await AsyncStorage.setItem("tasbeeh_streak", newData.streak.toString());
-          }
+              currentData.lifetimeTotal.toString()
+            ),
+            AsyncStorage.setItem("tasbeeh_streak", currentData.streak.toString()),
+            AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
+          ]);
+          setData((prev) => ({ ...prev, syncing: false }));
           return;
         }
 
         setLastSyncTime(now);
-        setData((prev) => ({ ...prev, syncing: true }));
-
-        // Update local state
-        setData((prev) => ({ ...prev, ...newData, syncing: true }));
-
-        // Sync to Appwrite
-        const currentData = { ...data, ...newData };
+        await Promise.all([
+          AsyncStorage.setItem("tasbeeh_count", currentData.count.toString()),
+          AsyncStorage.setItem("tasbeeh_target", currentData.target.toString()),
+          AsyncStorage.setItem(
+            "tasbeeh_lifetime_total",
+            currentData.lifetimeTotal.toString()
+          ),
+          AsyncStorage.setItem("tasbeeh_streak", currentData.streak.toString()),
+          AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
+        ]);
 
         await Promise.all([
-          TasbeehService.createOrUpdateUserGoal({
-            lifetimeTotal: currentData.lifetimeTotal,
-            currentStreak: currentData.streak,
-            dailyTarget: currentData.target,
-          }),
           TasbeehService.createOrUpdateDailyProgress(
             currentData.count,
             currentData.target
           ),
         ]);
 
-        setData((prev) => ({ ...prev, syncing: false }));
+        const calculatedStreak = await TasbeehService.calculateStreak();
+
+        await TasbeehService.createOrUpdateUserGoal({
+          lifetimeTotal: currentData.lifetimeTotal,
+          currentStreak: calculatedStreak.currentStreak,
+          longestStreak: calculatedStreak.longestStreak,
+          dailyTarget: currentData.target,
+        });
+
+        setData((prev) => ({
+          ...prev,
+          ...currentData,
+          streak: calculatedStreak.currentStreak,
+          syncing: false,
+        }));
       } catch (error) {
         console.error("Failed to save data to Appwrite:", error);
         setData((prev) => ({ ...prev, syncing: false }));
