@@ -134,16 +134,28 @@ export default function RootLayout() {
     SystemUI.setBackgroundColorAsync("#000000");
   }, []);
 
+  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+
+  if (!publishableKey) {
+    throw new Error(
+      "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env"
+    );
+  }
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <TabBarVisibilityProvider tabBarHeight={68}>
-            <StatusBar style="light" />
-            <RootLayoutContent />
-          </TabBarVisibilityProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+      <ClerkLoaded>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <AuthProvider>
+              <TabBarVisibilityProvider tabBarHeight={68}>
+                <StatusBar style="light" />
+                <RootLayoutContent />
+              </TabBarVisibilityProvider>
+            </AuthProvider>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </ClerkLoaded>
+    </ClerkProvider>
   );
 }

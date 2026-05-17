@@ -1,86 +1,42 @@
-import * as AuthService from "@/services/authService";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { useUser } from "@clerk/clerk-expo";
+import React, { createContext, useContext } from "react";
 
 interface User {
-    $id: string;
+    id: string;
     email: string;
     name: string;
-    emailVerification: boolean;
+    emailVerified: boolean;
 }
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
     isAuthenticated: boolean;
-    login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-    register: (
-        email: string,
-        password: string,
-        name: string
-    ) => Promise<{ success: boolean; error?: string }>;
-    logout: () => Promise<void>;
-    refreshUser: () => Promise<void>;
+    clerkUser: any; // Raw Clerk user object
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { user: clerkUser, isLoaded } = useUser();
 
-    useEffect(() => {
-        checkAuth();
-    }, []);
-
-    const checkAuth = async () => {
-        try {
-            setLoading(true);
-            const currentUser = await AuthService.getCurrentUser();
-            setUser(currentUser);
-        } catch (error) {
-            console.error("Auth check failed:", error);
-            setUser(null);
-        } finally {
-            setLoading(false);
+    // Transform Clerk user to our User interface
+    const user: User | null = clerkUser
+        ? {
+            id: clerkUser.id,
+            email: clerkUser.primaryEmailAddress?.emailAddress || "",
+            name: clerkUser.fullName || clerkUser.firstName || "User",
+            emailVerified: clerkUser.primaryEmailAddress?.verification?.status === "verified",
         }
-    };
-
-    const login = async (email: string, password: string) => {
-        const result = await AuthService.login(email, password);
-        if (result.success && result.user) {
-            setUser(result.user);
-        }
-        return result;
-    };
-
-    const register = async (email: string, password: string, name: string) => {
-        const result = await AuthService.register(email, password, name);
-        if (result.success && result.user) {
-            setUser(result.user);
-        }
-        return result;
-    };
-
-    const logout = async () => {
-        await AuthService.logout();
-        setUser(null);
-    };
-
-    const refreshUser = async () => {
-        const currentUser = await AuthService.getCurrentUser();
-        setUser(currentUser);
-    };
+        : null;
 
     return (
         <AuthContext.Provider
             value={{
                 user,
-                loading,
-                isAuthenticated: !!user,
-                login,
-                register,
-                logout,
-                refreshUser,
+                loading: !isLoaded,
+                isAuthenticated: !!clerkUser,
+                clerkUser,
             }}
         >
             {children}

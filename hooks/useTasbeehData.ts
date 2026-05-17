@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import * as TasbeehService from "@/services/tasbeehService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
@@ -21,6 +22,7 @@ function getTodayKey(): string {
 }
 
 export function useTasbeehData() {
+  const { user } = useAuth();
   const [data, setData] = useState<TasbeehData>({
     count: 0,
     target: 100,
@@ -32,17 +34,17 @@ export function useTasbeehData() {
 
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
 
-  // Load data from Appwrite
+  // Load data from Appwrite (using Clerk user ID)
   const loadData = useCallback(async () => {
     try {
       setData((prev) => ({ ...prev, loading: true }));
 
       const [goal, todayProgress] = await Promise.all([
-        TasbeehService.getUserGoal(),
-        TasbeehService.getTodayProgress(),
+        TasbeehService.getUserGoal(user?.id),
+        TasbeehService.getTodayProgress(user?.id),
       ]);
 
-      const calculatedStreak = await TasbeehService.calculateStreak();
+      const calculatedStreak = await TasbeehService.calculateStreak(user?.id);
 
       setData({
         count: todayProgress?.count ?? 0,
@@ -58,17 +60,20 @@ export function useTasbeehData() {
         (goal.currentStreak !== calculatedStreak.currentStreak ||
           goal.longestStreak !== calculatedStreak.longestStreak)
       ) {
-        await TasbeehService.createOrUpdateUserGoal({
-          currentStreak: calculatedStreak.currentStreak,
-          longestStreak: calculatedStreak.longestStreak,
-        });
+        await TasbeehService.createOrUpdateUserGoal(
+          {
+            currentStreak: calculatedStreak.currentStreak,
+            longestStreak: calculatedStreak.longestStreak,
+          },
+          user?.id
+        );
       }
     } catch (error) {
       console.error("Failed to load data from Appwrite:", error);
       // Fallback to AsyncStorage
       await loadFromAsyncStorage();
     }
-  }, []);
+  }, [user?.id]);
 
   // Fallback: Load from AsyncStorage
   const loadFromAsyncStorage = async () => {
@@ -145,19 +150,23 @@ export function useTasbeehData() {
         await Promise.all([
           TasbeehService.createOrUpdateDailyProgress(
             currentData.count,
-            currentData.target
+            currentData.target,
+            user?.id
           ),
         ]);
 
-        const calculatedStreak = await TasbeehService.calculateStreak();
+        const calculatedStreak = await TasbeehService.calculateStreak(user?.id);
         const syncedStreak = Math.max(currentData.streak, calculatedStreak.currentStreak);
 
-        await TasbeehService.createOrUpdateUserGoal({
-          lifetimeTotal: currentData.lifetimeTotal,
-          currentStreak: syncedStreak,
-          longestStreak: calculatedStreak.longestStreak,
-          dailyTarget: currentData.target,
-        });
+        await TasbeehService.createOrUpdateUserGoal(
+          {
+            lifetimeTotal: currentData.lifetimeTotal,
+            currentStreak: syncedStreak,
+            longestStreak: calculatedStreak.longestStreak,
+            dailyTarget: currentData.target,
+          },
+          user?.id
+        );
 
         setData((prev) => ({
           ...prev,
@@ -170,21 +179,21 @@ export function useTasbeehData() {
         setData((prev) => ({ ...prev, syncing: false }));
       }
     },
-    [data, lastSyncTime]
+    [data, lastSyncTime, user?.id]
   );
 
   // Initial sync from AsyncStorage to Appwrite
   const performInitialSync = useCallback(async () => {
     try {
-      const hasAppwriteData = await TasbeehService.getUserGoal();
+      const hasAppwriteData = await TasbeehService.getUserGoal(user?.id);
       if (!hasAppwriteData) {
         console.log("No Appwrite data found, syncing from AsyncStorage...");
-        await TasbeehService.syncFromLocalStorage();
+        await TasbeehService.syncFromLocalStorage(user?.id);
       }
     } catch (error) {
       console.error("Initial sync failed:", error);
     }
-  }, []);
+  }, [user?.id]);
 
   // Load data on mount
   useEffect(() => {

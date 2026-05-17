@@ -1,115 +1,100 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOAuth } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import * as WebBrowser from "expo-web-browser";
+import { useCallback } from "react";
 import {
     ActivityIndicator,
     Alert,
-    KeyboardAvoidingView,
-    Platform,
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Warm up the browser for OAuth
+WebBrowser.maybeCompleteAuthSession();
+
 export default function Login() {
-    const { login } = useAuth();
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
+    const { isAuthenticated, loading } = useAuth();
+    const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
 
-    const handleLogin = async () => {
-        if (!email || !password) {
-            Alert.alert("Error", "Please fill in all fields");
-            return;
+    const handleGoogleSignIn = useCallback(async () => {
+        try {
+            const { createdSessionId, setActive } = await startOAuthFlow();
+
+            if (createdSessionId) {
+                await setActive!({ session: createdSessionId });
+                router.replace("/home");
+            }
+        } catch (err: any) {
+            console.error("OAuth error", err);
+            Alert.alert("Sign In Failed", err.message || "Please try again");
         }
+    }, [startOAuthFlow]);
 
-        setLoading(true);
-        const result = await login(email, password);
-        setLoading(false);
+    // If already authenticated, redirect to home
+    if (isAuthenticated && !loading) {
+        router.replace("/home");
+        return null;
+    }
 
-        if (result.success) {
-            router.replace("/home");
-        } else {
-            Alert.alert("Login Failed", result.error || "Please try again");
-        }
-    };
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container} edges={["top"]}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={theme.colors.primary.main} />
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.keyboardView}
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
             >
-                <ScrollView
-                    contentContainerStyle={styles.scrollContent}
-                    keyboardShouldPersistTaps="handled"
-                >
-                    <View style={styles.header}>
-                        <Text style={styles.title}>Welcome Back</Text>
-                        <Text style={styles.subtitle}>Sign in to continue your journey</Text>
+                <View style={styles.header}>
+                    <Text style={styles.title}>Welcome to Durood</Text>
+                    <Text style={styles.subtitle}>
+                        Sign in to sync your progress across devices
+                    </Text>
+                </View>
+
+                <View style={styles.form}>
+                    <TouchableOpacity
+                        style={styles.googleButton}
+                        onPress={handleGoogleSignIn}
+                    >
+                        <Ionicons name="logo-google" size={24} color="#FFFFFF" />
+                        <Text style={styles.googleButtonText}>Continue with Google</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.divider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>or</Text>
+                        <View style={styles.dividerLine} />
                     </View>
 
-                    <View style={styles.form}>
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Email</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="your@email.com"
-                                placeholderTextColor={theme.colors.text.tertiary}
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                            />
-                        </View>
+                    <TouchableOpacity
+                        style={styles.skipButton}
+                        onPress={() => router.replace("/home")}
+                    >
+                        <Text style={styles.skipText}>Continue without account</Text>
+                    </TouchableOpacity>
+                </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Password</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter your password"
-                                placeholderTextColor={theme.colors.text.tertiary}
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-                                autoCapitalize="none"
-                            />
-                        </View>
-
-                        <TouchableOpacity
-                            style={styles.button}
-                            onPress={handleLogin}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="#FFFFFF" />
-                            ) : (
-                                <Text style={styles.buttonText}>Sign In</Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <View style={styles.footer}>
-                            <Text style={styles.footerText}>Don't have an account? </Text>
-                            <TouchableOpacity onPress={() => router.push("/auth/register")}>
-                                <Text style={styles.footerLink}>Sign Up</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity
-                            style={styles.skipButton}
-                            onPress={() => router.replace("/home")}
-                        >
-                            <Text style={styles.skipText}>Continue without account</Text>
-                        </TouchableOpacity>
-                    </View>
-                </ScrollView>
-            </KeyboardAvoidingView>
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        By continuing, you agree to our Terms of Service and Privacy Policy
+                    </Text>
+                </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }
@@ -119,8 +104,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.colors.background.primary,
     },
-    keyboardView: {
+    loadingContainer: {
         flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
     },
     scrollContent: {
         flexGrow: 1,
@@ -129,72 +116,73 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     header: {
-        marginBottom: 40,
+        marginBottom: 48,
+        alignItems: "center",
     },
     title: {
         fontSize: 32,
         fontWeight: "700",
         color: theme.colors.text.primary,
-        marginBottom: 8,
+        marginBottom: 12,
+        textAlign: "center",
     },
     subtitle: {
         fontSize: 16,
         color: theme.colors.text.secondary,
+        textAlign: "center",
+        paddingHorizontal: 20,
     },
     form: {
-        gap: 20,
+        gap: 24,
     },
-    inputGroup: {
-        gap: 8,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: theme.colors.text.primary,
-    },
-    input: {
-        backgroundColor: theme.colors.surface.primary,
-        borderRadius: 12,
-        padding: 16,
-        fontSize: 16,
-        color: theme.colors.text.primary,
-        borderWidth: 1,
-        borderColor: theme.colors.border.primary,
-    },
-    button: {
+    googleButton: {
         backgroundColor: theme.colors.primary.main,
         borderRadius: 12,
         padding: 16,
+        flexDirection: "row",
         alignItems: "center",
-        marginTop: 8,
+        justifyContent: "center",
+        gap: 12,
     },
-    buttonText: {
+    googleButtonText: {
         fontSize: 16,
         fontWeight: "600",
         color: "#FFFFFF",
     },
-    footer: {
+    divider: {
         flexDirection: "row",
-        justifyContent: "center",
         alignItems: "center",
-        marginTop: 8,
+        gap: 12,
     },
-    footerText: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: theme.colors.border.primary,
     },
-    footerLink: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: theme.colors.primary.main,
-    },
-    skipButton: {
-        marginTop: 16,
-        padding: 12,
-        alignItems: "center",
-    },
-    skipText: {
+    dividerText: {
         fontSize: 14,
         color: theme.colors.text.tertiary,
+    },
+    skipButton: {
+        padding: 16,
+        alignItems: "center",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+    },
+    skipText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: theme.colors.text.secondary,
+    },
+    footer: {
+        marginTop: 32,
+        paddingHorizontal: 20,
+    },
+    footerText: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        textAlign: "center",
+        lineHeight: 18,
     },
 });
