@@ -33,6 +33,7 @@ export default {
     plugins: [
       "expo-router",
       "expo-web-browser",
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {
@@ -52,6 +53,9 @@ export default {
       appwriteVideosCollectionId: "69d787af0003b92d2963",
       appwriteChannelsCollectionId: "69d787ba001af3838dc9",
       appwriteStorageBucketId: "69d787c10015ff7916f7",
+       "eas": {
+        "projectId": "3c88a6d6-6eba-4672-a78d-d2c500ebe086"
+      },
     },
   },
 };
