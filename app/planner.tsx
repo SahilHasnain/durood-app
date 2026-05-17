@@ -15,43 +15,31 @@ import {
     View,
 } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
 
 const DEFAULT_TOTAL_GOAL = 10000000;
+const RING_SIZE = 180;
+const RING_STROKE_WIDTH = 12;
+const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 const MILESTONES = [
-    { label: "1 Lakh", value: 100000 },
-    { label: "10 Lakh", value: 1000000 },
-    { label: "25 Lakh", value: 2500000 },
-    { label: "50 Lakh", value: 5000000 },
-    { label: "1 Crore", value: 10000000 },
+    { label: "1 Lakh", value: 100000, emoji: "🎯" },
+    { label: "10 Lakh", value: 1000000, emoji: "🚀" },
+    { label: "50 Lakh", value: 5000000, emoji: "⭐" },
+    { label: "1 Crore", value: 10000000, emoji: "🏆" },
 ];
-
-type CalculationResult =
-    | {
-        type: "pace";
-        daily: number;
-        duration: string;
-        finishDate: string;
-    }
-    | {
-        type: "date";
-        targetDate: string;
-        duration: string;
-        requiredDaily: number;
-    }
-    | {
-        type: "target";
-        value: number;
-        message: string;
-    }
-    | {
-        type: "error";
-        message: string;
-    };
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
+}
+
+function formatCompactNumber(value: number): string {
+    if (value >= 10000000) return `${(value / 10000000).toFixed(1)}Cr`;
+    if (value >= 100000) return `${(value / 100000).toFixed(1)}L`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+    return value.toString();
 }
 
 function formatDateLabel(date: Date): string {
@@ -62,83 +50,30 @@ function formatDateLabel(date: Date): string {
     }).format(date);
 }
 
-function formatCompactTimeFromNow(totalDays: number): string {
-    if (totalDays <= 0) return "now";
-
-    const years = Math.floor(totalDays / 365);
-    const months = Math.floor((totalDays % 365) / 30);
-
-    if (years > 0) {
-        return months > 0 ? `${years}y ${months}m` : `${years}y`;
-    }
-
-    if (months > 0) {
-        return `${months}m`;
-    }
-
-    return `${totalDays}d`;
-}
-
-function formatTimeFromNow(totalDays: number): string {
+function formatDuration(totalDays: number): string {
     if (totalDays <= 0) return "today";
 
     const years = Math.floor(totalDays / 365);
     const months = Math.floor((totalDays % 365) / 30);
+    const days = totalDays % 30;
 
-    if (years <= 0) {
-        return months > 0
-            ? `${months} month${months === 1 ? "" : "s"}`
-            : `${totalDays} day${totalDays === 1 ? "" : "s"}`;
+    if (years > 0) {
+        return months > 0 ? `${years}y ${months}mo` : `${years} year${years === 1 ? "" : "s"}`;
     }
-
-    if (months <= 0) {
-        return `${years} year${years === 1 ? "" : "s"}`;
+    if (months > 0) {
+        return days > 0 ? `${months}mo ${days}d` : `${months} month${months === 1 ? "" : "s"}`;
     }
-
-    return `${years} year${years === 1 ? "" : "s"} ${months} month${months === 1 ? "" : "s"}`;
-}
-
-function parsePositiveInt(value: string): number | null {
-    const normalized = value.replace(/,/g, "").trim();
-    if (!normalized) return null;
-    const parsed = Number.parseInt(normalized, 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function normalizeDateInput(value: string): string {
-    return value.replace(/[^\d-]/g, "").slice(0, 10);
-}
-
-function parseDateInput(value: string): Date | null {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-    const parsed = new Date(`${value}T00:00:00`);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function getDaysUntil(targetDate: Date): number {
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const targetDay = new Date(
-        targetDate.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate()
-    );
-    const diffMs = targetDay.getTime() - startOfToday.getTime();
-    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return `${totalDays} day${totalDays === 1 ? "" : "s"}`;
 }
 
 export default function Planner() {
     const HEADER_HEIGHT = 60;
-    const insets = useSafeAreaInsets();
     const { tabBarHeight } = useTabBarVisibility();
     const headerTranslateY = useSharedValue(0);
 
     const [lifetimeTotal, setLifetimeTotal] = useState(0);
     const [dailyTarget, setDailyTarget] = useState(100);
-    const [newDailyTarget, setNewDailyTarget] = useState("");
-    const [dailyAmount, setDailyAmount] = useState("");
-    const [targetDate, setTargetDate] = useState("");
-    const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
+    const [dailyInput, setDailyInput] = useState("");
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
 
@@ -148,6 +83,7 @@ export default function Planner() {
             const goal = await TasbeehService.getUserGoal();
             setLifetimeTotal(goal?.lifetimeTotal ?? 0);
             setDailyTarget(goal?.dailyTarget ?? 100);
+            setDailyInput((goal?.dailyTarget ?? 100).toString());
             setLoading(false);
         } catch (error) {
             console.error("Failed to load data:", error);
@@ -162,61 +98,22 @@ export default function Planner() {
     );
 
     const remainingGoal = Math.max(0, DEFAULT_TOTAL_GOAL - lifetimeTotal);
-    const nextMilestone =
-        MILESTONES.find((milestone) => lifetimeTotal < milestone.value) ??
-        MILESTONES[MILESTONES.length - 1];
-    const nextMilestoneProgress = Math.min(
-        (lifetimeTotal / nextMilestone.value) * 100,
-        100
-    );
+    const progressPercent = Math.min((lifetimeTotal / DEFAULT_TOTAL_GOAL) * 100, 100);
+    const progressOffset = RING_CIRCUMFERENCE - (progressPercent / 100) * RING_CIRCUMFERENCE;
 
-    const calculateFromDaily = () => {
-        const daily = parsePositiveInt(dailyAmount);
-        if (!daily) {
-            setCalculationResult({ type: "error", message: "Please enter a valid daily amount" });
-            return;
-        }
+    // Calculate finish date based on current daily target
+    const daysToFinish = dailyTarget > 0 ? Math.ceil(remainingGoal / dailyTarget) : 0;
+    const finishDate = new Date();
+    finishDate.setDate(finishDate.getDate() + daysToFinish);
 
-        const daysNeeded = Math.ceil(remainingGoal / daily);
-        const finishDate = new Date();
-        finishDate.setDate(finishDate.getDate() + daysNeeded);
-
-        setCalculationResult({
-            type: "pace",
-            daily,
-            duration: formatTimeFromNow(daysNeeded),
-            finishDate: formatDateLabel(finishDate),
-        });
-    };
-
-    const calculateFromDate = () => {
-        const parsed = parseDateInput(targetDate);
-        if (!parsed) {
-            setCalculationResult({ type: "error", message: "Please enter a valid date (YYYY-MM-DD)" });
-            return;
-        }
-
-        const daysUntil = getDaysUntil(parsed);
-        if (daysUntil <= 0) {
-            setCalculationResult({ type: "error", message: "Target date must be in the future" });
-            return;
-        }
-
-        const requiredDaily = Math.ceil(remainingGoal / daysUntil);
-        setCalculationResult({
-            type: "date",
-            targetDate: formatDateLabel(parsed),
-            duration: formatTimeFromNow(daysUntil),
-            requiredDaily,
-        });
-    };
+    // Find next milestone
+    const nextMilestone = MILESTONES.find((m) => lifetimeTotal < m.value) ?? MILESTONES[MILESTONES.length - 1];
+    const nextMilestoneRemaining = Math.max(0, nextMilestone.value - lifetimeTotal);
+    const daysToNextMilestone = dailyTarget > 0 ? Math.ceil(nextMilestoneRemaining / dailyTarget) : 0;
 
     const updateDailyTarget = async () => {
-        const newTarget = parsePositiveInt(newDailyTarget);
-        if (!newTarget) {
-            setCalculationResult({ type: "error", message: "Please enter a valid target" });
-            return;
-        }
+        const newTarget = parseInt(dailyInput.replace(/,/g, ""), 10);
+        if (!newTarget || newTarget <= 0) return;
 
         try {
             setUpdating(true);
@@ -224,84 +121,11 @@ export default function Planner() {
                 dailyTarget: newTarget,
             });
             setDailyTarget(newTarget);
-            setNewDailyTarget("");
-            setCalculationResult({
-                type: "target",
-                value: newTarget,
-                message: "Daily target updated",
-            });
             setUpdating(false);
         } catch (error) {
             console.error("Failed to update target:", error);
-            setCalculationResult({ type: "error", message: "Failed to update target" });
             setUpdating(false);
         }
-    };
-
-    const applyCalculatedTarget = async (calculatedDaily: number) => {
-        try {
-            setUpdating(true);
-            await TasbeehService.createOrUpdateUserGoal({
-                dailyTarget: calculatedDaily,
-            });
-            setDailyTarget(calculatedDaily);
-            setCalculationResult({
-                type: "target",
-                value: calculatedDaily,
-                message: "Daily target set",
-            });
-            setUpdating(false);
-        } catch (error) {
-            console.error("Failed to set target:", error);
-            setCalculationResult({ type: "error", message: "Failed to set target" });
-            setUpdating(false);
-        }
-    };
-
-    const calculateMilestone = (milestoneValue: number) => {
-        const remaining = Math.max(0, milestoneValue - lifetimeTotal);
-        if (remaining === 0) {
-            return "Already achieved! 🎉";
-        }
-
-        const daily = parsePositiveInt(dailyAmount);
-        if (!daily) {
-            return `${formatNumber(remaining)} remaining`;
-        }
-
-        const daysNeeded = Math.ceil(remaining / daily);
-        const finishDate = new Date();
-        finishDate.setDate(finishDate.getDate() + daysNeeded);
-
-        return `${formatNumber(remaining)} remaining • about ${formatTimeFromNow(daysNeeded)} at ${formatNumber(daily)}/day • ${formatDateLabel(finishDate)}`;
-    };
-
-    const getMilestoneRowMeta = (milestoneValue: number) => {
-        const remaining = Math.max(0, milestoneValue - lifetimeTotal);
-        const daily = parsePositiveInt(dailyAmount);
-
-        if (remaining === 0) {
-            return {
-                primary: "Completed",
-                secondary: "Milestone achieved",
-            };
-        }
-
-        if (!daily) {
-            return {
-                primary: `${formatNumber(remaining)} left`,
-                secondary: "Add daily pace for forecast",
-            };
-        }
-
-        const daysNeeded = Math.ceil(remaining / daily);
-        const finishDate = new Date();
-        finishDate.setDate(finishDate.getDate() + daysNeeded);
-
-        return {
-            primary: `${formatCompactTimeFromNow(daysNeeded)} left`,
-            secondary: `${formatDateLabel(finishDate)} at ${formatNumber(daily)}/day`,
-        };
     };
 
     if (loading) {
@@ -334,250 +158,165 @@ export default function Planner() {
                 contentContainerStyle={[
                     styles.scrollContent,
                     {
-                        paddingTop: HEADER_HEIGHT + insets.top + 16,
+                        paddingTop: HEADER_HEIGHT + 8,
                         paddingBottom: tabBarHeight + 16,
                     },
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Planning Tools</Text>
-                    <Text style={styles.sectionSubtitle}>Calculate your path to 1 Crore</Text>
-                </View>
-
-                <View style={styles.card}>
-                    <Text style={styles.cardLabel}>Current Progress</Text>
-                    <Text style={styles.cardValue}>{formatNumber(lifetimeTotal)}</Text>
-                    <Text style={styles.cardSubtext}>
-                        {formatNumber(remainingGoal)} remaining to reach 1 Crore
-                    </Text>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Daily Target</Text>
-                    <View style={styles.calculatorCard}>
-                        <Text style={styles.calculatorLabel}>
-                            Current daily target: {formatNumber(dailyTarget)}
-                        </Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter new daily target"
-                            placeholderTextColor={theme.colors.text.tertiary}
-                            value={newDailyTarget}
-                            onChangeText={setNewDailyTarget}
-                            keyboardType="numeric"
-                        />
-                        <TouchableOpacity
-                            style={styles.calculateButton}
-                            onPress={updateDailyTarget}
-                            disabled={updating}
-                        >
-                            <Text style={styles.calculateButtonText}>
-                                {updating ? "Updating..." : "Update Target"}
-                            </Text>
-                        </TouchableOpacity>
+                {/* Hero Progress Ring */}
+                <View style={styles.heroCard}>
+                    <Text style={styles.heroEyebrow}>Journey to 1 Crore</Text>
+                    <View style={styles.ringContainer}>
+                        <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
+                            <Circle
+                                cx={RING_SIZE / 2}
+                                cy={RING_SIZE / 2}
+                                r={RING_RADIUS}
+                                stroke="rgba(255,255,255,0.1)"
+                                strokeWidth={RING_STROKE_WIDTH}
+                                fill="none"
+                            />
+                            <Circle
+                                cx={RING_SIZE / 2}
+                                cy={RING_SIZE / 2}
+                                r={RING_RADIUS}
+                                stroke="#10b981"
+                                strokeWidth={RING_STROKE_WIDTH}
+                                strokeLinecap="round"
+                                strokeDasharray={RING_CIRCUMFERENCE}
+                                strokeDashoffset={progressOffset}
+                                fill="none"
+                                transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+                            />
+                        </Svg>
+                        <View style={styles.ringInner}>
+                            <Text style={styles.ringPercent}>{progressPercent.toFixed(1)}%</Text>
+                            <Text style={styles.ringLabel}>Complete</Text>
+                        </View>
+                    </View>
+                    <View style={styles.heroStats}>
+                        <View style={styles.heroStat}>
+                            <Text style={styles.heroStatValue}>{formatCompactNumber(lifetimeTotal)}</Text>
+                            <Text style={styles.heroStatLabel}>Completed</Text>
+                        </View>
+                        <View style={styles.heroDivider} />
+                        <View style={styles.heroStat}>
+                            <Text style={styles.heroStatValue}>{formatCompactNumber(remainingGoal)}</Text>
+                            <Text style={styles.heroStatLabel}>Remaining</Text>
+                        </View>
                     </View>
                 </View>
 
+                {/* Daily Target Calculator */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Calculate Finish Date</Text>
+                    <Text style={styles.sectionTitle}>Set Your Daily Pace</Text>
                     <View style={styles.calculatorCard}>
-                        <Text style={styles.calculatorLabel}>If I do this much per day:</Text>
+                        <Text style={styles.calculatorLabel}>I can do this much per day:</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="e.g., 1000"
                             placeholderTextColor={theme.colors.text.tertiary}
-                            value={dailyAmount}
-                            onChangeText={setDailyAmount}
+                            value={dailyInput}
+                            onChangeText={setDailyInput}
                             keyboardType="numeric"
                         />
-                        <View style={styles.buttonRow}>
-                            <TouchableOpacity
-                                style={[styles.calculateButton, styles.calculateButtonSecondary]}
-                                onPress={calculateFromDaily}
-                            >
-                                <Text style={styles.calculateButtonText}>Calculate</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.calculateButton}
-                                onPress={() => {
-                                    const daily = parsePositiveInt(dailyAmount);
-                                    if (daily) applyCalculatedTarget(daily);
-                                }}
-                                disabled={updating}
-                            >
-                                <Text style={styles.calculateButtonText}>Apply as Target</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <TouchableOpacity
+                            style={[styles.button, updating && styles.buttonDisabled]}
+                            onPress={updateDailyTarget}
+                            disabled={updating}
+                        >
+                            <Text style={styles.buttonText}>
+                                {updating ? "Updating..." : "Set Daily Target"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {dailyTarget > 0 && (
+                            <View style={styles.projectionCard}>
+                                <Text style={styles.projectionEyebrow}>Your projection</Text>
+                                <Text style={styles.projectionValue}>
+                                    {formatNumber(dailyTarget)}/day
+                                </Text>
+                                <Text style={styles.projectionText}>
+                                    You'll reach 1 Crore in about
+                                </Text>
+                                <Text style={styles.projectionDuration}>
+                                    {formatDuration(daysToFinish)}
+                                </Text>
+                                <Text style={styles.projectionDate}>
+                                    by {formatDateLabel(finishDate)}
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
 
+                {/* Next Milestone */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Calculate Daily Target</Text>
-                    <View style={styles.calculatorCard}>
-                        <Text style={styles.calculatorLabel}>If I want to finish by:</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="YYYY-MM-DD (e.g., 2027-12-31)"
-                            placeholderTextColor={theme.colors.text.tertiary}
-                            value={targetDate}
-                            onChangeText={(text) => setTargetDate(normalizeDateInput(text))}
-                            keyboardType="numeric"
-                        />
-                        <View style={styles.buttonRow}>
-                            <TouchableOpacity
-                                style={[styles.calculateButton, styles.calculateButtonSecondary]}
-                                onPress={calculateFromDate}
-                            >
-                                <Text style={styles.calculateButtonText}>Calculate</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.calculateButton}
-                                onPress={() => {
-                                    const parsed = parseDateInput(targetDate);
-                                    if (parsed) {
-                                        const daysUntil = getDaysUntil(parsed);
-                                        if (daysUntil > 0) {
-                                            const requiredDaily = Math.ceil(remainingGoal / daysUntil);
-                                            applyCalculatedTarget(requiredDaily);
-                                        }
-                                    }
-                                }}
-                                disabled={updating}
-                            >
-                                <Text style={styles.calculateButtonText}>Apply as Target</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-
-                {calculationResult && (
-                    <View style={styles.resultCard}>
-                        {calculationResult.type === "pace" && (
-                            <>
-                                <Text style={styles.resultEyebrow}>Projected finish</Text>
-                                <Text style={styles.resultHero}>
-                                    {formatNumber(calculationResult.daily)}/day
-                                </Text>
-                                <Text style={styles.resultText}>
-                                    You can finish in about {calculationResult.duration}
-                                </Text>
-                                <Text style={styles.resultAccent}>
-                                    on {calculationResult.finishDate}
-                                </Text>
-                            </>
-                        )}
-
-                        {calculationResult.type === "date" && (
-                            <>
-                                <Text style={styles.resultEyebrow}>Required daily target</Text>
-                                <Text style={styles.resultHero}>
-                                    {formatNumber(calculationResult.requiredDaily)}/day
-                                </Text>
-                                <Text style={styles.resultText}>
-                                    To finish in about {calculationResult.duration}
-                                </Text>
-                                <Text style={styles.resultAccent}>
-                                    by {calculationResult.targetDate}
-                                </Text>
-                            </>
-                        )}
-
-                        {calculationResult.type === "target" && (
-                            <>
-                                <Text style={styles.resultEyebrow}>{calculationResult.message}</Text>
-                                <Text style={styles.resultHero}>
-                                    {formatNumber(calculationResult.value)}/day
-                                </Text>
-                            </>
-                        )}
-
-                        {calculationResult.type === "error" && (
-                            <Text style={styles.resultText}>{calculationResult.message}</Text>
-                        )}
-                    </View>
-                )}
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Milestone Planner</Text>
-                    <Text style={styles.sectionSubtitle}>
-                        Track your journey to each milestone
-                    </Text>
-                    <View style={styles.milestonesContainer}>
-                        <View style={styles.nextMilestoneCard}>
-                            <Text style={styles.nextMilestoneEyebrow}>Next milestone</Text>
-                            <View style={styles.nextMilestoneHeader}>
-                                <Text style={styles.nextMilestoneLabel}>{nextMilestone.label}</Text>
-                                <Text style={styles.nextMilestoneValue}>
+                    <Text style={styles.sectionTitle}>Next Milestone</Text>
+                    <View style={styles.milestoneCard}>
+                        <View style={styles.milestoneHeader}>
+                            <Text style={styles.milestoneEmoji}>{nextMilestone.emoji}</Text>
+                            <View style={styles.milestoneInfo}>
+                                <Text style={styles.milestoneLabel}>{nextMilestone.label}</Text>
+                                <Text style={styles.milestoneValue}>
                                     {formatNumber(nextMilestone.value)}
                                 </Text>
                             </View>
-                            <View style={styles.progressBarContainer}>
+                        </View>
+                        {nextMilestoneRemaining > 0 ? (
+                            <>
+                                <Text style={styles.milestoneRemaining}>
+                                    {formatNumber(nextMilestoneRemaining)} remaining
+                                </Text>
+                                {dailyTarget > 0 && (
+                                    <Text style={styles.milestoneDuration}>
+                                        About {formatDuration(daysToNextMilestone)} at current pace
+                                    </Text>
+                                )}
+                            </>
+                        ) : (
+                            <Text style={styles.milestoneAchieved}>🎉 Milestone achieved!</Text>
+                        )}
+                    </View>
+                </View>
+
+                {/* All Milestones */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>All Milestones</Text>
+                    <View style={styles.milestonesGrid}>
+                        {MILESTONES.map((milestone) => {
+                            const isAchieved = lifetimeTotal >= milestone.value;
+                            const remaining = Math.max(0, milestone.value - lifetimeTotal);
+                            const daysToMilestone = dailyTarget > 0 ? Math.ceil(remaining / dailyTarget) : 0;
+
+                            return (
                                 <View
+                                    key={milestone.value}
                                     style={[
-                                        styles.progressBarFill,
-                                        {
-                                            width: `${nextMilestoneProgress}%`,
-                                            backgroundColor: "#10b981",
-                                        },
+                                        styles.milestoneGridItem,
+                                        isAchieved && styles.milestoneGridItemAchieved,
                                     ]}
-                                />
-                            </View>
-                            <Text style={styles.nextMilestoneDetails}>
-                                {calculateMilestone(nextMilestone.value)}
-                            </Text>
-                        </View>
-
-                        <View style={styles.milestoneListCard}>
-                            <Text style={styles.milestoneListTitle}>All milestones</Text>
-                            {MILESTONES.map((milestone) => {
-                                if (milestone.value === nextMilestone.value) {
-                                    return null;
-                                }
-
-                                const isAchieved = lifetimeTotal >= milestone.value;
-                                const isFinalGoal = milestone.value === DEFAULT_TOTAL_GOAL;
-                                const rowMeta = getMilestoneRowMeta(milestone.value);
-
-                                return (
-                                    <View
-                                        key={milestone.value}
-                                        style={[
-                                            styles.milestoneRowCard,
-                                            isAchieved && styles.milestoneRowCardAchieved,
-                                        ]}
-                                    >
-                                        <View style={styles.milestoneRowTop}>
-                                            <Text style={styles.milestoneRowLabel}>
-                                                {milestone.label}
+                                >
+                                    <Text style={styles.milestoneGridEmoji}>{milestone.emoji}</Text>
+                                    <Text style={styles.milestoneGridLabel}>{milestone.label}</Text>
+                                    {isAchieved ? (
+                                        <Text style={styles.milestoneGridStatus}>✓ Done</Text>
+                                    ) : (
+                                        <>
+                                            <Text style={styles.milestoneGridRemaining}>
+                                                {formatCompactNumber(remaining)}
                                             </Text>
-                                            <Text
-                                                style={[
-                                                    styles.milestoneRowStatus,
-                                                    isAchieved
-                                                        ? styles.milestoneRowStatusAchieved
-                                                        : isFinalGoal
-                                                            ? styles.milestoneRowStatusFinal
-                                                            : styles.milestoneRowStatusUpcoming,
-                                                ]}
-                                            >
-                                                {isAchieved
-                                                    ? "Achieved"
-                                                    : isFinalGoal
-                                                        ? "Final goal"
-                                                        : "Upcoming"}
-                                            </Text>
-                                        </View>
-                                        <Text style={styles.milestoneRowPrimary}>
-                                            {rowMeta.primary}
-                                        </Text>
-                                        <Text style={styles.milestoneRowDetails}>
-                                            {rowMeta.secondary}
-                                        </Text>
-                                    </View>
-                                );
-                            })}
-                        </View>
+                                            {dailyTarget > 0 && (
+                                                <Text style={styles.milestoneGridDuration}>
+                                                    {formatDuration(daysToMilestone)}
+                                                </Text>
+                                            )}
+                                        </>
+                                    )}
+                                </View>
+                            );
+                        })}
                     </View>
                 </View>
             </ScrollView>
@@ -603,7 +342,7 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     backgroundImageAsset: {
-        opacity: 0.18,
+        opacity: 0.15,
     },
     backgroundTint: {
         ...StyleSheet.absoluteFillObject,
@@ -624,52 +363,83 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 16,
-        paddingBottom: 24,
+    },
+    heroCard: {
+        backgroundColor: "rgba(16,185,129,0.08)",
+        borderRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: "rgba(16,185,129,0.15)",
+        marginBottom: 24,
+        alignItems: "center",
+    },
+    heroEyebrow: {
+        fontSize: 13,
+        fontWeight: "700",
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+        color: theme.colors.text.secondary,
+        marginBottom: 20,
+    },
+    ringContainer: {
+        position: "relative",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 20,
+    },
+    ringInner: {
+        position: "absolute",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    ringPercent: {
+        fontSize: 36,
+        fontWeight: "800",
+        color: theme.colors.text.primary,
+    },
+    ringLabel: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        marginTop: 4,
+    },
+    heroStats: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 24,
+    },
+    heroStat: {
+        alignItems: "center",
+    },
+    heroStatValue: {
+        fontSize: 24,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    heroStatLabel: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+    },
+    heroDivider: {
+        width: 1,
+        height: 40,
+        backgroundColor: "rgba(255,255,255,0.1)",
     },
     section: {
         marginBottom: 24,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: "700",
         color: theme.colors.text.primary,
-        marginBottom: 4,
-    },
-    sectionSubtitle: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-    },
-    card: {
-        backgroundColor: "rgba(18, 18, 20, 0.82)",
-        borderRadius: 24,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.05)",
-        marginBottom: 24,
-        alignItems: "center",
-    },
-    cardLabel: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginBottom: 8,
-    },
-    cardValue: {
-        fontSize: 36,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-        marginBottom: 8,
-    },
-    cardSubtext: {
-        fontSize: 13,
-        color: theme.colors.text.tertiary,
-        textAlign: "center",
+        marginBottom: 12,
     },
     calculatorCard: {
-        backgroundColor: "rgba(18, 18, 20, 0.82)",
-        borderRadius: 22,
+        backgroundColor: theme.colors.surface.primary,
+        borderRadius: 20,
         padding: 20,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.05)",
+        borderColor: theme.colors.border.primary,
     },
     calculatorLabel: {
         fontSize: 15,
@@ -677,192 +447,153 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     input: {
-        backgroundColor: "rgba(255,255,255,0.04)",
-        borderRadius: 14,
+        backgroundColor: theme.colors.background.secondary,
+        borderRadius: 12,
         padding: 16,
         fontSize: 16,
         color: theme.colors.text.primary,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
+        borderColor: theme.colors.border.primary,
         marginBottom: 12,
     },
-    calculateButton: {
+    button: {
         backgroundColor: theme.colors.primary.main,
-        borderRadius: 14,
-        paddingVertical: 16,
-        paddingHorizontal: 16,
+        borderRadius: 12,
+        padding: 16,
         alignItems: "center",
-        flex: 1,
     },
-    calculateButtonSecondary: {
-        backgroundColor: "rgba(255,255,255,0.04)",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+    buttonDisabled: {
+        opacity: 0.6,
     },
-    calculateButtonText: {
-        fontSize: 15,
+    buttonText: {
+        fontSize: 16,
         fontWeight: "600",
         color: "#FFFFFF",
     },
-    buttonRow: {
-        flexDirection: "row",
-        gap: 12,
-    },
-    resultCard: {
-        backgroundColor: "rgba(16,185,129,0.08)",
-        borderRadius: 22,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.18)",
-        marginBottom: 24,
+    projectionCard: {
+        marginTop: 20,
+        paddingTop: 20,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border.primary,
         alignItems: "center",
     },
-    resultEyebrow: {
+    projectionEyebrow: {
         fontSize: 12,
         fontWeight: "700",
-        letterSpacing: 0.4,
+        letterSpacing: 0.5,
         textTransform: "uppercase",
-        color: theme.colors.text.secondary,
+        color: theme.colors.text.tertiary,
         marginBottom: 8,
     },
-    resultHero: {
+    projectionValue: {
         fontSize: 28,
         fontWeight: "800",
         color: theme.colors.text.primary,
+        marginBottom: 12,
+    },
+    projectionText: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        marginBottom: 4,
+    },
+    projectionDuration: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#10b981",
+        marginBottom: 4,
+    },
+    projectionDate: {
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+    },
+    milestoneCard: {
+        backgroundColor: theme.colors.surface.primary,
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+    },
+    milestoneHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16,
+        marginBottom: 12,
+    },
+    milestoneEmoji: {
+        fontSize: 40,
+    },
+    milestoneInfo: {
+        flex: 1,
+    },
+    milestoneLabel: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    milestoneValue: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+    },
+    milestoneRemaining: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    milestoneDuration: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+    },
+    milestoneAchieved: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#10b981",
+    },
+    milestonesGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 12,
+    },
+    milestoneGridItem: {
+        flex: 1,
+        minWidth: "47%",
+        backgroundColor: theme.colors.surface.primary,
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+        alignItems: "center",
+    },
+    milestoneGridItemAchieved: {
+        backgroundColor: "rgba(16,185,129,0.08)",
+        borderColor: "rgba(16,185,129,0.15)",
+    },
+    milestoneGridEmoji: {
+        fontSize: 32,
+        marginBottom: 8,
+    },
+    milestoneGridLabel: {
+        fontSize: 15,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
         marginBottom: 8,
         textAlign: "center",
     },
-    resultText: {
-        fontSize: 15,
-        color: theme.colors.text.primary,
-        lineHeight: 22,
-        textAlign: "center",
+    milestoneGridStatus: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#10b981",
     },
-    resultAccent: {
-        marginTop: 8,
+    milestoneGridRemaining: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#10b981",
+        color: theme.colors.text.primary,
+        marginBottom: 2,
+    },
+    milestoneGridDuration: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
         textAlign: "center",
-    },
-    milestonesContainer: {
-        marginTop: 16,
-        gap: 16,
-    },
-    nextMilestoneCard: {
-        backgroundColor: "rgba(16,185,129,0.10)",
-        borderRadius: 24,
-        padding: 22,
-        borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.18)",
-    },
-    nextMilestoneEyebrow: {
-        fontSize: 12,
-        fontWeight: "700",
-        letterSpacing: 0.4,
-        textTransform: "uppercase",
-        color: theme.colors.text.secondary,
-        marginBottom: 10,
-    },
-    nextMilestoneHeader: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-end",
-        gap: 12,
-        marginBottom: 14,
-    },
-    nextMilestoneLabel: {
-        fontSize: 24,
-        fontWeight: "800",
-        color: theme.colors.text.primary,
-    },
-    nextMilestoneValue: {
-        fontSize: 15,
-        fontWeight: "700",
-        color: "#baf7e6",
-    },
-    nextMilestoneDetails: {
-        marginTop: 12,
-        fontSize: 14,
-        lineHeight: 20,
-        color: theme.colors.text.primary,
-    },
-    milestoneListCard: {
-        backgroundColor: "rgba(18, 18, 20, 0.78)",
-        borderRadius: 22,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.05)",
-    },
-    milestoneListTitle: {
-        fontSize: 14,
-        fontWeight: "700",
-        color: theme.colors.text.secondary,
-        marginBottom: 14,
-        textTransform: "uppercase",
-        letterSpacing: 0.4,
-    },
-    milestoneRowCard: {
-        paddingVertical: 14,
-        borderTopWidth: 1,
-        borderTopColor: "rgba(255,255,255,0.06)",
-    },
-    milestoneRowCardAchieved: {
-        opacity: 0.72,
-    },
-    milestoneRowTop: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 12,
-    },
-    milestoneRowLabel: {
-        fontSize: 17,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-        flex: 1,
-    },
-    milestoneRowStatus: {
-        fontSize: 12,
-        fontWeight: "700",
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 999,
-        overflow: "hidden",
-    },
-    milestoneRowStatusAchieved: {
-        color: "#baf7e6",
-        backgroundColor: "rgba(16,185,129,0.16)",
-    },
-    milestoneRowStatusUpcoming: {
-        color: theme.colors.text.secondary,
-        backgroundColor: "rgba(255,255,255,0.06)",
-    },
-    milestoneRowStatusFinal: {
-        color: "#ffdca8",
-        backgroundColor: "rgba(255,184,77,0.14)",
-    },
-    milestoneRowPrimary: {
-        marginTop: 8,
-        fontSize: 15,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-    },
-    milestoneRowDetails: {
-        marginTop: 4,
-        fontSize: 12,
-        color: theme.colors.text.tertiary,
-        lineHeight: 17,
-    },
-    progressBarContainer: {
-        height: 8,
-        backgroundColor: "rgba(255,255,255,0.06)",
-        borderRadius: 4,
-        overflow: "hidden",
-        marginBottom: 12,
-    },
-    progressBarFill: {
-        height: "100%",
-        borderRadius: 4,
     },
 });

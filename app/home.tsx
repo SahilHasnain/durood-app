@@ -119,12 +119,19 @@ export default function Home() {
     const applyIncrement = useCallback(
         async (amount: number) => {
             if (amount <= 0) return;
-            const newCount = count + amount;
+            let newCount = count + amount;
             const newLifetimeTotal = lifetimeTotal + amount;
-            let newStreak = streak;
+            const newStreak = count === 0 && newCount > 0 ? streak + 1 : streak;
 
-            if (count < target && newCount >= target) {
-                newStreak = streak + 1;
+            // Check if goal is reached or exceeded
+            if (newCount >= target && target > 0) {
+                try {
+                    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                } catch (error) {
+                    console.error("Haptics failed", error);
+                }
+                // Reset count to allow multiple goal completions per day
+                newCount = newCount - target;
             }
 
             await saveData({
@@ -133,7 +140,7 @@ export default function Home() {
                 streak: newStreak,
             });
         },
-        [count, lifetimeTotal, streak, target, saveData]
+        [count, lifetimeTotal, streak, saveData, target]
     );
 
     const beginSession = useCallback(() => {
@@ -162,9 +169,6 @@ export default function Home() {
     const endSession = useCallback(async () => {
         if (!sessionActive) return;
         const finalCount = sessionCount;
-        if (finalCount > 0) {
-            await applyIncrement(finalCount);
-        }
         setSessionActive(false);
         setSessionPaused(false);
         setSessionCount(0);
@@ -173,6 +177,9 @@ export default function Home() {
         showTabBar();
         headerTranslateY.value = withTiming(0, { duration: 300 });
         tabBarTranslateY.value = withTiming(0, { duration: 300 });
+        if (finalCount > 0) {
+            void applyIncrement(finalCount);
+        }
     }, [applyIncrement, headerTranslateY, sessionActive, sessionCount, showTabBar, tabBarTranslateY]);
 
     const pauseOrResumeSession = () => {
@@ -278,7 +285,7 @@ export default function Home() {
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    { paddingTop: HEADER_HEIGHT + insets.top + 16, paddingBottom: tabBarHeight + 16 },
+                    { paddingTop: HEADER_HEIGHT + 8, paddingBottom: tabBarHeight + 80 },
                 ]}
                 showsVerticalScrollIndicator={false}
             >

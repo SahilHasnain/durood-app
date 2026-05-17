@@ -1,3 +1,4 @@
+import { LineChart } from "@/components/LineChart";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
@@ -6,7 +7,6 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
-    Dimensions,
     ImageBackground,
     ScrollView,
     StyleSheet,
@@ -14,8 +14,7 @@ import {
     View,
 } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Line } from "react-native-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface DailyRecord {
     date: string;
@@ -63,7 +62,6 @@ function formatTimeFromNow(totalDays: number): string {
 
 export default function Progress() {
     const HEADER_HEIGHT = 60;
-    const insets = useSafeAreaInsets();
     const { tabBarHeight } = useTabBarVisibility();
     const headerTranslateY = useSharedValue(0);
 
@@ -189,7 +187,7 @@ export default function Progress() {
                 contentContainerStyle={[
                     styles.scrollContent,
                     {
-                        paddingTop: HEADER_HEIGHT + insets.top + 16,
+                        paddingTop: HEADER_HEIGHT + 8,
                         paddingBottom: tabBarHeight + 16,
                     },
                 ]}
@@ -226,7 +224,7 @@ export default function Progress() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Last 30 Days</Text>
                     <View style={styles.chartCard}>
-                        <DailyChart data={stats.dailyHistory} />
+                        <LineChart data={stats.dailyHistory} />
                     </View>
                 </View>
 
@@ -276,64 +274,6 @@ export default function Progress() {
                 </View>
             </ScrollView>
         </SafeAreaView>
-    );
-}
-
-function DailyChart({ data }: { data: DailyRecord[] }) {
-    const screenWidth = Dimensions.get("window").width;
-    const chartWidth = screenWidth - 64;
-    const chartHeight = 180;
-    const padding = 20;
-
-    if (data.length === 0) {
-        return (
-            <View style={styles.emptyChart}>
-                <Text style={styles.emptyChartText}>No data yet</Text>
-                <Text style={styles.emptyChartSubtext}>
-                    Start counting to see your progress
-                </Text>
-            </View>
-        );
-    }
-
-    const maxValue = Math.max(...data.map((d) => d.count), 100);
-    const barWidth = (chartWidth - padding * 2) / data.length;
-    const barSpacing = barWidth * 0.2;
-    const actualBarWidth = barWidth - barSpacing;
-
-    return (
-        <Svg width={chartWidth} height={chartHeight}>
-            {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                const y = padding + (chartHeight - padding * 2) * (1 - ratio);
-                return (
-                    <Line
-                        key={ratio}
-                        x1={padding}
-                        y1={y}
-                        x2={chartWidth - padding}
-                        y2={y}
-                        stroke="rgba(255,255,255,0.1)"
-                        strokeWidth="1"
-                    />
-                );
-            })}
-
-            {data.map((record, index) => {
-                const barHeight = (record.count / maxValue) * (chartHeight - padding * 2);
-                const x = padding + index * barWidth + barSpacing / 2;
-                const y = chartHeight - padding - barHeight;
-
-                return (
-                    <Circle
-                        key={record.date}
-                        cx={x + actualBarWidth / 2}
-                        cy={y + barHeight}
-                        r={3}
-                        fill={record.count >= record.target ? "#10b981" : "#FF6B6B"}
-                    />
-                );
-            })}
-        </Svg>
     );
 }
 

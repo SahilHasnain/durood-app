@@ -150,10 +150,11 @@ export function useTasbeehData() {
         ]);
 
         const calculatedStreak = await TasbeehService.calculateStreak();
+        const syncedStreak = Math.max(currentData.streak, calculatedStreak.currentStreak);
 
         await TasbeehService.createOrUpdateUserGoal({
           lifetimeTotal: currentData.lifetimeTotal,
-          currentStreak: calculatedStreak.currentStreak,
+          currentStreak: syncedStreak,
           longestStreak: calculatedStreak.longestStreak,
           dailyTarget: currentData.target,
         });
@@ -161,7 +162,7 @@ export function useTasbeehData() {
         setData((prev) => ({
           ...prev,
           ...currentData,
-          streak: calculatedStreak.currentStreak,
+          streak: syncedStreak,
           syncing: false,
         }));
       } catch (error) {

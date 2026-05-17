@@ -342,9 +342,9 @@ export async function calculateStreak(): Promise<{
     let currentStreak = 0;
     let longestStreak = 0;
 
-    // Sort by date descending
+    // Any day with at least one recitation counts toward the streak.
     const sorted = history
-      .filter((entry) => entry.count >= entry.target && entry.target > 0)
+      .filter((entry) => entry.count > 0)
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // Check if today or yesterday has progress
