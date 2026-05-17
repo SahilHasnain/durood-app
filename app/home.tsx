@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
+    BackHandler,
     ImageBackground,
     Keyboard,
     Pressable,
@@ -18,7 +19,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -195,6 +196,18 @@ export default function Home() {
         setShowManualSheet(false);
         Keyboard.dismiss();
     };
+
+    // Handle back button during session
+    useEffect(() => {
+        if (!sessionActive) return;
+
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+            endSession();
+            return true; // Prevent default back behavior
+        });
+
+        return () => backHandler.remove();
+    }, [sessionActive, endSession]);
 
     if (loading) {
         return (
