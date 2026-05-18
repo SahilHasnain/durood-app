@@ -136,7 +136,7 @@ export default function RootLayout() {
     SystemUI.setBackgroundColorAsync("#000000");
   }, []);
 
-  const publishableKey = "pk_live_Y2xlcmsuZHVyb29kZXBhay5hcHAk";
+  const publishableKey = "pk_test_Y29ycmVjdC13ZXJld29sZi04Ni5jbGVyay5hY2NvdW50cy5kZXYk";
 
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
