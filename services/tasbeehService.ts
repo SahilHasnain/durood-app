@@ -55,7 +55,12 @@ function parseStoredSessions(
 }
 
 // Get user ID (authenticated or anonymous)
-async function getUserId(): Promise<string> {
+async function getUserId(clerkUserId?: string): Promise<string> {
+  // If Clerk user ID is provided, use it
+  if (clerkUserId) {
+    return clerkUserId;
+  }
+
   try {
     // Try to get authenticated user first
     const user = await account.get();
@@ -93,9 +98,9 @@ function getYesterdayKey(): string {
 }
 
 // User Goal Operations
-export async function getUserGoal(): Promise<UserGoal | null> {
+export async function getUserGoal(clerkUserId?: string): Promise<UserGoal | null> {
   try {
-    const userId = await getUserId();
+    const userId = await getUserId(clerkUserId);
     const response = await databases.listDocuments(
       config.databaseId,
       TASBEEH_COLLECTION_ID + "_goals",
@@ -112,10 +117,10 @@ export async function getUserGoal(): Promise<UserGoal | null> {
   }
 }
 
-export async function createOrUpdateUserGoal(data: Partial<UserGoal>): Promise<UserGoal | null> {
+export async function createOrUpdateUserGoal(data: Partial<UserGoal>, clerkUserId?: string): Promise<UserGoal | null> {
   try {
-    const userId = await getUserId();
-    const existing = await getUserGoal();
+    const userId = await getUserId(clerkUserId);
+    const existing = await getUserGoal(clerkUserId);
 
     const goalData = {
       userId,
@@ -155,9 +160,9 @@ export async function createOrUpdateUserGoal(data: Partial<UserGoal>): Promise<U
 }
 
 // Daily Progress Operations
-export async function getTodayProgress(): Promise<DailyProgress | null> {
+export async function getTodayProgress(clerkUserId?: string): Promise<DailyProgress | null> {
   try {
-    const userId = await getUserId();
+    const userId = await getUserId(clerkUserId);
     const today = getTodayKey();
 
     const response = await databases.listDocuments(
@@ -186,12 +191,13 @@ export async function getTodayProgress(): Promise<DailyProgress | null> {
 export async function createOrUpdateDailyProgress(
   count: number,
   target: number,
+  clerkUserId?: string,
   sessions: SessionRecord[] = []
 ): Promise<DailyProgress | null> {
   try {
-    const userId = await getUserId();
+    const userId = await getUserId(clerkUserId);
     const today = getTodayKey();
-    const existing = await getTodayProgress();
+    const existing = await getTodayProgress(clerkUserId);
 
     const progressData = {
       userId,
@@ -228,9 +234,9 @@ export async function createOrUpdateDailyProgress(
   }
 }
 
-export async function getDailyHistory(days: number = 30): Promise<DailyProgress[]> {
+export async function getDailyHistory(days: number = 30, clerkUserId?: string): Promise<DailyProgress[]> {
   try {
-    const userId = await getUserId();
+    const userId = await getUserId(clerkUserId);
     const response = await databases.listDocuments(
       config.databaseId,
       TASBEEH_COLLECTION_ID,
@@ -254,7 +260,7 @@ export async function getDailyHistory(days: number = 30): Promise<DailyProgress[
 }
 
 // Sync Operations
-export async function syncFromLocalStorage(): Promise<void> {
+export async function syncFromLocalStorage(clerkUserId?: string): Promise<void> {
   try {
     // Get local data
     const [
@@ -282,10 +288,10 @@ export async function syncFromLocalStorage(): Promise<void> {
       currentStreak,
       longestStreak: currentStreak,
       dailyTarget: todayTarget,
-    });
+    }, clerkUserId);
 
     // Sync today's progress
-    await createOrUpdateDailyProgress(todayCount, todayTarget);
+    await createOrUpdateDailyProgress(todayCount, todayTarget, clerkUserId);
 
     // Sync history if available
     if (historyStr) {
@@ -293,7 +299,7 @@ export async function syncFromLocalStorage(): Promise<void> {
         JSON.parse(historyStr);
 
       for (const record of history) {
-        const userId = await getUserId();
+        const userId = await getUserId(clerkUserId);
         const existing = await databases.listDocuments(
           config.databaseId,
           TASBEEH_COLLECTION_ID,
@@ -330,56 +336,77 @@ export async function syncFromLocalStorage(): Promise<void> {
 }
 
 // Calculate streak from history
-export async function calculateStreak(): Promise<{
+export async function calculateStreak(clerkUserId?: string): Promise<{
   currentStreak: number;
   longestStreak: number;
 }> {
   try {
-    const history = await getDailyHistory(365);
+    const history = await getDailyHistory(365, clerkUserId);
     const today = getTodayKey();
     const yesterday = getYesterdayKey();
 
-    let currentStreak = 0;
-    let longestStreak = 0;
-
-    // Any day with at least one recitation counts toward the streak.
-    const sorted = history
+    // Filter days with progress and sort by date descending (newest first)
+    const daysWithProgress = history
       .filter((entry) => entry.count > 0)
       .sort((a, b) => b.date.localeCompare(a.date));
 
-    // Check if today or yesterday has progress
-    const hasRecentProgress =
-      sorted.length > 0 &&
-      (sorted[0].date === today || sorted[0].date === yesterday);
-
-    if (!hasRecentProgress) {
+    if (daysWithProgress.length === 0) {
       return { currentStreak: 0, longestStreak: 0 };
     }
 
-    let runLength = 1;
-    longestStreak = sorted.length > 0 ? 1 : 0;
-    currentStreak = sorted.length > 0 ? 1 : 0;
+    // Check if streak is still active (today or yesterday has progress)
+    const mostRecentDay = daysWithProgress[0].date;
+    const streakIsActive = mostRecentDay === today || mostRecentDay === yesterday;
 
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i].date === getDateBefore(sorted[i - 1].date, 1)) {
-        runLength += 1;
-      } else {
-        runLength = 1;
+    if (!streakIsActive) {
+      // Streak is broken, but calculate longest streak from history
+      let longestStreak = 0;
+      let currentRun = 1;
+
+      for (let i = 1; i < daysWithProgress.length; i++) {
+        const prevDate = daysWithProgress[i - 1].date;
+        const currDate = daysWithProgress[i].date;
+        
+        // Check if current date is exactly 1 day before previous date
+        if (currDate === getDateBefore(prevDate, 1)) {
+          currentRun++;
+        } else {
+          longestStreak = Math.max(longestStreak, currentRun);
+          currentRun = 1;
+        }
       }
+      longestStreak = Math.max(longestStreak, currentRun);
 
-      if (i < sorted.length && sorted[i - 1].date === getDateBefore(sorted[i].date, 1)) {
-        currentStreak = Math.max(currentStreak, i === currentStreak ? currentStreak + 1 : currentStreak);
-      }
-
-      longestStreak = Math.max(longestStreak, runLength);
+      return { currentStreak: 0, longestStreak };
     }
 
-    currentStreak = 1;
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i - 1].date === getDateBefore(sorted[i].date, 1)) {
-        currentStreak += 1;
+    // Calculate current streak (from most recent day backwards)
+    let currentStreak = 1;
+    for (let i = 1; i < daysWithProgress.length; i++) {
+      const prevDate = daysWithProgress[i - 1].date;
+      const currDate = daysWithProgress[i].date;
+      
+      // Check if current date is exactly 1 day before previous date
+      if (currDate === getDateBefore(prevDate, 1)) {
+        currentStreak++;
       } else {
-        break;
+        break; // Streak is broken
+      }
+    }
+
+    // Calculate longest streak
+    let longestStreak = currentStreak;
+    let currentRun = 1;
+
+    for (let i = 1; i < daysWithProgress.length; i++) {
+      const prevDate = daysWithProgress[i - 1].date;
+      const currDate = daysWithProgress[i].date;
+      
+      if (currDate === getDateBefore(prevDate, 1)) {
+        currentRun++;
+        longestStreak = Math.max(longestStreak, currentRun);
+      } else {
+        currentRun = 1;
       }
     }
 

@@ -1,6 +1,7 @@
 import { LineChart } from "@/components/LineChart";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import * as TasbeehService from "@/services/tasbeehService";
 import { useFocusEffect } from "expo-router";
@@ -63,6 +64,7 @@ function formatTimeFromNow(totalDays: number): string {
 export default function Progress() {
     const HEADER_HEIGHT = 60;
     const { tabBarHeight } = useTabBarVisibility();
+    const { user } = useAuth();
     const headerTranslateY = useSharedValue(0);
 
     const [stats, setStats] = useState<ProgressStats>({
@@ -85,8 +87,8 @@ export default function Progress() {
         try {
             setLoading(true);
             const [goal, history] = await Promise.all([
-                TasbeehService.getUserGoal(),
-                TasbeehService.getDailyHistory(30),
+                TasbeehService.getUserGoal(user?.id),
+                TasbeehService.getDailyHistory(30, user?.id),
             ]);
 
             const lifetimeTotal = goal?.lifetimeTotal ?? 0;
@@ -149,7 +151,7 @@ export default function Progress() {
             console.error("Failed to load progress data:", error);
             setLoading(false);
         }
-    }, []);
+    }, [user?.id]);
 
     useFocusEffect(
         useCallback(() => {

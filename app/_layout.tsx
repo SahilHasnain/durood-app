@@ -10,6 +10,8 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
+import { ClerkLoaded, ClerkProvider } from "@clerk/clerk-expo";
+import { tokenCache } from "@/utils/tokenCache";
 
 function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();

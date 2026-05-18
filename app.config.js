@@ -1,6 +1,29 @@
+const IS_DEV = process.env.APP_VARIANT === "development";
+const IS_PREVIEW = process.env.APP_VARIANT === "preview";
+
+const getUniqueIdentifier = () => {
+  if (IS_DEV) {
+    return "com.duroodepak.dev";
+  }
+  if (IS_PREVIEW) {
+    return "com.duroodepak.preview";
+  }
+  return "com.duroodepak";
+};
+
+const getAppName = () => {
+  if (IS_DEV) {
+    return "Durood e Pak (Dev)";
+  }
+  if (IS_PREVIEW) {
+    return "Durood e Pak (Preview)";
+  }
+  return "Durood e Pak";
+};
+
 export default {
   expo: {
-    name: "Durood e Pak",
+    name: getAppName(),
     slug: "durood-e-pak",
     version: "1.0.0",
     orientation: "portrait",
@@ -15,7 +38,7 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.duroodepak",
+      bundleIdentifier: getUniqueIdentifier(),
     },
     android: {
       adaptiveIcon: {
@@ -23,7 +46,7 @@ export default {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      package: "com.duroodepak",
+      package: getUniqueIdentifier(),
     },
     web: {
       bundler: "metro",
