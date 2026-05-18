@@ -2,6 +2,8 @@ import { AnimatedTabBar } from "@/components/AnimatedTabBar";
 import { theme } from "@/constants/theme";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
+import { tokenCache } from "@/utils/tokenCache";
+import { ClerkLoaded, ClerkProvider } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -10,8 +12,6 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
-import { ClerkLoaded, ClerkProvider } from "@clerk/clerk-expo";
-import { tokenCache } from "@/utils/tokenCache";
 
 function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
@@ -136,13 +136,7 @@ export default function RootLayout() {
     SystemUI.setBackgroundColorAsync("#000000");
   }, []);
 
-  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
-
-  if (!publishableKey) {
-    throw new Error(
-      "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env"
-    );
-  }
+  const publishableKey = "pk_live_Y2xlcmsuZHVyb29kZXBhay5hcHAk";
 
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
