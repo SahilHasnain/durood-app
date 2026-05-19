@@ -4,7 +4,7 @@ import { useOAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -23,25 +23,38 @@ export default function Login() {
     const { isAuthenticated, loading } = useAuth();
     const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
 
+    // Redirect if already authenticated - moved to useEffect to avoid setState during render
+    useEffect(() => {
+        if (isAuthenticated && !loading) {
+            router.replace("/home");
+        }
+    }, [isAuthenticated, loading]);
+
     const handleGoogleSignIn = useCallback(async () => {
         try {
-            const { createdSessionId, setActive } = await startOAuthFlow();
+            console.log("🚀 Starting OAuth flow...");
+            const { createdSessionId, setActive } = await startOAuthFlow({
+                redirectUrl: "duroodapp://"
+            });
+
+            console.log("✅ OAuth flow completed, sessionId:", createdSessionId);
 
             if (createdSessionId) {
                 await setActive!({ session: createdSessionId });
+                console.log("✅ Session activated, redirecting to home");
                 router.replace("/home");
+            } else {
+                console.log("⚠️ No session created");
             }
         } catch (err: any) {
-            console.error("OAuth error", err);
-            Alert.alert("Sign In Failed", err.message || "Please try again");
+            console.error("❌ OAuth error:", err);
+            console.error("❌ Error details:", JSON.stringify(err, null, 2));
+            Alert.alert(
+                "Sign In Failed",
+                err.message || err.toString() || "Please try again"
+            );
         }
     }, [startOAuthFlow]);
-
-    // If already authenticated, redirect to home
-    if (isAuthenticated && !loading) {
-        router.replace("/home");
-        return null;
-    }
 
     if (loading) {
         return (

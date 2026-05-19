@@ -20,6 +20,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: clerkUser, isLoaded } = useUser();
 
+    console.log("🔍 AuthProvider - isLoaded:", isLoaded, "user:", clerkUser?.id || "null");
+
     // Transform Clerk user to our User interface
     const user: User | null = clerkUser
         ? {
