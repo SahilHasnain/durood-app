@@ -3,9 +3,9 @@ import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
-import * as TasbeehService from "@/services/tasbeehService";
+import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import {
     ActivityIndicator,
     ImageBackground,
@@ -17,48 +17,8 @@ import {
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface DailyRecord {
-    date: string;
-    count: number;
-    target: number;
-}
-
-interface ProgressStats {
-    lifetimeTotal: number;
-    currentStreak: number;
-    longestStreak: number;
-    averagePerDay: number;
-    bestDay: number;
-    todayCount: number;
-    todayTarget: number;
-    weeklyTotal: number;
-    monthlyTotal: number;
-    estimatedFinishDate: string;
-    estimatedFinishDistance: string;
-    dailyHistory: DailyRecord[];
-}
-
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
-}
-
-function formatTimeFromNow(totalDays: number): string {
-    if (totalDays <= 0) return "today";
-
-    const years = Math.floor(totalDays / 365);
-    const months = Math.floor((totalDays % 365) / 30);
-
-    if (years <= 0) {
-        return months > 0
-            ? `${months} month${months === 1 ? "" : "s"}`
-            : `${totalDays} day${totalDays === 1 ? "" : "s"}`;
-    }
-
-    if (months <= 0) {
-        return `${years} year${years === 1 ? "" : "s"}`;
-    }
-
-    return `${years} year${years === 1 ? "" : "s"} ${months} month${months === 1 ? "" : "s"}`;
 }
 
 export default function Progress() {
@@ -67,99 +27,22 @@ export default function Progress() {
     const { user } = useAuth();
     const headerTranslateY = useSharedValue(0);
 
-    const [stats, setStats] = useState<ProgressStats>({
-        lifetimeTotal: 0,
-        currentStreak: 0,
-        longestStreak: 0,
-        averagePerDay: 0,
-        bestDay: 0,
-        todayCount: 0,
-        todayTarget: 100,
-        weeklyTotal: 0,
-        monthlyTotal: 0,
-        estimatedFinishDate: "—",
-        estimatedFinishDistance: "?",
-        dailyHistory: [],
-    });
-    const [loading, setLoading] = useState(true);
-
-    const loadProgressData = useCallback(async () => {
-        try {
-            setLoading(true);
-            const [goal, history] = await Promise.all([
-                TasbeehService.getUserGoal(user?.id),
-                TasbeehService.getDailyHistory(30, user?.id),
-            ]);
-
-            const lifetimeTotal = goal?.lifetimeTotal ?? 0;
-            const currentStreak = goal?.currentStreak ?? 0;
-            const longestStreak = goal?.longestStreak ?? 0;
-
-            // Calculate stats from history
-            const weeklyTotal = history
-                .slice(0, 7)
-                .reduce((sum, record) => sum + record.count, 0);
-
-            const monthlyTotal = history.reduce((sum, record) => sum + record.count, 0);
-
-            const bestDay =
-                history.length > 0 ? Math.max(...history.map((r) => r.count)) : 0;
-
-            const averagePerDay =
-                history.length > 0 ? Math.round(lifetimeTotal / history.length) : 0;
-
-            // Estimate finish date
-            const remainingGoal = 10000000 - lifetimeTotal;
-            const estimatedDays =
-                averagePerDay > 0 ? Math.ceil(remainingGoal / averagePerDay) : 0;
-            const finishDate = new Date();
-            finishDate.setDate(finishDate.getDate() + estimatedDays);
-            const estimatedFinishDate =
-                averagePerDay > 0
-                    ? finishDate.toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                    })
-                    : "—";
-
-            const estimatedFinishDistance =
-                averagePerDay > 0 ? formatTimeFromNow(estimatedDays) : "?";
-            // Convert history to daily records
-            const dailyHistory = history.map((record) => ({
-                date: record.date,
-                count: record.count,
-                target: record.target,
-            }));
-
-            setStats({
-                lifetimeTotal,
-                currentStreak,
-                longestStreak,
-                averagePerDay,
-                bestDay,
-                todayCount: history[0]?.count ?? 0,
-                todayTarget: history[0]?.target ?? 100,
-                weeklyTotal,
-                monthlyTotal,
-                estimatedFinishDate,
-                estimatedFinishDistance,
-                dailyHistory,
-            });
-            setLoading(false);
-        } catch (error) {
-            console.error("Failed to load progress data:", error);
-            setLoading(false);
-        }
-    }, [user?.id]);
+    const progressStats = useTasbeehStore((state) => state.progressStats);
+    const progressLoading = useTasbeehStore((state) => state.progressLoading);
+    const progressInitialized = useTasbeehStore((state) => state.progressInitialized);
+    const initializedUserId = useTasbeehStore((state) => state.initializedUserId);
+    const loadProgressData = useTasbeehStore((state) => state.loadProgressData);
 
     useFocusEffect(
         useCallback(() => {
-            loadProgressData();
-        }, [loadProgressData])
+            if (!user?.id) return;
+            if (progressInitialized && initializedUserId === user.id) return;
+
+            loadProgressData(user.id);
+        }, [user?.id, progressInitialized, initializedUserId, loadProgressData])
     );
 
-    if (loading) {
+    if (progressLoading || !progressStats) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
                 <SimpleHeader translateY={headerTranslateY} />
@@ -203,22 +86,22 @@ export default function Progress() {
                 <View style={styles.statsGrid}>
                     <View style={styles.statCard}>
                         <View style={styles.statGlow} />
-                        <Text style={styles.statValue}>{formatNumber(stats.lifetimeTotal)}</Text>
+                        <Text style={styles.statValue}>{formatNumber(progressStats.lifetimeTotal)}</Text>
                         <Text style={styles.statLabel}>Lifetime Total</Text>
                     </View>
                     <View style={styles.statCard}>
                         <View style={styles.statGlow} />
-                        <Text style={styles.statValue}>{stats.currentStreak}</Text>
+                        <Text style={styles.statValue}>{progressStats.currentStreak}</Text>
                         <Text style={styles.statLabel}>Current Streak</Text>
                     </View>
                     <View style={styles.statCard}>
                         <View style={styles.statGlow} />
-                        <Text style={styles.statValue}>{formatNumber(stats.averagePerDay)}</Text>
+                        <Text style={styles.statValue}>{formatNumber(progressStats.averagePerDay)}</Text>
                         <Text style={styles.statLabel}>Avg Per Day</Text>
                     </View>
                     <View style={styles.statCard}>
                         <View style={styles.statGlow} />
-                        <Text style={styles.statValue}>{formatNumber(stats.bestDay)}</Text>
+                        <Text style={styles.statValue}>{formatNumber(progressStats.bestDay)}</Text>
                         <Text style={styles.statLabel}>Best Day</Text>
                     </View>
                 </View>
@@ -226,7 +109,7 @@ export default function Progress() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Last 30 Days</Text>
                     <View style={styles.chartCard}>
-                        <LineChart data={stats.dailyHistory} />
+                        <LineChart data={progressStats.dailyHistory} />
                     </View>
                 </View>
 
@@ -236,14 +119,14 @@ export default function Progress() {
                         <View style={styles.periodRow}>
                             <Text style={styles.periodLabel}>This Week</Text>
                             <Text style={styles.periodValue}>
-                                {formatNumber(stats.weeklyTotal)}
+                                {formatNumber(progressStats.weeklyTotal)}
                             </Text>
                         </View>
                         <View style={styles.periodDivider} />
                         <View style={styles.periodRow}>
                             <Text style={styles.periodLabel}>This Month</Text>
                             <Text style={styles.periodValue}>
-                                {formatNumber(stats.monthlyTotal)}
+                                {formatNumber(progressStats.monthlyTotal)}
                             </Text>
                         </View>
                     </View>
@@ -254,12 +137,12 @@ export default function Progress() {
                     <View style={styles.periodCard}>
                         <View style={styles.periodRow}>
                             <Text style={styles.periodLabel}>Current Streak</Text>
-                            <Text style={styles.periodValue}>{stats.currentStreak} days</Text>
+                            <Text style={styles.periodValue}>{progressStats.currentStreak} days</Text>
                         </View>
                         <View style={styles.periodDivider} />
                         <View style={styles.periodRow}>
                             <Text style={styles.periodLabel}>Longest Streak</Text>
-                            <Text style={styles.periodValue}>{stats.longestStreak} days</Text>
+                            <Text style={styles.periodValue}>{progressStats.longestStreak} days</Text>
                         </View>
                     </View>
                 </View>
@@ -268,9 +151,9 @@ export default function Progress() {
                     <Text style={styles.sectionTitle}>Projection</Text>
                     <View style={styles.projectionCard}>
                         <Text style={styles.projectionLabel}>At current pace, finish by</Text>
-                        <Text style={styles.projectionDate}>{stats.estimatedFinishDate}</Text>
+                        <Text style={styles.projectionDate}>{progressStats.estimatedFinishDate}</Text>
                         <Text style={styles.projectionDistance}>
-                            About {stats.estimatedFinishDistance} from now
+                            About {progressStats.estimatedFinishDistance} from now
                         </Text>
                     </View>
                 </View>

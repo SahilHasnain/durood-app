@@ -55,6 +55,7 @@ export default function Home() {
     const [sessionCount, setSessionCount] = useState(0);
     const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
     const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(0);
+    const [sessionGoalsCompleted, setSessionGoalsCompleted] = useState(0); // Track how many times goal was hit
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const progressAnim = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
@@ -64,12 +65,14 @@ export default function Home() {
     const insets = useSafeAreaInsets();
     const headerTranslateY = useSharedValue(0);
 
-    const progress = target > 0 ? Math.min((count / target) * 100, 100) : 0;
+    const progress = target > 0 ? ((count % target) / target) * 100 : 0;
     const isComplete = count >= target;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
 
     const projectedTodayCompleted = count + sessionCount;
-    const sessionProgress = target > 0 ? Math.min((projectedTodayCompleted / target) * 100, 100) : 0;
+    // Use modulo to reset progress ring when goal is reached
+    const effectiveCount = target > 0 ? projectedTodayCompleted % target : projectedTodayCompleted;
+    const sessionProgress = target > 0 ? (effectiveCount / target) * 100 : 0;
     const sessionProgressOffset = RING_CIRCUMFERENCE - (sessionProgress / 100) * RING_CIRCUMFERENCE;
 
     useFocusEffect(
@@ -150,6 +153,7 @@ export default function Home() {
         setShowManualSheet(false);
         setSessionActive(true);
         setSessionPaused(false);
+        setSessionGoalsCompleted(0);
         if (!sessionStartedAt) {
             setSessionStartedAt(Date.now());
             setSessionElapsedSeconds(0);
@@ -164,24 +168,55 @@ export default function Home() {
         } catch (error) {
             console.error("Haptics failed", error);
         }
-        setSessionCount((prev) => prev + 1);
-    }, [sessionActive, sessionPaused]);
+
+        const newSessionCount = sessionCount + 1;
+        setSessionCount(newSessionCount);
+
+        const projectedTotal = count + newSessionCount;
+
+        // Check if goal is reached during session
+        if (projectedTotal >= target && target > 0 && projectedTotal % target === 0) {
+            try {
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch (error) {
+                console.error("Haptics failed", error);
+            }
+            // Track goal completion locally
+            setSessionGoalsCompleted(prev => prev + 1);
+        }
+    }, [sessionActive, sessionPaused, sessionCount, count, target]);
 
     const endSession = useCallback(async () => {
         if (!sessionActive) return;
         const finalCount = sessionCount;
+        const goalsCompleted = sessionGoalsCompleted;
+
         setSessionActive(false);
         setSessionPaused(false);
         setSessionCount(0);
         setSessionStartedAt(null);
         setSessionElapsedSeconds(0);
+        setSessionGoalsCompleted(0);
+
         showTabBar();
         headerTranslateY.value = withTiming(0, { duration: 300 });
         tabBarTranslateY.value = withTiming(0, { duration: 300 });
-        if (finalCount > 0) {
-            void applyIncrement(finalCount);
+
+        if (finalCount > 0 || goalsCompleted > 0) {
+            // Calculate final values accounting for goal completions
+            const totalAdded = finalCount + (goalsCompleted * target);
+            let newCount = count + totalAdded;
+            const newLifetimeTotal = lifetimeTotal + totalAdded;
+            const newStreak = count === 0 && totalAdded > 0 ? streak + 1 : streak;
+
+            // Handle any remaining goal completions
+            while (newCount >= target && target > 0) {
+                newCount = newCount - target;
+            }
+
+            void applyIncrement(totalAdded);
         }
-    }, [applyIncrement, headerTranslateY, sessionActive, sessionCount, showTabBar, tabBarTranslateY]);
+    }, [sessionActive, sessionCount, sessionGoalsCompleted, count, target, lifetimeTotal, streak, showTabBar, headerTranslateY, tabBarTranslateY, applyIncrement]);
 
     const pauseOrResumeSession = () => {
         if (!sessionActive) return;
@@ -260,15 +295,13 @@ export default function Home() {
                 </Pressable>
 
                 <View style={styles.sessionActions}>
-                    <TouchableOpacity onPress={pauseOrResumeSession} style={styles.sessionButton}>
-                        <Text style={styles.sessionButtonText}>{sessionPaused ? "Resume" : "Pause"}</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity
-                        onPress={endSession}
-                        style={[styles.sessionButton, styles.sessionButtonEnd]}
+                        onPress={pauseOrResumeSession}
+                        style={styles.sessionPauseButton}
+                        activeOpacity={0.7}
                     >
-                        <Text style={[styles.sessionButtonText, styles.sessionButtonEndText]}>
-                            End Session
+                        <Text style={styles.sessionPauseButtonText}>
+                            {sessionPaused ? "Resume" : "Pause"}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -347,7 +380,7 @@ export default function Home() {
                                 />
                             </Svg>
                             <View style={styles.progressInner}>
-                                <Text style={styles.count}>{formatNumber(count)}</Text>
+                                <Text style={styles.count}>{formatNumber(target > 0 ? count % target : count)}</Text>
                                 <Text style={styles.targetText}>of {formatNumber(target)}</Text>
                                 <Text style={styles.tapHint}>Tap to start session</Text>
                             </View>
@@ -648,29 +681,22 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
     },
     sessionActions: {
-        flexDirection: "row",
-        gap: 12,
+        alignItems: "center",
         paddingBottom: 24,
     },
-    sessionButton: {
-        flex: 1,
+    sessionPauseButton: {
         backgroundColor: theme.colors.surface.primary,
-        borderRadius: 12,
-        padding: 16,
+        borderRadius: 16,
+        paddingVertical: 18,
+        paddingHorizontal: 48,
         alignItems: "center",
         borderWidth: 1,
         borderColor: theme.colors.border.primary,
+        minWidth: 160,
     },
-    sessionButtonEnd: {
-        backgroundColor: theme.colors.primary.main,
-        borderColor: theme.colors.primary.main,
-    },
-    sessionButtonText: {
-        fontSize: 16,
+    sessionPauseButtonText: {
+        fontSize: 17,
         fontWeight: "600",
         color: theme.colors.text.primary,
-    },
-    sessionButtonEndText: {
-        color: "#FFFFFF",
     },
 });

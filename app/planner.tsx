@@ -2,7 +2,7 @@ import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
-import * as TasbeehService from "@/services/tasbeehService";
+import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -19,7 +19,6 @@ import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 
-const DEFAULT_TOTAL_GOAL = 10000000; // 1 Crore
 const RING_SIZE = 180;
 const RING_STROKE_WIDTH = 12;
 const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
@@ -82,85 +81,63 @@ export default function Planner() {
     const { user } = useAuth();
     const headerTranslateY = useSharedValue(0);
 
-    const [lifetimeTotal, setLifetimeTotal] = useState(0);
-    const [totalGoal, setTotalGoal] = useState(DEFAULT_TOTAL_GOAL);
-    const [dailyTarget, setDailyTarget] = useState(100);
+    const plannerData = useTasbeehStore((state) => state.plannerData);
+    const plannerLoading = useTasbeehStore((state) => state.plannerLoading);
+    const plannerInitialized = useTasbeehStore((state) => state.plannerInitialized);
+    const initializedUserId = useTasbeehStore((state) => state.initializedUserId);
+    const loadPlannerData = useTasbeehStore((state) => state.loadPlannerData);
+    const updateDailyTarget = useTasbeehStore((state) => state.updateDailyTarget);
+    const updateTotalGoal = useTasbeehStore((state) => state.updateTotalGoal);
+
     const [dailyInput, setDailyInput] = useState("");
     const [goalInput, setGoalInput] = useState("");
-    const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
-
-    const loadData = useCallback(async () => {
-        try {
-            setLoading(true);
-            const goal = await TasbeehService.getUserGoal(user?.id);
-            setLifetimeTotal(goal?.lifetimeTotal ?? 0);
-            setTotalGoal(goal?.totalGoal ?? DEFAULT_TOTAL_GOAL);
-            setDailyTarget(goal?.dailyTarget ?? 100);
-            setDailyInput((goal?.dailyTarget ?? 100).toString());
-            setGoalInput((goal?.totalGoal ?? DEFAULT_TOTAL_GOAL).toString());
-            setLoading(false);
-        } catch (error) {
-            console.error("Failed to load data:", error);
-            setLoading(false);
-        }
-    }, [user?.id]);
 
     useFocusEffect(
         useCallback(() => {
-            loadData();
-        }, [loadData])
+            if (!user?.id) return;
+
+            if (plannerInitialized && initializedUserId === user.id) {
+                if (plannerData) {
+                    setDailyInput(plannerData.dailyTarget.toString());
+                    setGoalInput(plannerData.totalGoal.toString());
+                }
+                return;
+            }
+
+            void loadPlannerData(user.id);
+        }, [user?.id, plannerInitialized, initializedUserId, plannerData, loadPlannerData])
     );
 
-    const remainingGoal = Math.max(0, totalGoal - lifetimeTotal);
-    const progressPercent = Math.min((lifetimeTotal / totalGoal) * 100, 100);
-    const progressOffset = RING_CIRCUMFERENCE - (progressPercent / 100) * RING_CIRCUMFERENCE;
-
-    // Calculate finish date based on current daily target
-    const daysToFinish = dailyTarget > 0 ? Math.ceil(remainingGoal / dailyTarget) : 0;
-    const finishDate = new Date();
-    finishDate.setDate(finishDate.getDate() + daysToFinish);
-
-    // Find next milestone
-    const nextMilestone = MILESTONES.find((m) => lifetimeTotal < m.value) ?? MILESTONES[MILESTONES.length - 1];
-    const nextMilestoneRemaining = Math.max(0, nextMilestone.value - lifetimeTotal);
-    const daysToNextMilestone = dailyTarget > 0 ? Math.ceil(nextMilestoneRemaining / dailyTarget) : 0;
-
-    const updateDailyTarget = async () => {
+    const handleUpdateDailyTarget = async () => {
         const newTarget = parseInt(dailyInput.replace(/,/g, ""), 10);
         if (!newTarget || newTarget <= 0) return;
 
         try {
             setUpdating(true);
-            await TasbeehService.createOrUpdateUserGoal({
-                dailyTarget: newTarget,
-            }, user?.id);
-            setDailyTarget(newTarget);
-            setUpdating(false);
+            await updateDailyTarget(newTarget, user?.id);
         } catch (error) {
             console.error("Failed to update target:", error);
+        } finally {
             setUpdating(false);
         }
     };
 
-    const updateLifetimeGoal = async () => {
+    const handleUpdateLifetimeGoal = async () => {
         const newGoal = parseInt(goalInput.replace(/,/g, ""), 10);
         if (!newGoal || newGoal <= 0) return;
 
         try {
             setUpdating(true);
-            await TasbeehService.createOrUpdateUserGoal({
-                totalGoal: newGoal,
-            }, user?.id);
-            setTotalGoal(newGoal);
-            setUpdating(false);
+            await updateTotalGoal(newGoal, user?.id);
         } catch (error) {
             console.error("Failed to update goal:", error);
+        } finally {
             setUpdating(false);
         }
     };
 
-    if (loading) {
+    if (plannerLoading || !plannerData) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
                 <SimpleHeader translateY={headerTranslateY} />
@@ -171,6 +148,22 @@ export default function Planner() {
             </SafeAreaView>
         );
     }
+
+    const { lifetimeTotal, totalGoal, dailyTarget } = plannerData;
+    const remainingGoal = Math.max(0, totalGoal - lifetimeTotal);
+    const progressPercent = totalGoal > 0 ? Math.min((lifetimeTotal / totalGoal) * 100, 100) : 0;
+    const progressOffset = RING_CIRCUMFERENCE - (progressPercent / 100) * RING_CIRCUMFERENCE;
+
+    const daysToFinish = dailyTarget > 0 ? Math.ceil(remainingGoal / dailyTarget) : 0;
+    const finishDate = new Date();
+    finishDate.setDate(finishDate.getDate() + daysToFinish);
+
+    const nextMilestone =
+        MILESTONES.find((milestone) => lifetimeTotal < milestone.value) ??
+        MILESTONES[MILESTONES.length - 1];
+    const nextMilestoneRemaining = Math.max(0, nextMilestone.value - lifetimeTotal);
+    const daysToNextMilestone =
+        dailyTarget > 0 ? Math.ceil(nextMilestoneRemaining / dailyTarget) : 0;
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
@@ -196,7 +189,6 @@ export default function Planner() {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Hero Progress Ring */}
                 <View style={styles.heroCard}>
                     <Text style={styles.heroEyebrow}>
                         Journey to {formatCompactNumber(totalGoal)}
@@ -242,7 +234,6 @@ export default function Planner() {
                     </View>
                 </View>
 
-                {/* Lifetime Goal Setting */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Your Lifetime Goal</Text>
                     <View style={styles.calculatorCard}>
@@ -257,7 +248,7 @@ export default function Planner() {
                         />
                         <TouchableOpacity
                             style={[styles.button, updating && styles.buttonDisabled]}
-                            onPress={updateLifetimeGoal}
+                            onPress={handleUpdateLifetimeGoal}
                             disabled={updating}
                         >
                             <Text style={styles.buttonText}>
@@ -267,7 +258,6 @@ export default function Planner() {
                     </View>
                 </View>
 
-                {/* Daily Target Calculator */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Set Your Daily Pace</Text>
                     <View style={styles.calculatorCard}>
@@ -282,7 +272,7 @@ export default function Planner() {
                         />
                         <TouchableOpacity
                             style={[styles.button, updating && styles.buttonDisabled]}
-                            onPress={updateDailyTarget}
+                            onPress={handleUpdateDailyTarget}
                             disabled={updating}
                         >
                             <Text style={styles.buttonText}>
@@ -293,11 +283,9 @@ export default function Planner() {
                         {dailyTarget > 0 && (
                             <View style={styles.projectionCard}>
                                 <Text style={styles.projectionEyebrow}>Your projection</Text>
-                                <Text style={styles.projectionValue}>
-                                    {formatNumber(dailyTarget)}/day
-                                </Text>
+                                <Text style={styles.projectionValue}>{formatNumber(dailyTarget)}/day</Text>
                                 <Text style={styles.projectionText}>
-                                    You'll reach {formatCompactNumber(totalGoal)} in about
+                                    You&apos;ll reach {formatCompactNumber(totalGoal)} in about
                                 </Text>
                                 <Text style={styles.projectionDuration}>
                                     {formatDuration(daysToFinish)}
@@ -310,7 +298,6 @@ export default function Planner() {
                     </View>
                 </View>
 
-                {/* Next Milestone */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Next Milestone</Text>
                     <View style={styles.milestoneCard}>
