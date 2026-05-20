@@ -101,15 +101,15 @@ android {
     productFlavors {
         production {
             dimension "env"
-            applicationId "com.duroodepak"
+            applicationId 'com.duroodepak'
         }
         preview {
             dimension "env"
-            applicationId "com.duroodepak.preview"
+            applicationId 'com.duroodepak'
         }
         development {
             dimension "env"
-            applicationId "com.duroodepak.dev"
+            applicationId 'com.duroodepak'
         }
     }
     signingConfigs {
