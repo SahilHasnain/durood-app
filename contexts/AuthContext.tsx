@@ -1,4 +1,5 @@
-import { useUser } from "@clerk/clerk-expo";
+import { useClerk, useUser } from "@clerk/clerk-expo";
+import { useTasbeehStore } from "@/stores/tasbeehStore";
 import React, { createContext, useContext } from "react";
 
 interface User {
@@ -13,12 +14,14 @@ interface AuthContextType {
     loading: boolean;
     isAuthenticated: boolean;
     clerkUser: any; // Raw Clerk user object
+    logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: clerkUser, isLoaded } = useUser();
+    const { signOut } = useClerk();
 
     console.log("🔍 AuthProvider - isLoaded:", isLoaded, "user:", clerkUser?.id || "null");
 
@@ -32,6 +35,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         : null;
 
+    const logout = async () => {
+        await signOut();
+        useTasbeehStore.getState().reset();
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -39,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 loading: !isLoaded,
                 isAuthenticated: !!clerkUser,
                 clerkUser,
+                logout,
             }}
         >
             {children}

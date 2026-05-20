@@ -1,13 +1,15 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOAuth } from "@clerk/clerk-expo";
+import { useSSO } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
+import * as AuthSession from "expo-auth-session";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -16,14 +18,37 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Warm up the browser for OAuth
 WebBrowser.maybeCompleteAuthSession();
 
-export default function Login() {
-    const { isAuthenticated, loading } = useAuth();
-    const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+function useWarmUpBrowser() {
+    useEffect(() => {
+        if (Platform.OS !== "android") {
+            return;
+        }
 
-    // Redirect if already authenticated - moved to useEffect to avoid setState during render
+        void WebBrowser.warmUpAsync();
+        return () => {
+            void WebBrowser.coolDownAsync();
+        };
+    }, []);
+}
+
+export default function Login() {
+    useWarmUpBrowser();
+
+    const { isAuthenticated, loading } = useAuth();
+    const { startSSOFlow } = useSSO();
+    const [submitting, setSubmitting] = useState(false);
+
+    const redirectUrl = useMemo(
+        () =>
+            AuthSession.makeRedirectUri({
+                scheme: "duroodapp",
+                path: "auth/continue",
+            }),
+        []
+    );
+
     useEffect(() => {
         if (isAuthenticated && !loading) {
             router.replace("/home");
@@ -32,29 +57,46 @@ export default function Login() {
 
     const handleGoogleSignIn = useCallback(async () => {
         try {
-            console.log("🚀 Starting OAuth flow...");
-            const { createdSessionId, setActive } = await startOAuthFlow({
-                redirectUrl: "duroodapp://"
+            setSubmitting(true);
+            console.log("Starting OAuth flow with redirect URL:", redirectUrl);
+
+            const { createdSessionId, setActive, signIn, signUp, authSessionResult } =
+                await startSSOFlow({
+                    strategy: "oauth_google",
+                    redirectUrl,
+                });
+
+            const oauthSignIn = signIn as any;
+            const oauthSignUp = signUp as any;
+
+            console.log("OAuth flow completed", {
+                createdSessionId,
+                authSessionType: authSessionResult?.type,
+                signInStatus: oauthSignIn?.status,
+                signUpStatus: oauthSignUp?.status,
+                existingSession:
+                    oauthSignIn?.existingSession?.sessionId ??
+                    oauthSignUp?.existingSession?.sessionId ??
+                    null,
             });
 
-            console.log("✅ OAuth flow completed, sessionId:", createdSessionId);
-
-            if (createdSessionId) {
-                await setActive!({ session: createdSessionId });
-                console.log("✅ Session activated, redirecting to home");
+            if (createdSessionId && setActive) {
+                await setActive({ session: createdSessionId });
                 router.replace("/home");
-            } else {
-                console.log("⚠️ No session created");
+                return;
             }
+
+            router.push("/auth/continue");
         } catch (err: any) {
-            console.error("❌ OAuth error:", err);
-            console.error("❌ Error details:", JSON.stringify(err, null, 2));
+            console.error("OAuth error:", err);
             Alert.alert(
                 "Sign In Failed",
-                err.message || err.toString() || "Please try again"
+                err?.message || "Could not complete Google sign-in."
             );
+        } finally {
+            setSubmitting(false);
         }
-    }, [startOAuthFlow]);
+    }, [redirectUrl, startSSOFlow]);
 
     if (loading) {
         return (
@@ -81,11 +123,18 @@ export default function Login() {
 
                 <View style={styles.form}>
                     <TouchableOpacity
-                        style={styles.googleButton}
+                        style={[styles.googleButton, submitting && styles.disabledButton]}
                         onPress={handleGoogleSignIn}
+                        disabled={submitting}
                     >
-                        <Ionicons name="logo-google" size={24} color="#FFFFFF" />
-                        <Text style={styles.googleButtonText}>Continue with Google</Text>
+                        {submitting ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <>
+                                <Ionicons name="logo-google" size={24} color="#FFFFFF" />
+                                <Text style={styles.googleButtonText}>Continue with Google</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
 
                     <View style={styles.divider}>
@@ -156,6 +205,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 12,
+        minHeight: 56,
+    },
+    disabledButton: {
+        opacity: 0.7,
     },
     googleButtonText: {
         fontSize: 16,

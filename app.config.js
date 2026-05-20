@@ -57,6 +57,7 @@ export default {
       "expo-router",
       "expo-web-browser",
       "expo-secure-store",
+      "@clerk/clerk-expo/plugin",
       [
         "expo-splash-screen",
         {

@@ -2,11 +2,33 @@ import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Profile() {
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, logout } = useAuth();
+
+    const handleLogout = () => {
+        Alert.alert("Log Out", "Do you want to sign out of this account?", [
+            {
+                text: "Cancel",
+                style: "cancel",
+            },
+            {
+                text: "Log Out",
+                style: "destructive",
+                onPress: async () => {
+                    try {
+                        await logout();
+                        router.replace("/auth/login");
+                    } catch (error) {
+                        console.error("Logout failed:", error);
+                        Alert.alert("Logout Failed", "Could not sign out. Please try again.");
+                    }
+                },
+            },
+        ]);
+    };
 
     if (!isAuthenticated) {
         return (
@@ -29,17 +51,22 @@ export default function Profile() {
     }
 
     return (
-        <SafeAreaView style={styles.container} edges={["top"]}>
-            <View style={styles.content}>
-                <View style={styles.header}>
-                    <View style={styles.avatarContainer}>
-                        <Ionicons name="person-circle" size={80} color={theme.colors.primary.main} />
+            <SafeAreaView style={styles.container} edges={["top"]}>
+                <View style={styles.content}>
+                    <View style={styles.header}>
+                        <View style={styles.avatarContainer}>
+                            <Ionicons name="person-circle" size={80} color={theme.colors.primary.main} />
+                        </View>
+                        <Text style={styles.name}>{user?.name}</Text>
+                        <Text style={styles.email}>{user?.email}</Text>
                     </View>
-                    <Text style={styles.name}>{user?.name}</Text>
-                    <Text style={styles.email}>{user?.email}</Text>
+
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                        <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+                        <Text style={styles.logoutButtonText}>Log Out</Text>
+                    </TouchableOpacity>
                 </View>
-            </View>
-        </SafeAreaView>
+            </SafeAreaView>
     );
 }
 
@@ -99,5 +126,21 @@ const styles = StyleSheet.create({
     email: {
         fontSize: 14,
         color: theme.colors.text.secondary,
+    },
+    logoutButton: {
+        marginTop: 40,
+        alignSelf: "center",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        backgroundColor: "#dc2626",
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+    },
+    logoutButtonText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#FFFFFF",
     },
 });
