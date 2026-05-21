@@ -105,11 +105,11 @@ android {
         }
         preview {
             dimension "env"
-            applicationId 'com.duroodepak'
+            applicationId 'com.duroodepak.preview'
         }
         development {
             dimension "env"
-            applicationId 'com.duroodepak'
+            applicationId 'com.duroodepak.dev'
         }
     }
     signingConfigs {
