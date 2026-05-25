@@ -92,7 +92,7 @@ android {
         applicationId 'com.duroodepak'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode 3
         versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -105,11 +105,11 @@ android {
         }
         preview {
             dimension "env"
-            applicationId 'com.duroodepak.preview'
+            applicationId 'com.duroodepak'
         }
         development {
             dimension "env"
-            applicationId 'com.duroodepak.dev'
+            applicationId 'com.duroodepak'
         }
     }
     signingConfigs {
