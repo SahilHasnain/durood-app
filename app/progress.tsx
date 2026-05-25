@@ -35,10 +35,10 @@ export default function Progress() {
 
     useFocusEffect(
         useCallback(() => {
-            if (!user?.id) return;
-            if (progressInitialized && initializedUserId === user.id) return;
+            const activeUserId = user?.id;
+            if (progressInitialized && initializedUserId === activeUserId) return;
 
-            loadProgressData(user.id);
+            loadProgressData(activeUserId);
         }, [user?.id, progressInitialized, initializedUserId, loadProgressData])
     );
 

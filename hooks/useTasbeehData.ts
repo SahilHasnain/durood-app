@@ -17,15 +17,12 @@ export function useTasbeehData() {
   const reloadStoreData = useTasbeehStore((state) => state.reload);
 
   useEffect(() => {
-    if (!user?.id) {
+    const activeUserId = user?.id;
+    if (initialized && initializedUserId === activeUserId) {
       return;
     }
 
-    if (initialized && initializedUserId === user.id) {
-      return;
-    }
-
-    void loadData(user.id);
+    void loadData(activeUserId);
   }, [user?.id, initialized, initializedUserId, loadData]);
 
   const saveData = useCallback(

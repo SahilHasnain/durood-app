@@ -192,16 +192,18 @@ export async function createOrUpdateDailyProgress(
   count: number,
   target: number,
   clerkUserId?: string,
+  date: string = getTodayKey(),
   sessions: SessionRecord[] = []
 ): Promise<DailyProgress | null> {
   try {
     const userId = await getUserId(clerkUserId);
-    const today = getTodayKey();
-    const existing = await getTodayProgress(clerkUserId);
+    const existing = date === getTodayKey()
+      ? await getTodayProgress(clerkUserId)
+      : await getProgressByDate(date, clerkUserId);
 
     const progressData = {
       userId,
-      date: today,
+      date,
       count,
       target,
       sessions: JSON.stringify(sessions),
@@ -234,6 +236,36 @@ export async function createOrUpdateDailyProgress(
   }
 }
 
+export async function getProgressByDate(
+  date: string,
+  clerkUserId?: string
+): Promise<DailyProgress | null> {
+  try {
+    const userId = await getUserId(clerkUserId);
+    const response = await databases.listDocuments(
+      config.databaseId,
+      TASBEEH_COLLECTION_ID,
+      [Query.equal("userId", userId), Query.equal("date", date), Query.limit(1)]
+    );
+
+    if (response.documents.length > 0) {
+      const progress = response.documents[0] as unknown as DailyProgress & {
+        sessions?: string | SessionRecord[];
+      };
+
+      return {
+        ...progress,
+        sessions: parseStoredSessions(progress.sessions),
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Failed to get progress by date:", error);
+    return null;
+  }
+}
+
 export async function getDailyHistory(days: number = 30, clerkUserId?: string): Promise<DailyProgress[]> {
   try {
     const userId = await getUserId(clerkUserId);
@@ -247,7 +279,7 @@ export async function getDailyHistory(days: number = 30, clerkUserId?: string): 
       ]
     );
 
-    return (response.documents as (
+    return (response.documents as unknown as (
       DailyProgress & { sessions?: string | SessionRecord[] }
     )[]).map((progress) => ({
       ...progress,
@@ -299,33 +331,12 @@ export async function syncFromLocalStorage(clerkUserId?: string): Promise<void> 
         JSON.parse(historyStr);
 
       for (const record of history) {
-        const userId = await getUserId(clerkUserId);
-        const existing = await databases.listDocuments(
-          config.databaseId,
-          TASBEEH_COLLECTION_ID,
-          [
-            Query.equal("userId", userId),
-            Query.equal("date", record.date),
-            Query.limit(1),
-          ]
+        await createOrUpdateDailyProgress(
+          record.count,
+          record.target,
+          clerkUserId,
+          record.date
         );
-
-        if (existing.documents.length === 0) {
-          await databases.createDocument(
-            config.databaseId,
-            TASBEEH_COLLECTION_ID,
-            ID.unique(),
-            {
-              userId,
-              date: record.date,
-              count: record.count,
-              target: record.target,
-              sessions: JSON.stringify([]),
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }
-          );
-        }
       }
     }
 

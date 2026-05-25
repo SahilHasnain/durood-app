@@ -67,6 +67,8 @@ interface TasbeehActions {
 }
 
 const LAST_ACTIVE_DATE_KEY = "tasbeeh_last_active_date";
+const DAILY_HISTORY_KEY = "tasbeeh_daily_history";
+const PENDING_SYNC_KEY = "tasbeeh_pending_sync";
 
 function getTodayKey(): string {
   const now = new Date();
@@ -135,25 +137,33 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
     try {
       set({ loading: true });
 
-      // Initial sync from AsyncStorage to Appwrite if needed
-      const hasAppwriteData = await TasbeehService.getUserGoal(userId);
-      if (!hasAppwriteData) {
-        console.log("No Appwrite data found, syncing from AsyncStorage...");
-        await TasbeehService.syncFromLocalStorage(userId);
-      }
+      // Always hydrate from local storage first so offline launches show real data.
+      await loadFromAsyncStorage(set);
+      set({ loading: true });
 
       const [goal, todayProgress] = await Promise.all([
         TasbeehService.getUserGoal(userId),
         TasbeehService.getTodayProgress(userId),
       ]);
 
-      const calculatedStreak = await TasbeehService.calculateStreak(userId);
+      if (!goal && !todayProgress) {
+        await TasbeehService.syncFromLocalStorage(userId);
+      }
+
+      const [resolvedGoal, resolvedTodayProgress, calculatedStreak] = await Promise.all([
+        goal || TasbeehService.getUserGoal(userId),
+        todayProgress || TasbeehService.getTodayProgress(userId),
+        TasbeehService.calculateStreak(userId),
+      ]);
 
       set({
-        count: todayProgress?.count ?? 0,
-        target: goal?.dailyTarget ?? 100,
-        lifetimeTotal: goal?.lifetimeTotal ?? 0,
-        streak: calculatedStreak.currentStreak ?? goal?.currentStreak ?? 0,
+        count: resolvedTodayProgress?.count ?? get().count,
+        target: resolvedGoal?.dailyTarget ?? get().target,
+        lifetimeTotal: resolvedGoal?.lifetimeTotal ?? get().lifetimeTotal,
+        streak:
+          calculatedStreak.currentStreak ||
+          resolvedGoal?.currentStreak ||
+          get().streak,
         loading: false,
         syncing: false,
         initialized: true,
@@ -161,9 +171,9 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       });
 
       if (
-        goal &&
-        (goal.currentStreak !== calculatedStreak.currentStreak ||
-          goal.longestStreak !== calculatedStreak.longestStreak)
+        resolvedGoal &&
+        (resolvedGoal.currentStreak !== calculatedStreak.currentStreak ||
+          resolvedGoal.longestStreak !== calculatedStreak.longestStreak)
       ) {
         await TasbeehService.createOrUpdateUserGoal(
           {
@@ -189,54 +199,14 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       // Update local state immediately for responsive UI
       set({ ...newData, syncing: true });
 
-      const now = Date.now();
-      // Debounce: only sync every 2 seconds
-      if (now - currentState.lastSyncTime < 2000) {
-        // Save to AsyncStorage immediately for responsiveness
-        await Promise.all([
-          AsyncStorage.setItem("tasbeeh_count", updatedData.count.toString()),
-          AsyncStorage.setItem("tasbeeh_target", updatedData.target.toString()),
-          AsyncStorage.setItem("tasbeeh_lifetime_total", updatedData.lifetimeTotal.toString()),
-          AsyncStorage.setItem("tasbeeh_streak", updatedData.streak.toString()),
-          AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
-        ]);
-        set({ syncing: false });
-        return;
-      }
+      await persistLocalSnapshot(updatedData, todayKey);
 
+      const now = Date.now();
       set({ lastSyncTime: now });
 
-      await Promise.all([
-        AsyncStorage.setItem("tasbeeh_count", updatedData.count.toString()),
-        AsyncStorage.setItem("tasbeeh_target", updatedData.target.toString()),
-        AsyncStorage.setItem("tasbeeh_lifetime_total", updatedData.lifetimeTotal.toString()),
-        AsyncStorage.setItem("tasbeeh_streak", updatedData.streak.toString()),
-        AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
-      ]);
-
-      await Promise.all([
-        TasbeehService.createOrUpdateDailyProgress(
-          updatedData.count,
-          updatedData.target,
-          userId
-        ),
-      ]);
-
-      const calculatedStreak = await TasbeehService.calculateStreak(userId);
-      const syncedStreak = Math.max(updatedData.streak, calculatedStreak.currentStreak);
-
-      await TasbeehService.createOrUpdateUserGoal(
-        {
-          lifetimeTotal: updatedData.lifetimeTotal,
-          currentStreak: syncedStreak,
-          longestStreak: calculatedStreak.longestStreak,
-          dailyTarget: updatedData.target,
-        },
-        userId
-      );
-
+      const syncedState = await syncPendingState(userId, updatedData);
       set({
-        streak: syncedStreak,
+        streak: syncedState?.streak ?? updatedData.streak,
         syncing: false,
       });
     } catch (error) {
@@ -332,7 +302,13 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       });
     } catch (error) {
       console.error("Failed to load progress data:", error);
-      set({ progressLoading: false });
+      const localStats = await buildLocalProgressStats();
+      set({
+        progressStats: localStats,
+        progressLoading: false,
+        progressInitialized: true,
+        initializedUserId: userId,
+      });
     }
   },
 
@@ -364,7 +340,13 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       });
     } catch (error) {
       console.error("Failed to load planner data:", error);
-      set({ plannerLoading: false });
+      const localPlannerData = await buildLocalPlannerData();
+      set({
+        plannerData: localPlannerData,
+        plannerLoading: false,
+        plannerInitialized: true,
+        initializedUserId: userId,
+      });
     }
   },
 
@@ -449,4 +431,163 @@ async function loadFromAsyncStorage(set: (state: Partial<TasbeehState>) => void)
     console.error("Failed to load from AsyncStorage:", error);
     set({ loading: false, initialized: true, initializedUserId: undefined });
   }
+}
+
+type SyncPayload = Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak"> & {
+  date: string;
+};
+
+async function persistLocalSnapshot(
+  data: Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak">,
+  todayKey: string
+) {
+  const history = await readDailyHistory();
+  const nextRecord = { date: todayKey, count: data.count, target: data.target };
+  const existingIndex = history.findIndex((record) => record.date === todayKey);
+
+  if (existingIndex >= 0) {
+    history[existingIndex] = nextRecord;
+  } else {
+    history.unshift(nextRecord);
+  }
+
+  const trimmedHistory = history
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 365);
+
+  await Promise.all([
+    AsyncStorage.setItem("tasbeeh_count", data.count.toString()),
+    AsyncStorage.setItem("tasbeeh_target", data.target.toString()),
+    AsyncStorage.setItem("tasbeeh_lifetime_total", data.lifetimeTotal.toString()),
+    AsyncStorage.setItem("tasbeeh_streak", data.streak.toString()),
+    AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
+    AsyncStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(trimmedHistory)),
+    AsyncStorage.setItem(
+      PENDING_SYNC_KEY,
+      JSON.stringify({
+        count: data.count,
+        target: data.target,
+        lifetimeTotal: data.lifetimeTotal,
+        streak: data.streak,
+        date: todayKey,
+      } satisfies SyncPayload)
+    ),
+  ]);
+}
+
+async function readDailyHistory(): Promise<DailyRecord[]> {
+  try {
+    const historyStr = await AsyncStorage.getItem(DAILY_HISTORY_KEY);
+    if (!historyStr) {
+      return [];
+    }
+
+    const parsed = JSON.parse(historyStr) as DailyRecord[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error("Failed to read daily history:", error);
+    return [];
+  }
+}
+
+async function syncPendingState(
+  userId: string | undefined,
+  fallbackData: Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak">
+) {
+  const pendingStr = await AsyncStorage.getItem(PENDING_SYNC_KEY);
+  const pending = pendingStr ? (JSON.parse(pendingStr) as SyncPayload) : null;
+  const syncData = pending ?? { ...fallbackData, date: getTodayKey() };
+
+  const dailyProgress = await TasbeehService.createOrUpdateDailyProgress(
+    syncData.count,
+    syncData.target,
+    userId,
+    syncData.date
+  );
+
+  if (!dailyProgress) {
+    return null;
+  }
+
+  const calculatedStreak = await TasbeehService.calculateStreak(userId);
+  const syncedStreak = Math.max(syncData.streak, calculatedStreak.currentStreak);
+
+  const goal = await TasbeehService.createOrUpdateUserGoal(
+    {
+      lifetimeTotal: syncData.lifetimeTotal,
+      currentStreak: syncedStreak,
+      longestStreak: calculatedStreak.longestStreak,
+      dailyTarget: syncData.target,
+    },
+    userId
+  );
+
+  if (!goal) {
+    return null;
+  }
+
+  await AsyncStorage.removeItem(PENDING_SYNC_KEY);
+  await AsyncStorage.setItem("tasbeeh_streak", syncedStreak.toString());
+
+  return {
+    streak: syncedStreak,
+  };
+}
+
+async function buildLocalProgressStats(): Promise<ProgressStats> {
+  const [countStr, targetStr, lifetimeStr, streakStr, history] = await Promise.all([
+    AsyncStorage.getItem("tasbeeh_count"),
+    AsyncStorage.getItem("tasbeeh_target"),
+    AsyncStorage.getItem("tasbeeh_lifetime_total"),
+    AsyncStorage.getItem("tasbeeh_streak"),
+    readDailyHistory(),
+  ]);
+
+  const count = countStr ? parseInt(countStr, 10) : 0;
+  const target = targetStr ? parseInt(targetStr, 10) : 100;
+  const lifetimeTotal = lifetimeStr ? parseInt(lifetimeStr, 10) : 0;
+  const streak = streakStr ? parseInt(streakStr, 10) : 0;
+  const weeklyTotal = history.slice(0, 7).reduce((sum, record) => sum + record.count, 0);
+  const monthlyTotal = history.slice(0, 30).reduce((sum, record) => sum + record.count, 0);
+  const bestDay = history.length > 0 ? Math.max(...history.map((record) => record.count)) : 0;
+  const averagePerDay = history.length > 0 ? Math.round(lifetimeTotal / history.length) : 0;
+  const remainingGoal = 10000000 - lifetimeTotal;
+  const estimatedDays = averagePerDay > 0 ? Math.ceil(remainingGoal / averagePerDay) : 0;
+  const finishDate = new Date();
+  finishDate.setDate(finishDate.getDate() + estimatedDays);
+
+  return {
+    lifetimeTotal,
+    currentStreak: streak,
+    longestStreak: streak,
+    averagePerDay,
+    bestDay,
+    todayCount: count,
+    todayTarget: target,
+    weeklyTotal,
+    monthlyTotal,
+    estimatedFinishDate:
+      averagePerDay > 0
+        ? finishDate.toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : "-",
+    estimatedFinishDistance: averagePerDay > 0 ? formatTimeFromNow(estimatedDays) : "?",
+    dailyHistory: history,
+  };
+}
+
+async function buildLocalPlannerData(): Promise<PlannerData> {
+  const [targetStr, lifetimeStr] = await Promise.all([
+    AsyncStorage.getItem("tasbeeh_target"),
+    AsyncStorage.getItem("tasbeeh_lifetime_total"),
+  ]);
+
+  return {
+    lifetimeTotal: lifetimeStr ? parseInt(lifetimeStr, 10) : 0,
+    totalGoal: DEFAULT_TOTAL_GOAL,
+    dailyTarget: targetStr ? parseInt(targetStr, 10) : 100,
+  };
 }

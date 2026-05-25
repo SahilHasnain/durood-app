@@ -95,9 +95,9 @@ export default function Planner() {
 
     useFocusEffect(
         useCallback(() => {
-            if (!user?.id) return;
+            const activeUserId = user?.id;
 
-            if (plannerInitialized && initializedUserId === user.id) {
+            if (plannerInitialized && initializedUserId === activeUserId) {
                 if (plannerData) {
                     setDailyInput(plannerData.dailyTarget.toString());
                     setGoalInput(plannerData.totalGoal.toString());
@@ -105,7 +105,7 @@ export default function Planner() {
                 return;
             }
 
-            void loadPlannerData(user.id);
+            void loadPlannerData(activeUserId);
         }, [user?.id, plannerInitialized, initializedUserId, plannerData, loadPlannerData])
     );
 
