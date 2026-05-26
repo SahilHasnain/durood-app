@@ -70,12 +70,25 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
+          printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
+
+      - name: Verify decoded keystore
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          EXPECTED_SHA256="73c9ec05b9fc55daae3486c28eeb9c7ebf0665510bb6460f6d31187875429096"
+          ACTUAL_SHA256="$(sha256sum /tmp/release.keystore | awk '{print $1}')"
+          echo "Decoded keystore SHA-256: $ACTUAL_SHA256"
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "Keystore SHA-256 mismatch"
+            exit 1
+          fi
+          keytool -list -keystore /tmp/release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD"
 
       - name: Decode Play Store JSON
         if: ${{ env.APP_VARIANT == 'production' }}
         run: |
-          echo "${{ secrets.PLAY_STORE_JSON_BASE64 }}" | base64 -d > /tmp/play-store-key.json
+          printf '%s' "${{ secrets.PLAY_STORE_JSON_BASE64 }}" | base64 -d > /tmp/play-store-key.json
 
       - name: Build Android artifact
         env:
