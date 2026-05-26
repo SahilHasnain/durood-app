@@ -12,6 +12,11 @@ on:
           - development
           - preview
           - production
+  push:
+    branches:
+      - main
+    paths:
+      - app.config.js
 
 jobs:
   build-android:
