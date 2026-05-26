@@ -75,12 +75,44 @@ jobs:
       - name: Verify decoded keystore
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           EXPECTED_SHA256="73c9ec05b9fc55daae3486c28eeb9c7ebf0665510bb6460f6d31187875429096"
           ACTUAL_SHA256="$(sha256sum /tmp/release.keystore | awk '{print $1}')"
+          EXPECTED_STORE_PASSWORD_LEN="32"
+          EXPECTED_STORE_PASSWORD_SHA256="5b605482247a3080ed2e2f6d9531d04f77c93f1293dcc72253a682618f42992e"
+          EXPECTED_KEY_ALIAS_LEN="32"
+          EXPECTED_KEY_ALIAS_SHA256="447d746d3ce199a2b7c8b9594bf56a881630708b732d4dbf9fc0435c2ae83168"
+          EXPECTED_KEY_PASSWORD_LEN="32"
+          EXPECTED_KEY_PASSWORD_SHA256="9a2ffcac3ee733e0b7dc6da83791b15371bf4fe9d0f22b2b1b742ba90b1428fb"
           echo "Decoded keystore SHA-256: $ACTUAL_SHA256"
           if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
             echo "Keystore SHA-256 mismatch"
+            exit 1
+          fi
+          ACTUAL_STORE_PASSWORD_LEN="${#ANDROID_KEYSTORE_PASSWORD}"
+          ACTUAL_STORE_PASSWORD_SHA256="$(printf '%s' "$ANDROID_KEYSTORE_PASSWORD" | sha256sum | awk '{print $1}')"
+          ACTUAL_KEY_ALIAS_LEN="${#ANDROID_KEY_ALIAS}"
+          ACTUAL_KEY_ALIAS_SHA256="$(printf '%s' "$ANDROID_KEY_ALIAS" | sha256sum | awk '{print $1}')"
+          ACTUAL_KEY_PASSWORD_LEN="${#ANDROID_KEY_PASSWORD}"
+          ACTUAL_KEY_PASSWORD_SHA256="$(printf '%s' "$ANDROID_KEY_PASSWORD" | sha256sum | awk '{print $1}')"
+          echo "ANDROID_KEYSTORE_PASSWORD length: $ACTUAL_STORE_PASSWORD_LEN"
+          echo "ANDROID_KEYSTORE_PASSWORD sha256: $ACTUAL_STORE_PASSWORD_SHA256"
+          echo "ANDROID_KEY_ALIAS length: $ACTUAL_KEY_ALIAS_LEN"
+          echo "ANDROID_KEY_ALIAS sha256: $ACTUAL_KEY_ALIAS_SHA256"
+          echo "ANDROID_KEY_PASSWORD length: $ACTUAL_KEY_PASSWORD_LEN"
+          echo "ANDROID_KEY_PASSWORD sha256: $ACTUAL_KEY_PASSWORD_SHA256"
+          if [ "$ACTUAL_STORE_PASSWORD_LEN" != "$EXPECTED_STORE_PASSWORD_LEN" ] || [ "$ACTUAL_STORE_PASSWORD_SHA256" != "$EXPECTED_STORE_PASSWORD_SHA256" ]; then
+            echo "ANDROID_KEYSTORE_PASSWORD secret does not match expected value"
+            exit 1
+          fi
+          if [ "$ACTUAL_KEY_ALIAS_LEN" != "$EXPECTED_KEY_ALIAS_LEN" ] || [ "$ACTUAL_KEY_ALIAS_SHA256" != "$EXPECTED_KEY_ALIAS_SHA256" ]; then
+            echo "ANDROID_KEY_ALIAS secret does not match expected value"
+            exit 1
+          fi
+          if [ "$ACTUAL_KEY_PASSWORD_LEN" != "$EXPECTED_KEY_PASSWORD_LEN" ] || [ "$ACTUAL_KEY_PASSWORD_SHA256" != "$EXPECTED_KEY_PASSWORD_SHA256" ]; then
+            echo "ANDROID_KEY_PASSWORD secret does not match expected value"
             exit 1
           fi
           keytool -list -keystore /tmp/release.keystore -storepass "$ANDROID_KEYSTORE_PASSWORD"
