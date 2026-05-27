@@ -241,15 +241,6 @@ export default function Planner() {
     const paceEmoji = paceStatus === "ahead" ? "🚀" : paceStatus === "behind" ? "⚠️" : "✅";
     const paceLabel = paceStatus === "ahead" ? "Ahead of Schedule" : paceStatus === "behind" ? "Behind Schedule" : "On Track";
 
-    // Calculate pace indicator
-    const last30Days = progressStats?.dailyHistory.slice(-30) || [];
-    const daysWithData = last30Days.filter((d) => d.count > 0).length;
-    const totalCompleted = last30Days.reduce((sum, d) => sum + d.count, 0);
-    const actualAverage = daysWithData > 0 ? Math.round(totalCompleted / daysWithData) : 0;
-    const targetAverage = dailyTarget;
-    const pacePercentage = targetAverage > 0 ? Math.round((actualAverage / targetAverage) * 100) : 0;
-    const daysAheadBehind = targetAverage > 0 ? Math.round((actualAverage - targetAverage) * daysWithData / targetAverage) : 0;
-
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <SimpleHeader translateY={headerTranslateY} />
@@ -264,93 +255,6 @@ export default function Planner() {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                {progressStats && dailyTarget > 0 && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Schedule Status</Text>
-                        <View style={[styles.paceCard, { borderColor: paceColor + "30" }]}>
-                            <View style={styles.paceHeader}>
-                                <Text style={styles.paceEmoji}>{paceEmoji}</Text>
-                                <View style={styles.paceInfo}>
-                                    <Text style={[styles.paceLabel, { color: paceColor }]}>{paceLabel}</Text>
-                                    {paceStatus !== "ontrack" && (
-                                        <Text style={styles.paceDays}>
-                                            {Math.abs(daysSavedOrLost)} day{Math.abs(daysSavedOrLost) !== 1 ? "s" : ""}{" "}
-                                            {paceStatus === "ahead" ? "ahead" : "behind"}
-                                        </Text>
-                                    )}
-                                </View>
-                            </View>
-                            <View style={styles.paceStats}>
-                                <View style={styles.paceStat}>
-                                    <Text style={styles.paceStatLabel}>Your Avg</Text>
-                                    <Text style={styles.paceStatValue}>{formatCompactNumber(averagePerDay)}/day</Text>
-                                </View>
-                                <View style={styles.paceStatDivider} />
-                                <View style={styles.paceStat}>
-                                    <Text style={styles.paceStatLabel}>Target</Text>
-                                    <Text style={styles.paceStatValue}>{formatCompactNumber(requiredDailyPace)}/day</Text>
-                                </View>
-                            </View>
-                            {paceStatus === "behind" && paceDifference < 0 && (
-                                <View style={styles.paceInsight}>
-                                    <Text style={styles.paceInsightText}>
-                                        💡 Speed up by {formatCompactNumber(Math.abs(paceDifference))}/day to stay on track
-                                    </Text>
-                                </View>
-                            )}
-                            {paceStatus === "ahead" && paceDifference > 0 && (
-                                <View style={styles.paceInsight}>
-                                    <Text style={styles.paceInsightText}>
-                                        💡 You can slow down by {formatCompactNumber(paceDifference)}/day and still finish on time
-                                    </Text>
-                                </View>
-                            )}
-                            {paceStatus === "ontrack" && (
-                                <View style={styles.paceInsight}>
-                                    <Text style={styles.paceInsightText}>
-                                        💡 Keep up the great work! You&apos;re right on schedule
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                )}
-
-                {progressStats && progressStats.currentStreak > 0 && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Your Streak</Text>
-                        <View style={styles.streakCard}>
-                            <View style={styles.streakHeader}>
-                                <Text style={styles.streakEmoji}>🔥</Text>
-                                <View style={styles.streakInfo}>
-                                    <Text style={styles.streakCount}>{progressStats.currentStreak}</Text>
-                                    <Text style={styles.streakLabel}>Day Streak</Text>
-                                </View>
-                            </View>
-                            <View style={styles.streakDivider} />
-                            <View style={styles.streakMessage}>
-                                <Text style={styles.streakMessageText}>
-                                    🎯 Don&apos;t break your {progressStats.currentStreak}-day streak!
-                                </Text>
-                                <Text style={styles.streakMessageSubtext}>
-                                    Complete your daily target to keep it going
-                                </Text>
-                            </View>
-                            {progressStats.longestStreak > progressStats.currentStreak && (
-                                <View style={styles.streakBest}>
-                                    <Text style={styles.streakBestLabel}>Your Best:</Text>
-                                    <Text style={styles.streakBestValue}>{progressStats.longestStreak} days</Text>
-                                </View>
-                            )}
-                            {progressStats.currentStreak >= progressStats.longestStreak && progressStats.currentStreak >= 7 && (
-                                <View style={styles.streakBadge}>
-                                    <Text style={styles.streakBadgeText}>🏆 Personal Record!</Text>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                )}
-
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Your Lifetime Goal</Text>
                     <View style={styles.calculatorCard}>
@@ -405,6 +309,8 @@ export default function Planner() {
                         </TouchableOpacity>
                     </View>
                 </View>
+
+
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Set Your Daily Pace</Text>
@@ -581,6 +487,91 @@ export default function Planner() {
                         )}
                     </View>
                 </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Schedule Status</Text>
+                    <View style={[styles.paceCard, { borderColor: paceColor + "30" }]}>
+                        <View style={styles.paceHeader}>
+                            <Text style={styles.paceEmoji}>{paceEmoji}</Text>
+                            <View style={styles.paceInfo}>
+                                <Text style={[styles.paceLabel, { color: paceColor }]}>{paceLabel}</Text>
+                                {paceStatus !== "ontrack" && (
+                                    <Text style={styles.paceDays}>
+                                        {Math.abs(daysSavedOrLost)} day{Math.abs(daysSavedOrLost) !== 1 ? "s" : ""}{" "}
+                                        {paceStatus === "ahead" ? "ahead" : "behind"}
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+                        <View style={styles.paceStats}>
+                            <View style={styles.paceStat}>
+                                <Text style={styles.paceStatLabel}>Your Avg</Text>
+                                <Text style={styles.paceStatValue}>{formatCompactNumber(averagePerDay)}/day</Text>
+                            </View>
+                            <View style={styles.paceStatDivider} />
+                            <View style={styles.paceStat}>
+                                <Text style={styles.paceStatLabel}>Target</Text>
+                                <Text style={styles.paceStatValue}>{formatCompactNumber(requiredDailyPace)}/day</Text>
+                            </View>
+                        </View>
+                        {paceStatus === "behind" && paceDifference < 0 && (
+                            <View style={styles.paceInsight}>
+                                <Text style={styles.paceInsightText}>
+                                    💡 Speed up by {formatCompactNumber(Math.abs(paceDifference))}/day to stay on track
+                                </Text>
+                            </View>
+                        )}
+                        {paceStatus === "ahead" && paceDifference > 0 && (
+                            <View style={styles.paceInsight}>
+                                <Text style={styles.paceInsightText}>
+                                    💡 You can slow down by {formatCompactNumber(paceDifference)}/day and still finish on time
+                                </Text>
+                            </View>
+                        )}
+                        {paceStatus === "ontrack" && (
+                            <View style={styles.paceInsight}>
+                                <Text style={styles.paceInsightText}>
+                                    💡 Keep up the great work! You&apos;re right on schedule
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+
+                {progressStats && progressStats.currentStreak > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Your Streak</Text>
+                        <View style={styles.streakCard}>
+                            <View style={styles.streakHeader}>
+                                <Text style={styles.streakEmoji}>🔥</Text>
+                                <View style={styles.streakInfo}>
+                                    <Text style={styles.streakCount}>{progressStats.currentStreak}</Text>
+                                    <Text style={styles.streakLabel}>Day Streak</Text>
+                                </View>
+                            </View>
+                            <View style={styles.streakDivider} />
+                            <View style={styles.streakMessage}>
+                                <Text style={styles.streakMessageText}>
+                                    🎯 Don&apos;t break your {progressStats.currentStreak}-day streak!
+                                </Text>
+                                <Text style={styles.streakMessageSubtext}>
+                                    Complete your daily target to keep it going
+                                </Text>
+                            </View>
+                            {progressStats.longestStreak > progressStats.currentStreak && (
+                                <View style={styles.streakBest}>
+                                    <Text style={styles.streakBestLabel}>Your Best:</Text>
+                                    <Text style={styles.streakBestValue}>{progressStats.longestStreak} days</Text>
+                                </View>
+                            )}
+                            {progressStats.currentStreak >= progressStats.longestStreak && progressStats.currentStreak >= 7 && (
+                                <View style={styles.streakBadge}>
+                                    <Text style={styles.streakBadgeText}>🏆 Personal Record!</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
             </ScrollView >
         </SafeAreaView >
     );
