@@ -2,7 +2,7 @@ import { CustomVideoPlayer } from "@/components/CustomVideoPlayer";
 import { colors } from "@/constants/theme";
 import { config } from "@/config/appwrite";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
-import { getProgress, saveProgress } from "@/services/progressTracking";
+import { getProgress, markVideoWatched, saveProgress } from "@/services/progressTracking";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { VideoPlayer } from "expo-video";
@@ -87,6 +87,12 @@ export default function VideoScreen() {
 
     React.useEffect(() => {
         duroodIdRef.current = duroodId;
+    }, [duroodId]);
+
+    React.useEffect(() => {
+        if (duroodId) {
+            markVideoWatched(duroodId);
+        }
     }, [duroodId]);
 
     React.useEffect(() => {

@@ -9,21 +9,21 @@ export default function Profile() {
     const { user, isAuthenticated, logout } = useAuth();
 
     const handleLogout = () => {
-        Alert.alert("Log Out", "Do you want to sign out of this account?", [
+        Alert.alert("Sign Out", "Do you want to sign out of this account?", [
             {
                 text: "Cancel",
                 style: "cancel",
             },
             {
-                text: "Log Out",
+                text: "Sign Out",
                 style: "destructive",
                 onPress: async () => {
                     try {
                         await logout();
                         router.replace("/auth/login");
                     } catch (error) {
-                        console.error("Logout failed:", error);
-                        Alert.alert("Logout Failed", "Could not sign out. Please try again.");
+                        console.error("Sign out failed:", error);
+                        Alert.alert("Sign Out Failed", "Could not sign out. Please try again.");
                     }
                 },
             },
@@ -63,7 +63,7 @@ export default function Profile() {
 
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                         <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-                        <Text style={styles.logoutButtonText}>Log Out</Text>
+                        <Text style={styles.logoutButtonText}>Sign Out</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>

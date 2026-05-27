@@ -50,7 +50,7 @@ export default function Home() {
     const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
     // Use Appwrite hook
-    const { count, target, lifetimeTotal, streak, loading, syncing, saveData, reload } =
+    const { count, target, lifetimeTotal, streak, loading, saveData, reload } =
         useTasbeehData();
 
     const [manualAddValue, setManualAddValue] = useState("");
@@ -79,7 +79,15 @@ export default function Home() {
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
 
     const effectiveSessionGoal = sessionGoal ?? preferredSessionGoal;
-    const sessionProgress = Math.min((sessionCount / effectiveSessionGoal) * 100, 100);
+    const displayedSessionCount =
+        effectiveSessionGoal > 0 && sessionCount > 0 && sessionCount % effectiveSessionGoal === 0
+            ? effectiveSessionGoal
+            : effectiveSessionGoal > 0
+                ? sessionCount % effectiveSessionGoal
+                : sessionCount;
+    const sessionProgress = effectiveSessionGoal > 0
+        ? (displayedSessionCount / effectiveSessionGoal) * 100
+        : 0;
     const sessionProgressOffset = RING_CIRCUMFERENCE - (sessionProgress / 100) * RING_CIRCUMFERENCE;
 
     useFocusEffect(
@@ -221,7 +229,13 @@ export default function Home() {
 
         const projectedTotal = count + newSessionCount;
 
-        if (sessionCount < effectiveSessionGoal && newSessionCount >= effectiveSessionGoal) {
+        const previousSessionGoalCompletions =
+            effectiveSessionGoal > 0 ? Math.floor(sessionCount / effectiveSessionGoal) : 0;
+        const nextSessionGoalCompletions =
+            effectiveSessionGoal > 0 ? Math.floor(newSessionCount / effectiveSessionGoal) : 0;
+        const completedSessionGoal = nextSessionGoalCompletions > previousSessionGoalCompletions;
+
+        if (completedSessionGoal) {
             try {
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
@@ -382,7 +396,7 @@ export default function Home() {
                         adjustsFontSizeToFit
                         minimumFontScale={0.75}
                     >
-                        {formatNumber(sessionCount)}
+                        {formatNumber(displayedSessionCount)}
                     </Text>
                     <Text
                         style={styles.sessionGoalLabel}
@@ -392,7 +406,6 @@ export default function Home() {
                     >
                         of {formatNumber(effectiveSessionGoal)}
                     </Text>
-                    {syncing && <Text style={styles.syncingText}>Syncing...</Text>}
                 </View>
 
                 <Pressable style={styles.sessionTapArea} onPress={addToSession}>
@@ -532,7 +545,6 @@ export default function Home() {
                             <Text style={styles.summaryValue}>{streak} days</Text>
                         </View>
                     </View>
-                    {syncing && <Text style={styles.syncingBadge}>Syncing...</Text>}
                 </View>
 
                 {/* Counter and Actions Group */}
@@ -705,17 +717,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: "700",
         color: theme.colors.text.primary,
-    },
-    syncingBadge: {
-        marginTop: 12,
-        fontSize: 12,
-        color: theme.colors.primary.main,
-        textAlign: "center",
-    },
-    syncingText: {
-        fontSize: 12,
-        color: theme.colors.primary.main,
-        marginTop: 8,
     },
     counterContainer: {
         alignItems: "center",

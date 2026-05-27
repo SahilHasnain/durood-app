@@ -4,7 +4,7 @@ import { VideoCard } from "@/components/VideoCard";
 import { colors } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useDuroodVideos } from "@/hooks/useDuroodVideos";
-import { getProgress } from "@/services/progressTracking";
+import { getProgress, getRecentlyWatchedVideoIds } from "@/services/progressTracking";
 import { Durood } from "@/types";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -43,11 +43,17 @@ export default function HomeScreen() {
     React.useEffect(() => {
         const loadProgress = async () => {
             const progress: Record<string, VideoProgress> = {};
+            const watchedVideoIds = new Set(await getRecentlyWatchedVideoIds());
             for (const video of videos) {
                 const videoProgress = await getProgress(video.$id);
                 if (videoProgress && videoProgress.progress > 0) {
-                    const percentage = (videoProgress.progress / videoProgress.duration) * 100;
+                    const percentage = Math.min(
+                        (videoProgress.progress / videoProgress.duration) * 100,
+                        100
+                    );
                     progress[video.$id] = { percentage };
+                } else if (watchedVideoIds.has(video.$id)) {
+                    progress[video.$id] = { percentage: 100 };
                 }
             }
             setProgressData(progress);
@@ -66,7 +72,8 @@ export default function HomeScreen() {
             });
             previousScrollY.current = 0;
             lastDirection.current = "up";
-        }, [headerTranslateY, showTabBar])
+            refresh();
+        }, [headerTranslateY, showTabBar, refresh])
     );
 
     const handleScroll = useCallback((event: any) => {
@@ -202,7 +209,7 @@ export default function HomeScreen() {
                 scrollEventThrottle={16}
                 refreshControl={
                     <RefreshControl
-                        refreshing={false}
+                        refreshing={loading && videos.length > 0}
                         onRefresh={refresh}
                         colors={[colors.accent.secondary]}
                         tintColor={colors.accent.secondary}
