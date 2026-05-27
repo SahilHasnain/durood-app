@@ -250,7 +250,7 @@ export default function Planner() {
                     styles.scrollContent,
                     {
                         paddingTop: HEADER_HEIGHT + 8,
-                        paddingBottom: tabBarHeight + 16,
+                        paddingBottom: tabBarHeight + 32,
                     },
                 ]}
                 showsVerticalScrollIndicator={false}
