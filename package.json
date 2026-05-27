@@ -16,7 +16,8 @@
     "test:connection": "node scripts/test-connection.js",
     "add:channel": "node scripts/add-channel.js",
     "ingest:videos": "node scripts/ingest-videos.js",
-    "upload:video": "node scripts/upload-video.js"
+    "upload:video": "node scripts/upload-video.js",
+    "prebuild": "npx expo prebuild"
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.19.31",

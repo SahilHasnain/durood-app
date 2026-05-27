@@ -47,7 +47,7 @@ export default {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: getUniqueIdentifier(),
-      versionCode: 3,
+      versionCode: 4,
     },
     web: {
       bundler: "metro",
