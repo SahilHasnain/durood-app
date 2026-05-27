@@ -16,9 +16,31 @@ import {
 } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
+
+const RING_SIZE = 180;
+const RING_STROKE_WIDTH = 12;
+const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
+}
+
+function formatCompactNumber(value: number): string {
+    if (value >= 10000000) {
+        const crores = value / 10000000;
+        return crores % 1 === 0 ? `${crores}Cr` : `${crores.toFixed(1)}Cr`;
+    }
+    if (value >= 100000) {
+        const lakhs = value / 100000;
+        return lakhs % 1 === 0 ? `${lakhs}L` : `${lakhs.toFixed(1)}L`;
+    }
+    if (value >= 1000) {
+        const thousands = value / 1000;
+        return thousands % 1 === 0 ? `${thousands}K` : `${thousands.toFixed(1)}K`;
+    }
+    return value.toString();
 }
 
 export default function Progress() {
@@ -32,6 +54,8 @@ export default function Progress() {
     const progressInitialized = useTasbeehStore((state) => state.progressInitialized);
     const initializedUserId = useTasbeehStore((state) => state.initializedUserId);
     const loadProgressData = useTasbeehStore((state) => state.loadProgressData);
+    const plannerData = useTasbeehStore((state) => state.plannerData);
+    const loadPlannerData = useTasbeehStore((state) => state.loadPlannerData);
 
     useFocusEffect(
         useCallback(() => {
@@ -39,7 +63,10 @@ export default function Progress() {
             if (progressInitialized && initializedUserId === activeUserId) return;
 
             loadProgressData(activeUserId);
-        }, [user?.id, progressInitialized, initializedUserId, loadProgressData])
+            if (!plannerData) {
+                loadPlannerData(activeUserId);
+            }
+        }, [user?.id, progressInitialized, initializedUserId, loadProgressData, plannerData, loadPlannerData])
     );
 
     if (progressLoading || !progressStats) {
@@ -78,6 +105,63 @@ export default function Progress() {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
+                {plannerData && (
+                    <View style={styles.heroCard}>
+                        <Text style={styles.heroEyebrow}>
+                            Journey to {formatCompactNumber(plannerData.totalGoal)}
+                        </Text>
+                        <View style={styles.ringContainer}>
+                            <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
+                                <Circle
+                                    cx={RING_SIZE / 2}
+                                    cy={RING_SIZE / 2}
+                                    r={RING_RADIUS}
+                                    stroke="rgba(255,255,255,0.1)"
+                                    strokeWidth={RING_STROKE_WIDTH}
+                                    fill="none"
+                                />
+                                <Circle
+                                    cx={RING_SIZE / 2}
+                                    cy={RING_SIZE / 2}
+                                    r={RING_RADIUS}
+                                    stroke="#10b981"
+                                    strokeWidth={RING_STROKE_WIDTH}
+                                    strokeLinecap="round"
+                                    strokeDasharray={RING_CIRCUMFERENCE}
+                                    strokeDashoffset={
+                                        RING_CIRCUMFERENCE -
+                                        (Math.min((progressStats.lifetimeTotal / plannerData.totalGoal) * 100, 100) / 100) *
+                                        RING_CIRCUMFERENCE
+                                    }
+                                    fill="none"
+                                    transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+                                />
+                            </Svg>
+                            <View style={styles.ringInner}>
+                                <Text style={styles.ringPercent}>
+                                    {Math.min((progressStats.lifetimeTotal / plannerData.totalGoal) * 100, 100).toFixed(1)}%
+                                </Text>
+                                <Text style={styles.ringLabel}>Complete</Text>
+                            </View>
+                        </View>
+                        <View style={styles.heroStats}>
+                            <View style={styles.heroStat}>
+                                <Text style={styles.heroStatValue}>
+                                    {formatCompactNumber(progressStats.lifetimeTotal)}
+                                </Text>
+                                <Text style={styles.heroStatLabel}>Completed</Text>
+                            </View>
+                            <View style={styles.heroDivider} />
+                            <View style={styles.heroStat}>
+                                <Text style={styles.heroStatValue}>
+                                    {formatCompactNumber(Math.max(0, plannerData.totalGoal - progressStats.lifetimeTotal))}
+                                </Text>
+                                <Text style={styles.heroStatLabel}>Remaining</Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Your Progress</Text>
                     <Text style={styles.sectionSubtitle}>Track your journey to 1 Crore</Text>
@@ -340,5 +424,66 @@ const styles = StyleSheet.create({
         marginTop: 8,
         fontSize: 13,
         color: theme.colors.text.secondary,
+    },
+    heroCard: {
+        backgroundColor: "rgba(16,185,129,0.08)",
+        borderRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: "rgba(16,185,129,0.12)",
+        marginBottom: 24,
+        alignItems: "center",
+    },
+    heroEyebrow: {
+        fontSize: 13,
+        fontWeight: "700",
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+        color: theme.colors.text.secondary,
+        marginBottom: 20,
+    },
+    ringContainer: {
+        position: "relative",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 20,
+    },
+    ringInner: {
+        position: "absolute",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    ringPercent: {
+        fontSize: 36,
+        fontWeight: "800",
+        color: theme.colors.text.primary,
+    },
+    ringLabel: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        marginTop: 4,
+    },
+    heroStats: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 24,
+    },
+    heroStat: {
+        alignItems: "center",
+    },
+    heroStatValue: {
+        fontSize: 24,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    heroStatLabel: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+    },
+    heroDivider: {
+        width: 1,
+        height: 40,
+        backgroundColor: "rgba(255,255,255,0.1)",
     },
 });

@@ -17,7 +17,6 @@ import {
 } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
 
 const RING_SIZE = 180;
 const RING_STROKE_WIDTH = 12;
@@ -108,6 +107,8 @@ export default function Planner() {
     const [dailyInput, setDailyInput] = useState("");
     const [goalInput, setGoalInput] = useState("");
     const [updating, setUpdating] = useState(false);
+    const [planningMode, setPlanningMode] = useState<"target" | "date">("target");
+    const [targetDate, setTargetDate] = useState<Date>(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000));
 
     const handleDailyInputChange = (text: string) => {
         const cleaned = text.replace(/[^0-9]/g, "");
@@ -135,6 +136,32 @@ export default function Planner() {
 
     const handlePresetDaily = (value: number) => {
         setDailyInput(formatNumber(value));
+    };
+
+    const handleDateChange = (days: number) => {
+        const newDate = new Date();
+        newDate.setDate(newDate.getDate() + days);
+        setTargetDate(newDate);
+    };
+
+    const calculateDailyFromDate = (): number => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(targetDate);
+        target.setHours(0, 0, 0, 0);
+        const daysUntil = Math.max(1, Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+        return Math.ceil(remainingGoal / daysUntil);
+    };
+
+    const calculateFinishDate = (daily: number): Date => {
+        const days = calculateDaysToFinish(daily);
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        return date;
+    };
+
+    const calculateDaysToFinish = (daily: number): number => {
+        return daily > 0 ? Math.ceil(remainingGoal / daily) : 0;
     };
 
     useFocusEffect(
@@ -262,51 +289,6 @@ export default function Planner() {
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.heroCard}>
-                    <Text style={styles.heroEyebrow}>
-                        Journey to {formatCompactNumber(totalGoal)}
-                    </Text>
-                    <View style={styles.ringContainer}>
-                        <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-                            <Circle
-                                cx={RING_SIZE / 2}
-                                cy={RING_SIZE / 2}
-                                r={RING_RADIUS}
-                                stroke="rgba(255,255,255,0.1)"
-                                strokeWidth={RING_STROKE_WIDTH}
-                                fill="none"
-                            />
-                            <Circle
-                                cx={RING_SIZE / 2}
-                                cy={RING_SIZE / 2}
-                                r={RING_RADIUS}
-                                stroke="#10b981"
-                                strokeWidth={RING_STROKE_WIDTH}
-                                strokeLinecap="round"
-                                strokeDasharray={RING_CIRCUMFERENCE}
-                                strokeDashoffset={progressOffset}
-                                fill="none"
-                                transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
-                            />
-                        </Svg>
-                        <View style={styles.ringInner}>
-                            <Text style={styles.ringPercent}>{progressPercent.toFixed(1)}%</Text>
-                            <Text style={styles.ringLabel}>Complete</Text>
-                        </View>
-                    </View>
-                    <View style={styles.heroStats}>
-                        <View style={styles.heroStat}>
-                            <Text style={styles.heroStatValue}>{formatCompactNumber(lifetimeTotal)}</Text>
-                            <Text style={styles.heroStatLabel}>Completed</Text>
-                        </View>
-                        <View style={styles.heroDivider} />
-                        <View style={styles.heroStat}>
-                            <Text style={styles.heroStatValue}>{formatCompactNumber(remainingGoal)}</Text>
-                            <Text style={styles.heroStatLabel}>Remaining</Text>
-                        </View>
-                    </View>
-                </View>
-
                 {progressStats && dailyTarget > 0 && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Schedule Status</Text>
@@ -353,6 +335,41 @@ export default function Planner() {
                                     <Text style={styles.paceInsightText}>
                                         💡 Keep up the great work! You&apos;re right on schedule
                                     </Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
+
+                {progressStats && progressStats.currentStreak > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Your Streak</Text>
+                        <View style={styles.streakCard}>
+                            <View style={styles.streakHeader}>
+                                <Text style={styles.streakEmoji}>🔥</Text>
+                                <View style={styles.streakInfo}>
+                                    <Text style={styles.streakCount}>{progressStats.currentStreak}</Text>
+                                    <Text style={styles.streakLabel}>Day Streak</Text>
+                                </View>
+                            </View>
+                            <View style={styles.streakDivider} />
+                            <View style={styles.streakMessage}>
+                                <Text style={styles.streakMessageText}>
+                                    🎯 Don&apos;t break your {progressStats.currentStreak}-day streak!
+                                </Text>
+                                <Text style={styles.streakMessageSubtext}>
+                                    Complete your daily target to keep it going
+                                </Text>
+                            </View>
+                            {progressStats.longestStreak > progressStats.currentStreak && (
+                                <View style={styles.streakBest}>
+                                    <Text style={styles.streakBestLabel}>Your Best:</Text>
+                                    <Text style={styles.streakBestValue}>{progressStats.longestStreak} days</Text>
+                                </View>
+                            )}
+                            {progressStats.currentStreak >= progressStats.longestStreak && progressStats.currentStreak >= 7 && (
+                                <View style={styles.streakBadge}>
+                                    <Text style={styles.streakBadgeText}>🏆 Personal Record!</Text>
                                 </View>
                             )}
                         </View>
@@ -417,60 +434,145 @@ export default function Planner() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Set Your Daily Pace</Text>
                     <View style={styles.calculatorCard}>
-                        <Text style={styles.calculatorLabel}>Choose a preset or enter custom:</Text>
-                        <View style={styles.presetContainer}>
-                            {DAILY_PRESETS.map((preset) => (
+                        <View style={styles.modeToggle}>
+                            <TouchableOpacity
+                                style={[styles.modeButton, planningMode === "target" && styles.modeButtonActive]}
+                                onPress={() => setPlanningMode("target")}
+                            >
+                                <Text style={[styles.modeButtonText, planningMode === "target" && styles.modeButtonTextActive]}>
+                                    By Daily Target
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modeButton, planningMode === "date" && styles.modeButtonActive]}
+                                onPress={() => setPlanningMode("date")}
+                            >
+                                <Text style={[styles.modeButtonText, planningMode === "date" && styles.modeButtonTextActive]}>
+                                    By Finish Date
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {planningMode === "target" ? (
+                            <>
+                                <Text style={styles.calculatorLabel}>Choose a preset or enter custom:</Text>
+                                <View style={styles.presetContainer}>
+                                    {DAILY_PRESETS.map((preset) => (
+                                        <TouchableOpacity
+                                            key={preset.value}
+                                            style={[
+                                                styles.presetButton,
+                                                dailyInput === formatNumber(preset.value) && styles.presetButtonActive,
+                                            ]}
+                                            onPress={() => handlePresetDaily(preset.value)}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.presetButtonText,
+                                                    dailyInput === formatNumber(preset.value) &&
+                                                    styles.presetButtonTextActive,
+                                                ]}
+                                            >
+                                                {preset.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Or enter custom amount"
+                                    placeholderTextColor={theme.colors.text.tertiary}
+                                    value={dailyInput}
+                                    onChangeText={handleDailyInputChange}
+                                    keyboardType="numeric"
+                                />
+
+                                {dailyInput && parseInt(dailyInput.replace(/,/g, ""), 10) > 0 && (
+                                    <View style={styles.dateResultCard}>
+                                        <Text style={styles.dateResultLabel}>You&apos;ll finish by</Text>
+                                        <Text style={styles.dateResultValue}>
+                                            {formatDateLabel(calculateFinishDate(parseInt(dailyInput.replace(/,/g, ""), 10)))}
+                                        </Text>
+                                        <View style={styles.dateResultDivider} />
+                                        <Text style={styles.dateResultTarget}>
+                                            {formatDuration(calculateDaysToFinish(parseInt(dailyInput.replace(/,/g, ""), 10)))}
+                                        </Text>
+                                        <Text style={styles.dateResultLabel}>from now</Text>
+                                    </View>
+                                )}
+
                                 <TouchableOpacity
-                                    key={preset.value}
-                                    style={[
-                                        styles.presetButton,
-                                        dailyInput === formatNumber(preset.value) && styles.presetButtonActive,
-                                    ]}
-                                    onPress={() => handlePresetDaily(preset.value)}
+                                    style={[styles.button, updating && styles.buttonDisabled]}
+                                    onPress={handleUpdateDailyTarget}
+                                    disabled={updating}
                                 >
-                                    <Text
-                                        style={[
-                                            styles.presetButtonText,
-                                            dailyInput === formatNumber(preset.value) &&
-                                            styles.presetButtonTextActive,
-                                        ]}
-                                    >
-                                        {preset.label}
+                                    <Text style={styles.buttonText}>
+                                        {updating ? "Updating..." : "Set Daily Target"}
                                     </Text>
                                 </TouchableOpacity>
-                            ))}
-                        </View>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Or enter custom amount"
-                            placeholderTextColor={theme.colors.text.tertiary}
-                            value={dailyInput}
-                            onChangeText={handleDailyInputChange}
-                            keyboardType="numeric"
-                        />
-                        <TouchableOpacity
-                            style={[styles.button, updating && styles.buttonDisabled]}
-                            onPress={handleUpdateDailyTarget}
-                            disabled={updating}
-                        >
-                            <Text style={styles.buttonText}>
-                                {updating ? "Updating..." : "Set Daily Target"}
-                            </Text>
-                        </TouchableOpacity>
+                            </>
+                        ) : (
+                            <>
+                                <Text style={styles.calculatorLabel}>When do you want to finish?</Text>
+                                <View style={styles.datePresetContainer}>
+                                    <TouchableOpacity
+                                        style={styles.datePresetButton}
+                                        onPress={() => handleDateChange(30)}
+                                    >
+                                        <Text style={styles.datePresetText}>1 Month</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.datePresetButton}
+                                        onPress={() => handleDateChange(90)}
+                                    >
+                                        <Text style={styles.datePresetText}>3 Months</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.datePresetButton}
+                                        onPress={() => handleDateChange(180)}
+                                    >
+                                        <Text style={styles.datePresetText}>6 Months</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.datePresetButton}
+                                        onPress={() => handleDateChange(365)}
+                                    >
+                                        <Text style={styles.datePresetText}>1 Year</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={styles.dateResultCard}>
+                                    <Text style={styles.dateResultLabel}>Target Date</Text>
+                                    <Text style={styles.dateResultValue}>{formatDateLabel(targetDate)}</Text>
+                                    <View style={styles.dateResultDivider} />
+                                    <Text style={styles.dateResultLabel}>Required Daily Target</Text>
+                                    <Text style={styles.dateResultTarget}>{formatNumber(calculateDailyFromDate())}/day</Text>
+                                    <TouchableOpacity
+                                        style={[styles.button, { marginTop: 16 }, updating && styles.buttonDisabled]}
+                                        onPress={async () => {
+                                            const calculatedTarget = calculateDailyFromDate();
+                                            setDailyInput(formatNumber(calculatedTarget));
+                                            try {
+                                                setUpdating(true);
+                                                await updateDailyTarget(calculatedTarget, user?.id);
+                                            } catch (error) {
+                                                console.error("Failed to update target:", error);
+                                            } finally {
+                                                setUpdating(false);
+                                            }
+                                        }}
+                                        disabled={updating}
+                                    >
+                                        <Text style={styles.buttonText}>
+                                            {updating ? "Updating..." : "Set This Target"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
 
-                        {dailyTarget > 0 && (
-                            <View style={styles.projectionCard}>
-                                <Text style={styles.projectionEyebrow}>Your projection</Text>
-                                <Text style={styles.projectionValue}>{formatNumber(dailyTarget)}/day</Text>
-                                <Text style={styles.projectionText}>
-                                    You&apos;ll reach {formatCompactNumber(totalGoal)} in about
-                                </Text>
-                                <Text style={styles.projectionDuration}>
-                                    {formatDuration(daysToFinish)}
-                                </Text>
-                                <Text style={styles.projectionDate}>
-                                    by {formatDateLabel(finishDate)}
-                                </Text>
+                        {dailyTarget > 0 && planningMode === "target" && (
+                            <View style={styles.currentTargetInfo}>
+                                <Text style={styles.currentTargetLabel}>Current target: {formatNumber(dailyTarget)}/day</Text>
                             </View>
                         )}
                     </View>
@@ -833,5 +935,175 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: theme.colors.text.secondary,
         lineHeight: 18,
+    },
+    streakCard: {
+        backgroundColor: "rgba(239, 68, 68, 0.08)",
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 2,
+        borderColor: "rgba(239, 68, 68, 0.2)",
+    },
+    streakHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16,
+    },
+    streakEmoji: {
+        fontSize: 48,
+    },
+    streakInfo: {
+        flex: 1,
+    },
+    streakCount: {
+        fontSize: 40,
+        fontWeight: "800",
+        color: "#ef4444",
+        lineHeight: 44,
+    },
+    streakLabel: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: theme.colors.text.secondary,
+    },
+    streakDivider: {
+        height: 1,
+        backgroundColor: "rgba(239, 68, 68, 0.15)",
+        marginVertical: 16,
+    },
+    streakMessage: {
+        marginBottom: 12,
+    },
+    streakMessageText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    streakMessageSubtext: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+    },
+    streakBest: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "rgba(255,255,255,0.03)",
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 8,
+    },
+    streakBestLabel: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+    },
+    streakBestValue: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#ef4444",
+    },
+    streakBadge: {
+        backgroundColor: "rgba(251, 191, 36, 0.15)",
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 8,
+        alignItems: "center",
+    },
+    streakBadgeText: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#fbbf24",
+    },
+    modeToggle: {
+        flexDirection: "row",
+        backgroundColor: "rgba(255,255,255,0.05)",
+        borderRadius: 12,
+        padding: 4,
+        marginBottom: 20,
+    },
+    modeButton: {
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    modeButtonActive: {
+        backgroundColor: theme.colors.primary.main,
+    },
+    modeButtonText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: theme.colors.text.primary,
+    },
+    modeButtonTextActive: {
+        color: "#FFFFFF",
+    },
+    datePresetContainer: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginBottom: 16,
+    },
+    datePresetButton: {
+        flex: 1,
+        minWidth: "22%",
+        backgroundColor: "rgba(255,255,255,0.08)",
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 8,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.1)",
+    },
+    datePresetText: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+    },
+    dateResultCard: {
+        backgroundColor: "rgba(16,185,129,0.08)",
+        borderRadius: 16,
+        padding: 20,
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: "rgba(16,185,129,0.2)",
+        alignItems: "center",
+    },
+    dateResultLabel: {
+        fontSize: 12,
+        fontWeight: "600",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        color: theme.colors.text.tertiary,
+        marginBottom: 6,
+    },
+    dateResultValue: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+        marginBottom: 16,
+    },
+    dateResultDivider: {
+        width: "100%",
+        height: 1,
+        backgroundColor: "rgba(255,255,255,0.1)",
+        marginBottom: 16,
+    },
+    dateResultTarget: {
+        fontSize: 36,
+        fontWeight: "800",
+        color: "#10b981",
+        marginBottom: 4,
+    },
+    currentTargetInfo: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: "rgba(255,255,255,0.06)",
+    },
+    currentTargetLabel: {
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
+        textAlign: "center",
     },
 });
