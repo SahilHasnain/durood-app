@@ -31,6 +31,20 @@ const MILESTONES = [
     { label: "1 Crore", value: 10000000, emoji: "☪️" },
 ];
 
+const GOAL_PRESETS = [
+    { label: "1L", value: 100000, fullLabel: "1 Lakh" },
+    { label: "10L", value: 1000000, fullLabel: "10 Lakh" },
+    { label: "50L", value: 5000000, fullLabel: "50 Lakh" },
+    { label: "1Cr", value: 10000000, fullLabel: "1 Crore" },
+];
+
+const DAILY_PRESETS = [
+    { label: "100", value: 100 },
+    { label: "500", value: 500 },
+    { label: "1000", value: 1000 },
+    { label: "3000", value: 3000 },
+];
+
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
 }
@@ -88,10 +102,40 @@ export default function Planner() {
     const loadPlannerData = useTasbeehStore((state) => state.loadPlannerData);
     const updateDailyTarget = useTasbeehStore((state) => state.updateDailyTarget);
     const updateTotalGoal = useTasbeehStore((state) => state.updateTotalGoal);
+    const progressStats = useTasbeehStore((state) => state.progressStats);
+    const loadProgressData = useTasbeehStore((state) => state.loadProgressData);
 
     const [dailyInput, setDailyInput] = useState("");
     const [goalInput, setGoalInput] = useState("");
     const [updating, setUpdating] = useState(false);
+
+    const handleDailyInputChange = (text: string) => {
+        const cleaned = text.replace(/[^0-9]/g, "");
+        if (cleaned) {
+            const formatted = formatNumber(parseInt(cleaned, 10));
+            setDailyInput(formatted);
+        } else {
+            setDailyInput("");
+        }
+    };
+
+    const handleGoalInputChange = (text: string) => {
+        const cleaned = text.replace(/[^0-9]/g, "");
+        if (cleaned) {
+            const formatted = formatNumber(parseInt(cleaned, 10));
+            setGoalInput(formatted);
+        } else {
+            setGoalInput("");
+        }
+    };
+
+    const handlePresetGoal = (value: number) => {
+        setGoalInput(formatNumber(value));
+    };
+
+    const handlePresetDaily = (value: number) => {
+        setDailyInput(formatNumber(value));
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -102,11 +146,14 @@ export default function Planner() {
                     setDailyInput(plannerData.dailyTarget.toString());
                     setGoalInput(plannerData.totalGoal.toString());
                 }
-                return;
+            } else {
+                void loadPlannerData(activeUserId);
             }
 
-            void loadPlannerData(activeUserId);
-        }, [user?.id, plannerInitialized, initializedUserId, plannerData, loadPlannerData])
+            if (!progressStats) {
+                void loadProgressData(activeUserId);
+            }
+        }, [user?.id, plannerInitialized, initializedUserId, plannerData, loadPlannerData, progressStats, loadProgressData])
     );
 
     const handleUpdateDailyTarget = async () => {
@@ -164,6 +211,32 @@ export default function Planner() {
     const nextMilestoneRemaining = Math.max(0, nextMilestone.value - lifetimeTotal);
     const daysToNextMilestone =
         dailyTarget > 0 ? Math.ceil(nextMilestoneRemaining / dailyTarget) : 0;
+
+    // Calculate pace status
+    const averagePerDay = progressStats?.averagePerDay ?? 0;
+    const requiredDailyPace = dailyTarget;
+    const paceDifference = averagePerDay - requiredDailyPace;
+    const isPaceAhead = paceDifference > 0;
+    const isPaceOnTrack = Math.abs(paceDifference) < requiredDailyPace * 0.1; // Within 10%
+    const daysSavedOrLost = requiredDailyPace > 0 ? Math.floor((paceDifference * daysToFinish) / requiredDailyPace) : 0;
+
+    let paceStatus: "ahead" | "ontrack" | "behind" = "ontrack";
+    if (!isPaceOnTrack) {
+        paceStatus = isPaceAhead ? "ahead" : "behind";
+    }
+
+    const paceColor = paceStatus === "ahead" ? "#10b981" : paceStatus === "behind" ? "#ef4444" : "#f59e0b";
+    const paceEmoji = paceStatus === "ahead" ? "🚀" : paceStatus === "behind" ? "⚠️" : "✅";
+    const paceLabel = paceStatus === "ahead" ? "Ahead of Schedule" : paceStatus === "behind" ? "Behind Schedule" : "On Track";
+
+    // Calculate pace indicator
+    const last30Days = progressStats?.dailyHistory.slice(-30) || [];
+    const daysWithData = last30Days.filter((d) => d.count > 0).length;
+    const totalCompleted = last30Days.reduce((sum, d) => sum + d.count, 0);
+    const actualAverage = daysWithData > 0 ? Math.round(totalCompleted / daysWithData) : 0;
+    const targetAverage = dailyTarget;
+    const pacePercentage = targetAverage > 0 ? Math.round((actualAverage / targetAverage) * 100) : 0;
+    const daysAheadBehind = targetAverage > 0 ? Math.round((actualAverage - targetAverage) * daysWithData / targetAverage) : 0;
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
@@ -234,16 +307,99 @@ export default function Planner() {
                     </View>
                 </View>
 
+                {progressStats && dailyTarget > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Schedule Status</Text>
+                        <View style={[styles.paceCard, { borderColor: paceColor + "30" }]}>
+                            <View style={styles.paceHeader}>
+                                <Text style={styles.paceEmoji}>{paceEmoji}</Text>
+                                <View style={styles.paceInfo}>
+                                    <Text style={[styles.paceLabel, { color: paceColor }]}>{paceLabel}</Text>
+                                    {paceStatus !== "ontrack" && (
+                                        <Text style={styles.paceDays}>
+                                            {Math.abs(daysSavedOrLost)} day{Math.abs(daysSavedOrLost) !== 1 ? "s" : ""}{" "}
+                                            {paceStatus === "ahead" ? "ahead" : "behind"}
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                            <View style={styles.paceStats}>
+                                <View style={styles.paceStat}>
+                                    <Text style={styles.paceStatLabel}>Your Avg</Text>
+                                    <Text style={styles.paceStatValue}>{formatCompactNumber(averagePerDay)}/day</Text>
+                                </View>
+                                <View style={styles.paceStatDivider} />
+                                <View style={styles.paceStat}>
+                                    <Text style={styles.paceStatLabel}>Target</Text>
+                                    <Text style={styles.paceStatValue}>{formatCompactNumber(requiredDailyPace)}/day</Text>
+                                </View>
+                            </View>
+                            {paceStatus === "behind" && paceDifference < 0 && (
+                                <View style={styles.paceInsight}>
+                                    <Text style={styles.paceInsightText}>
+                                        💡 Speed up by {formatCompactNumber(Math.abs(paceDifference))}/day to stay on track
+                                    </Text>
+                                </View>
+                            )}
+                            {paceStatus === "ahead" && paceDifference > 0 && (
+                                <View style={styles.paceInsight}>
+                                    <Text style={styles.paceInsightText}>
+                                        💡 You can slow down by {formatCompactNumber(paceDifference)}/day and still finish on time
+                                    </Text>
+                                </View>
+                            )}
+                            {paceStatus === "ontrack" && (
+                                <View style={styles.paceInsight}>
+                                    <Text style={styles.paceInsightText}>
+                                        💡 Keep up the great work! You&apos;re right on schedule
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
+
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Your Lifetime Goal</Text>
                     <View style={styles.calculatorCard}>
-                        <Text style={styles.calculatorLabel}>Set your total goal:</Text>
+                        <Text style={styles.calculatorLabel}>Choose a preset or enter custom:</Text>
+                        <View style={styles.presetContainer}>
+                            {GOAL_PRESETS.map((preset) => (
+                                <TouchableOpacity
+                                    key={preset.value}
+                                    style={[
+                                        styles.presetButton,
+                                        goalInput === formatNumber(preset.value) && styles.presetButtonActive,
+                                    ]}
+                                    onPress={() => handlePresetGoal(preset.value)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.presetButtonText,
+                                            goalInput === formatNumber(preset.value) &&
+                                            styles.presetButtonTextActive,
+                                        ]}
+                                    >
+                                        {preset.label}
+                                    </Text>
+                                    <Text
+                                        style={[
+                                            styles.presetButtonSubtext,
+                                            goalInput === formatNumber(preset.value) &&
+                                            styles.presetButtonSubtextActive,
+                                        ]}
+                                    >
+                                        {preset.fullLabel}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                         <TextInput
                             style={styles.input}
-                            placeholder="e.g., 10000000 (1 Crore)"
+                            placeholder="Or enter custom amount"
                             placeholderTextColor={theme.colors.text.tertiary}
                             value={goalInput}
-                            onChangeText={setGoalInput}
+                            onChangeText={handleGoalInputChange}
                             keyboardType="numeric"
                         />
                         <TouchableOpacity
@@ -261,13 +417,35 @@ export default function Planner() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Set Your Daily Pace</Text>
                     <View style={styles.calculatorCard}>
-                        <Text style={styles.calculatorLabel}>I can do this much per day:</Text>
+                        <Text style={styles.calculatorLabel}>Choose a preset or enter custom:</Text>
+                        <View style={styles.presetContainer}>
+                            {DAILY_PRESETS.map((preset) => (
+                                <TouchableOpacity
+                                    key={preset.value}
+                                    style={[
+                                        styles.presetButton,
+                                        dailyInput === formatNumber(preset.value) && styles.presetButtonActive,
+                                    ]}
+                                    onPress={() => handlePresetDaily(preset.value)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.presetButtonText,
+                                            dailyInput === formatNumber(preset.value) &&
+                                            styles.presetButtonTextActive,
+                                        ]}
+                                    >
+                                        {preset.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
                         <TextInput
                             style={styles.input}
-                            placeholder="e.g., 1000"
+                            placeholder="Or enter custom amount"
                             placeholderTextColor={theme.colors.text.tertiary}
                             value={dailyInput}
-                            onChangeText={setDailyInput}
+                            onChangeText={handleDailyInputChange}
                             keyboardType="numeric"
                         />
                         <TouchableOpacity
@@ -326,8 +504,8 @@ export default function Planner() {
                         )}
                     </View>
                 </View>
-            </ScrollView>
-        </SafeAreaView>
+            </ScrollView >
+        </SafeAreaView >
     );
 }
 
@@ -556,5 +734,104 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "600",
         color: "#10b981",
+    },
+    presetContainer: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        marginBottom: 16,
+    },
+    presetButton: {
+        flex: 1,
+        minWidth: "22%",
+        backgroundColor: theme.colors.background.secondary,
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        alignItems: "center",
+        borderWidth: 2,
+        borderColor: "rgba(255,255,255,0.06)",
+    },
+    presetButtonActive: {
+        backgroundColor: "rgba(16,185,129,0.15)",
+        borderColor: "#10b981",
+    },
+    presetButtonText: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+    },
+    presetButtonTextActive: {
+        color: "#10b981",
+    },
+    presetButtonSubtext: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+        marginTop: 2,
+    },
+    presetButtonSubtextActive: {
+        color: "#10b981",
+    },
+    paceCard: {
+        backgroundColor: theme.colors.surface.primary,
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 2,
+    },
+    paceHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        marginBottom: 16,
+    },
+    paceEmoji: {
+        fontSize: 32,
+    },
+    paceInfo: {
+        flex: 1,
+    },
+    paceLabel: {
+        fontSize: 18,
+        fontWeight: "700",
+        marginBottom: 2,
+    },
+    paceDays: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+    },
+    paceStats: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 16,
+        marginBottom: 16,
+    },
+    paceStat: {
+        flex: 1,
+        alignItems: "center",
+    },
+    paceStatLabel: {
+        fontSize: 12,
+        color: theme.colors.text.tertiary,
+        marginBottom: 4,
+    },
+    paceStatValue: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+    },
+    paceStatDivider: {
+        width: 1,
+        height: 40,
+        backgroundColor: "rgba(255,255,255,0.1)",
+    },
+    paceInsight: {
+        backgroundColor: "rgba(255,255,255,0.03)",
+        borderRadius: 12,
+        padding: 12,
+    },
+    paceInsightText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        lineHeight: 18,
     },
 });
