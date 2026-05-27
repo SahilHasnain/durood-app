@@ -62,7 +62,6 @@ export default function Home() {
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const progressAnim = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
-    const sessionRingScaleAnim = useRef(new Animated.Value(1)).current;
     const [animatedProgressOffset, setAnimatedProgressOffset] = useState(RING_CIRCUMFERENCE);
 
     const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
@@ -167,22 +166,6 @@ export default function Home() {
 
     const addToSession = useCallback(async () => {
         if (!sessionActive || sessionPaused) return;
-        sessionRingScaleAnim.stopAnimation();
-        Animated.sequence([
-            Animated.timing(sessionRingScaleAnim, {
-                toValue: 0.96,
-                duration: 70,
-                useNativeDriver: true,
-            }),
-            Animated.spring(sessionRingScaleAnim, {
-                toValue: 1,
-                damping: 14,
-                stiffness: 260,
-                mass: 0.7,
-                useNativeDriver: true,
-            }),
-        ]).start();
-
         try {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         } catch (error) {
@@ -211,7 +194,7 @@ export default function Home() {
                 console.error("Haptics failed", error);
             }
         }
-    }, [sessionActive, sessionPaused, sessionCount, effectiveSessionGoal, count, target, sessionRingScaleAnim]);
+    }, [sessionActive, sessionPaused, sessionCount, effectiveSessionGoal, count, target]);
 
     const endSession = useCallback(async () => {
         if (!sessionActive) return;
@@ -313,7 +296,7 @@ export default function Home() {
                 </View>
 
                 <Pressable style={styles.sessionTapArea} onPress={addToSession}>
-                    <Animated.View style={[styles.sessionRing, { transform: [{ scale: sessionRingScaleAnim }] }]}>
+                    <View style={styles.sessionRing}>
                         <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
                             <Circle
                                 cx={RING_SIZE / 2}
@@ -338,7 +321,7 @@ export default function Home() {
                             />
                         </Svg>
                         <Text style={styles.sessionTapHint}>Tap to count</Text>
-                    </Animated.View>
+                    </View>
                 </Pressable>
 
                 <View style={styles.sessionActions}>
