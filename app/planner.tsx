@@ -369,7 +369,7 @@ export default function Planner() {
                                 />
 
                                 {dailyInput && parseInt(dailyInput.replace(/,/g, ""), 10) > 0 && (
-                                    <View style={styles.dateResultCard}>
+                                    <View style={[styles.dateResultCard, { marginBottom: 16 }]}>
                                         <Text style={styles.dateResultLabel}>You&apos;ll finish by</Text>
                                         <Text style={styles.dateResultValue}>
                                             {formatDateLabel(calculateFinishDate(parseInt(dailyInput.replace(/,/g, ""), 10)))}
