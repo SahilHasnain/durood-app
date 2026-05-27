@@ -6,7 +6,6 @@ import { useTasbeehData } from "@/hooks/useTasbeehData";
 import { SessionRecord } from "@/services/tasbeehService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -14,7 +13,6 @@ import {
     Animated,
     AppState,
     BackHandler,
-    ImageBackground,
     Keyboard,
     Pressable,
     ScrollView,
@@ -509,20 +507,6 @@ export default function Home() {
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <SimpleHeader translateY={headerTranslateY} />
-            <View pointerEvents="none" style={styles.backgroundLayer}>
-                <ImageBackground
-                    source={require("../assets/images/gumbad.png")}
-                    resizeMode="cover"
-                    style={styles.backgroundImage}
-                    imageStyle={styles.backgroundImageAsset}
-                >
-                    <LinearGradient
-                        colors={["rgba(10, 10, 15, 0.18)", "rgba(10, 10, 15, 0.72)", "rgba(10, 10, 15, 0.96)"]}
-                        locations={[0, 0.45, 1]}
-                        style={StyleSheet.absoluteFillObject}
-                    />
-                </ImageBackground>
-            </View>
 
             <ScrollView
                 style={styles.scrollView}
