@@ -151,31 +151,20 @@ export default function Progress() {
                     </View>
                 )}
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Your Progress</Text>
-                    <Text style={styles.sectionSubtitle}>Track your journey to 1 Crore</Text>
-                </View>
-
-                <View style={styles.statsGrid}>
-                    <View style={styles.statCard}>
-                        <View style={styles.statGlow} />
-                        <Text style={styles.statValue}>{formatNumber(progressStats.lifetimeTotal)}</Text>
-                        <Text style={styles.statLabel}>Lifetime Total</Text>
+                <View style={styles.quickStatsRow}>
+                    <View style={styles.quickStat}>
+                        <Text style={styles.quickStatValue}>{progressStats.currentStreak}</Text>
+                        <Text style={styles.quickStatLabel}>Day Streak</Text>
                     </View>
-                    <View style={styles.statCard}>
-                        <View style={styles.statGlow} />
-                        <Text style={styles.statValue}>{progressStats.currentStreak}</Text>
-                        <Text style={styles.statLabel}>Current Streak</Text>
+                    <View style={styles.quickStatDivider} />
+                    <View style={styles.quickStat}>
+                        <Text style={styles.quickStatValue}>{formatNumber(progressStats.averagePerDay)}</Text>
+                        <Text style={styles.quickStatLabel}>Avg/Day</Text>
                     </View>
-                    <View style={styles.statCard}>
-                        <View style={styles.statGlow} />
-                        <Text style={styles.statValue}>{formatNumber(progressStats.averagePerDay)}</Text>
-                        <Text style={styles.statLabel}>Avg Per Day</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <View style={styles.statGlow} />
-                        <Text style={styles.statValue}>{formatNumber(progressStats.bestDay)}</Text>
-                        <Text style={styles.statLabel}>Best Day</Text>
+                    <View style={styles.quickStatDivider} />
+                    <View style={styles.quickStat}>
+                        <Text style={styles.quickStatValue}>{formatNumber(progressStats.bestDay)}</Text>
+                        <Text style={styles.quickStatLabel}>Best Day</Text>
                     </View>
                 </View>
 
@@ -289,40 +278,34 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.text.secondary,
     },
-    statsGrid: {
+    quickStatsRow: {
         flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 12,
-        marginBottom: 24,
-    },
-    statCard: {
-        flex: 1,
-        minWidth: "47%",
-        backgroundColor: "rgba(20, 20, 22, 0.76)",
-        borderRadius: 22,
+        alignItems: "center",
+        backgroundColor: "rgba(18, 18, 20, 0.8)",
+        borderRadius: 20,
         padding: 20,
+        marginBottom: 24,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
-        overflow: "hidden",
+        borderColor: "rgba(255,255,255,0.05)",
     },
-    statGlow: {
-        position: "absolute",
-        top: -30,
-        right: -24,
-        width: 84,
-        height: 84,
-        borderRadius: 42,
-        backgroundColor: "rgba(16,185,129,0.08)",
+    quickStat: {
+        flex: 1,
+        alignItems: "center",
     },
-    statValue: {
-        fontSize: 28,
+    quickStatValue: {
+        fontSize: 24,
         fontWeight: "700",
         color: theme.colors.text.primary,
-        marginBottom: 8,
+        marginBottom: 4,
     },
-    statLabel: {
-        fontSize: 13,
-        color: "rgba(255,255,255,0.62)",
+    quickStatLabel: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+    },
+    quickStatDivider: {
+        width: 1,
+        height: 40,
+        backgroundColor: "rgba(255,255,255,0.1)",
     },
     chartCard: {
         backgroundColor: "rgba(18, 18, 20, 0.82)",
