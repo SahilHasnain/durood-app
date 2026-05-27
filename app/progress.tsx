@@ -107,6 +107,25 @@ export default function Progress() {
                 </View>
 
                 <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Today</Text>
+                    <View style={styles.periodCard}>
+                        <View style={styles.periodRow}>
+                            <Text style={styles.periodLabel}>Sessions</Text>
+                            <Text style={styles.periodValue}>
+                                {progressStats.todaySessions}
+                            </Text>
+                        </View>
+                        <View style={styles.periodDivider} />
+                        <View style={styles.periodRow}>
+                            <Text style={styles.periodLabel}>Total</Text>
+                            <Text style={styles.periodValue}>
+                                {formatNumber(progressStats.todayCount)}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+
+                <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Last 30 Days</Text>
                     <View style={styles.chartCard}>
                         <LineChart data={progressStats.dailyHistory} />

@@ -6,6 +6,7 @@ interface DailyRecord {
   date: string;
   count: number;
   target: number;
+  sessions?: TasbeehService.SessionRecord[];
 }
 
 interface ProgressStats {
@@ -16,6 +17,8 @@ interface ProgressStats {
   bestDay: number;
   todayCount: number;
   todayTarget: number;
+  todaySessions: number;
+  todaySessionTotal: number;
   weeklyTotal: number;
   monthlyTotal: number;
   estimatedFinishDate: string;
@@ -53,7 +56,11 @@ interface TasbeehState {
 
 interface TasbeehActions {
   loadData: (userId?: string) => Promise<void>;
-  saveData: (newData: Partial<Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak">>, userId?: string) => Promise<void>;
+  saveData: (
+    newData: Partial<Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak">>,
+    userId?: string,
+    sessionRecord?: TasbeehService.SessionRecord
+  ) => Promise<void>;
   reload: (userId?: string) => Promise<void>;
   reset: () => void;
   
@@ -190,16 +197,16 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
     }
   },
 
-  saveData: async (newData, userId?: string) => {
+  saveData: async (newData, userId?: string, sessionRecord?: TasbeehService.SessionRecord) => {
     try {
       const currentState = get();
       const updatedData = { ...currentState, ...newData };
       const todayKey = getTodayKey();
 
       // Update local state immediately for responsive UI
-      set({ ...newData, syncing: true });
+      set({ ...newData, syncing: true, progressInitialized: false });
 
-      await persistLocalSnapshot(updatedData, todayKey);
+      await persistLocalSnapshot(updatedData, todayKey, sessionRecord);
 
       const now = Date.now();
       set({ lastSyncTime: now });
@@ -246,6 +253,9 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       const currentStreak = goal?.currentStreak ?? 0;
       const longestStreak = goal?.longestStreak ?? 0;
 
+      const todayRecord = history.find((record) => record.date === getTodayKey()) ?? history[0];
+      const todaySessions = todayRecord?.sessions ?? [];
+
       const weeklyTotal = history
         .slice(0, 7)
         .reduce((sum, record) => sum + record.count, 0);
@@ -288,8 +298,10 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
           longestStreak,
           averagePerDay,
           bestDay,
-          todayCount: history[0]?.count ?? 0,
-          todayTarget: history[0]?.target ?? 100,
+          todayCount: todayRecord?.count ?? 0,
+          todayTarget: todayRecord?.target ?? 100,
+          todaySessions: todaySessions.length,
+          todaySessionTotal: todaySessions.reduce((sum, session) => sum + session.count, 0),
           weeklyTotal,
           monthlyTotal,
           estimatedFinishDate,
@@ -435,15 +447,26 @@ async function loadFromAsyncStorage(set: (state: Partial<TasbeehState>) => void)
 
 type SyncPayload = Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak"> & {
   date: string;
+  sessions?: TasbeehService.SessionRecord[];
 };
 
 async function persistLocalSnapshot(
   data: Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak">,
-  todayKey: string
+  todayKey: string,
+  sessionRecord?: TasbeehService.SessionRecord
 ) {
   const history = await readDailyHistory();
-  const nextRecord = { date: todayKey, count: data.count, target: data.target };
   const existingIndex = history.findIndex((record) => record.date === todayKey);
+  const existingRecord = existingIndex >= 0 ? history[existingIndex] : undefined;
+  const nextSessions = sessionRecord
+    ? [...(existingRecord?.sessions ?? []), sessionRecord]
+    : existingRecord?.sessions;
+  const nextRecord: DailyRecord = {
+    date: todayKey,
+    count: data.count,
+    target: data.target,
+    ...(nextSessions ? { sessions: nextSessions } : {}),
+  };
 
   if (existingIndex >= 0) {
     history[existingIndex] = nextRecord;
@@ -470,6 +493,7 @@ async function persistLocalSnapshot(
         lifetimeTotal: data.lifetimeTotal,
         streak: data.streak,
         date: todayKey,
+        ...(nextRecord.sessions ? { sessions: nextRecord.sessions } : {}),
       } satisfies SyncPayload)
     ),
   ]);
@@ -502,7 +526,8 @@ async function syncPendingState(
     syncData.count,
     syncData.target,
     userId,
-    syncData.date
+    syncData.date,
+    syncData.sessions
   );
 
   if (!dailyProgress) {
@@ -547,6 +572,8 @@ async function buildLocalProgressStats(): Promise<ProgressStats> {
   const target = targetStr ? parseInt(targetStr, 10) : 100;
   const lifetimeTotal = lifetimeStr ? parseInt(lifetimeStr, 10) : 0;
   const streak = streakStr ? parseInt(streakStr, 10) : 0;
+  const todayRecord = history.find((record) => record.date === getTodayKey());
+  const todaySessions = todayRecord?.sessions ?? [];
   const weeklyTotal = history.slice(0, 7).reduce((sum, record) => sum + record.count, 0);
   const monthlyTotal = history.slice(0, 30).reduce((sum, record) => sum + record.count, 0);
   const bestDay = history.length > 0 ? Math.max(...history.map((record) => record.count)) : 0;
@@ -564,6 +591,8 @@ async function buildLocalProgressStats(): Promise<ProgressStats> {
     bestDay,
     todayCount: count,
     todayTarget: target,
+    todaySessions: todaySessions.length,
+    todaySessionTotal: todaySessions.reduce((sum, session) => sum + session.count, 0),
     weeklyTotal,
     monthlyTotal,
     estimatedFinishDate:

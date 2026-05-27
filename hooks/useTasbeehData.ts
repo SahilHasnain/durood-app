@@ -32,8 +32,9 @@ export function useTasbeehData() {
           ReturnType<typeof useTasbeehStore.getState>,
           "count" | "target" | "lifetimeTotal" | "streak"
         >
-      >
-    ) => saveStoreData(newData, user?.id),
+      >,
+      sessionRecord?: Parameters<typeof saveStoreData>[2]
+    ) => saveStoreData(newData, user?.id, sessionRecord),
     [saveStoreData, user?.id]
   );
 

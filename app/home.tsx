@@ -3,6 +3,7 @@ import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehData } from "@/hooks/useTasbeehData";
+import { SessionRecord } from "@/services/tasbeehService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -146,7 +147,7 @@ export default function Home() {
     }, [progressAnim, progressOffset, sessionActive, sessionProgressOffset]);
 
     const applyIncrement = useCallback(
-        async (amount: number) => {
+        async (amount: number, sessionRecord?: SessionRecord) => {
             if (amount <= 0) return;
             const newCount = count + amount;
             const newLifetimeTotal = lifetimeTotal + amount;
@@ -163,11 +164,14 @@ export default function Home() {
                 }
             }
 
-            await saveData({
-                count: newCount,
-                lifetimeTotal: newLifetimeTotal,
-                streak: newStreak,
-            });
+            await saveData(
+                {
+                    count: newCount,
+                    lifetimeTotal: newLifetimeTotal,
+                    streak: newStreak,
+                },
+                sessionRecord
+            );
         },
         [count, lifetimeTotal, streak, saveData, target]
     );
@@ -239,6 +243,22 @@ export default function Home() {
     const endSession = useCallback(async () => {
         if (!sessionActive) return;
         const finalCount = sessionCount;
+        const endedAt = Date.now();
+        const duration = sessionPaused
+            ? sessionElapsedSeconds
+            : sessionStartedAt
+                ? Math.max(0, Math.floor((endedAt - sessionStartedAt) / 1000))
+                : sessionElapsedSeconds;
+        const sessionRecord: SessionRecord | undefined = finalCount > 0 && sessionStartedAt
+            ? {
+                id: `${sessionStartedAt}_${endedAt}`,
+                count: finalCount,
+                duration,
+                goal: effectiveSessionGoal,
+                startedAt: new Date(sessionStartedAt).toISOString(),
+                endedAt: new Date(endedAt).toISOString(),
+            }
+            : undefined;
 
         setSessionActive(false);
         setSessionPaused(false);
@@ -255,9 +275,20 @@ export default function Home() {
         tabBarTranslateY.value = withTiming(0, { duration: 300 });
 
         if (finalCount > 0) {
-            void applyIncrement(finalCount);
+            void applyIncrement(finalCount, sessionRecord);
         }
-    }, [sessionActive, sessionCount, showTabBar, headerTranslateY, tabBarTranslateY, applyIncrement]);
+    }, [
+        sessionActive,
+        sessionCount,
+        sessionPaused,
+        sessionElapsedSeconds,
+        sessionStartedAt,
+        effectiveSessionGoal,
+        showTabBar,
+        headerTranslateY,
+        tabBarTranslateY,
+        applyIncrement,
+    ]);
 
     const pauseSession = useCallback(() => {
         if (!sessionActive || sessionPaused) return;

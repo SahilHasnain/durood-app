@@ -23,6 +23,7 @@ export interface SessionRecord {
   id: string;
   count: number;
   duration: number;
+  goal?: number;
   startedAt: string;
   endedAt: string;
 }
@@ -193,7 +194,7 @@ export async function createOrUpdateDailyProgress(
   target: number,
   clerkUserId?: string,
   date: string = getTodayKey(),
-  sessions: SessionRecord[] = []
+  sessions?: SessionRecord[]
 ): Promise<DailyProgress | null> {
   try {
     const userId = await getUserId(clerkUserId);
@@ -206,7 +207,7 @@ export async function createOrUpdateDailyProgress(
       date,
       count,
       target,
-      sessions: JSON.stringify(sessions),
+      sessions: JSON.stringify(sessions ?? existing?.sessions ?? []),
       updatedAt: new Date().toISOString(),
     };
 
