@@ -275,7 +275,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       const estimatedFinishDistance =
         averagePerDay > 0 ? formatTimeFromNow(estimatedDays) : "?";
 
-      const dailyHistory = history.map((record) => ({
+      const dailyHistory = history.slice().reverse().map((record) => ({
         date: record.date,
         count: record.count,
         target: record.target,
@@ -575,7 +575,7 @@ async function buildLocalProgressStats(): Promise<ProgressStats> {
           })
         : "-",
     estimatedFinishDistance: averagePerDay > 0 ? formatTimeFromNow(estimatedDays) : "?",
-    dailyHistory: history,
+    dailyHistory: history.slice().reverse(),
   };
 }
 

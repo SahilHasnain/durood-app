@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
+    AppState,
     BackHandler,
     ImageBackground,
     Keyboard,
@@ -55,6 +56,7 @@ export default function Home() {
     const [sessionPaused, setSessionPaused] = useState(false);
     const [sessionCount, setSessionCount] = useState(0);
     const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
+    const [sessionPausedAt, setSessionPausedAt] = useState<number | null>(null);
     const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(0);
     const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionGoalInput, setSessionGoalInput] = useState("");
@@ -124,19 +126,19 @@ export default function Home() {
     const applyIncrement = useCallback(
         async (amount: number) => {
             if (amount <= 0) return;
-            let newCount = count + amount;
+            const newCount = count + amount;
             const newLifetimeTotal = lifetimeTotal + amount;
             const newStreak = count === 0 && newCount > 0 ? streak + 1 : streak;
 
-            // Check if goal is reached or exceeded
-            if (newCount >= target && target > 0) {
+            const previousGoalCompletions = target > 0 ? Math.floor(count / target) : 0;
+            const nextGoalCompletions = target > 0 ? Math.floor(newCount / target) : 0;
+
+            if (nextGoalCompletions > previousGoalCompletions) {
                 try {
                     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 } catch (error) {
                     console.error("Haptics failed", error);
                 }
-                // Reset count to allow multiple goal completions per day.
-                newCount = newCount % target;
             }
 
             await saveData({
@@ -156,6 +158,7 @@ export default function Home() {
         setSessionPaused(false);
         if (!sessionStartedAt) {
             setSessionStartedAt(Date.now());
+            setSessionPausedAt(null);
             setSessionElapsedSeconds(0);
             setSessionCount(0);
             setSessionGoal(null);
@@ -164,8 +167,23 @@ export default function Home() {
         }
     }, [headerTranslateY, insets.top, sessionStartedAt, tabBarHeight, tabBarTranslateY]);
 
+    const resumeSession = useCallback(() => {
+        if (!sessionActive || !sessionPaused) return;
+
+        const pausedDuration = sessionPausedAt ? Date.now() - sessionPausedAt : 0;
+        if (sessionStartedAt && pausedDuration > 0) {
+            setSessionStartedAt(sessionStartedAt + pausedDuration);
+        }
+        setSessionPausedAt(null);
+        setSessionPaused(false);
+    }, [sessionActive, sessionPaused, sessionPausedAt, sessionStartedAt]);
+
     const addToSession = useCallback(async () => {
-        if (!sessionActive || sessionPaused) return;
+        if (!sessionActive) return;
+        if (sessionPaused) {
+            resumeSession();
+        }
+
         try {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         } catch (error) {
@@ -194,7 +212,7 @@ export default function Home() {
                 console.error("Haptics failed", error);
             }
         }
-    }, [sessionActive, sessionPaused, sessionCount, effectiveSessionGoal, count, target]);
+    }, [sessionActive, sessionPaused, resumeSession, sessionCount, effectiveSessionGoal, count, target]);
 
     const endSession = useCallback(async () => {
         if (!sessionActive) return;
@@ -204,6 +222,7 @@ export default function Home() {
         setSessionPaused(false);
         setSessionCount(0);
         setSessionStartedAt(null);
+        setSessionPausedAt(null);
         setSessionElapsedSeconds(0);
         setSessionGoal(null);
         setSessionGoalInput("");
@@ -218,9 +237,23 @@ export default function Home() {
         }
     }, [sessionActive, sessionCount, showTabBar, headerTranslateY, tabBarTranslateY, applyIncrement]);
 
+    const pauseSession = useCallback(() => {
+        if (!sessionActive || sessionPaused) return;
+        if (sessionStartedAt) {
+            setSessionElapsedSeconds(Math.max(0, Math.floor((Date.now() - sessionStartedAt) / 1000)));
+        }
+        setSessionPausedAt(Date.now());
+        setSessionPaused(true);
+    }, [sessionActive, sessionPaused, sessionStartedAt]);
+
     const pauseOrResumeSession = () => {
         if (!sessionActive) return;
-        setSessionPaused((prev) => !prev);
+        if (!sessionPaused) {
+            pauseSession();
+            return;
+        }
+
+        resumeSession();
     };
 
     const handleManualAdd = async () => {
@@ -246,6 +279,16 @@ export default function Home() {
         setShowSessionGoalSheet(false);
         Keyboard.dismiss();
     };
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener("change", (nextAppState) => {
+            if (nextAppState !== "active") {
+                pauseSession();
+            }
+        });
+
+        return () => subscription.remove();
+    }, [pauseSession]);
 
     // Handle back button during session
     useEffect(() => {
@@ -466,7 +509,6 @@ export default function Home() {
                             <View style={styles.progressInner}>
                                 <Text style={styles.count}>{formatNumber(target > 0 ? count % target : count)}</Text>
                                 <Text style={styles.targetText}>of {formatNumber(target)}</Text>
-                                <Text style={styles.tapHint}>Tap to start session</Text>
                             </View>
                         </View>
                     </TouchableOpacity>
@@ -644,11 +686,6 @@ const styles = StyleSheet.create({
     targetText: {
         fontSize: 16,
         color: theme.colors.text.secondary,
-        marginBottom: 8,
-    },
-    tapHint: {
-        fontSize: 13,
-        color: theme.colors.text.tertiary,
     },
     actionRow: {
         width: "100%",
