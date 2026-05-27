@@ -3,6 +3,7 @@ import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehData } from "@/hooks/useTasbeehData";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
@@ -28,6 +29,7 @@ import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = "#10b981";
 const DEFAULT_SESSION_GOAL = 100;
+const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
@@ -58,6 +60,7 @@ export default function Home() {
     const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
     const [sessionPausedAt, setSessionPausedAt] = useState<number | null>(null);
     const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(0);
+    const [preferredSessionGoal, setPreferredSessionGoal] = useState(DEFAULT_SESSION_GOAL);
     const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionGoalInput, setSessionGoalInput] = useState("");
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
@@ -74,7 +77,7 @@ export default function Home() {
     const isComplete = count >= target;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
 
-    const effectiveSessionGoal = sessionGoal ?? DEFAULT_SESSION_GOAL;
+    const effectiveSessionGoal = sessionGoal ?? preferredSessionGoal;
     const sessionProgress = Math.min((sessionCount / effectiveSessionGoal) * 100, 100);
     const sessionProgressOffset = RING_CIRCUMFERENCE - (sessionProgress / 100) * RING_CIRCUMFERENCE;
 
@@ -85,6 +88,25 @@ export default function Home() {
             reload();
         }, [headerTranslateY, showTabBar, reload])
     );
+
+    useEffect(() => {
+        let mounted = true;
+
+        AsyncStorage.getItem(SESSION_GOAL_KEY)
+            .then((savedGoal) => {
+                const parsedGoal = savedGoal ? parseInt(savedGoal, 10) : DEFAULT_SESSION_GOAL;
+                if (mounted && parsedGoal > 0) {
+                    setPreferredSessionGoal(parsedGoal);
+                }
+            })
+            .catch((error) => {
+                console.error("Failed to load session goal:", error);
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     useEffect(() => {
         if (!sessionActive || sessionPaused || !sessionStartedAt) return;
@@ -265,17 +287,21 @@ export default function Home() {
         Keyboard.dismiss();
     };
 
-    const handleSetSessionGoal = () => {
+    const handleSetSessionGoal = async () => {
         const nextGoal = parseInt(sessionGoalInput.replace(/,/g, ""), 10);
         if (!nextGoal || nextGoal <= 0) return;
+        setPreferredSessionGoal(nextGoal);
         setSessionGoal(nextGoal);
+        await AsyncStorage.setItem(SESSION_GOAL_KEY, nextGoal.toString());
         setShowSessionGoalSheet(false);
         Keyboard.dismiss();
     };
 
-    const handleClearSessionGoal = () => {
+    const handleClearSessionGoal = async () => {
+        setPreferredSessionGoal(DEFAULT_SESSION_GOAL);
         setSessionGoal(null);
         setSessionGoalInput("");
+        await AsyncStorage.removeItem(SESSION_GOAL_KEY);
         setShowSessionGoalSheet(false);
         Keyboard.dismiss();
     };
@@ -370,7 +396,7 @@ export default function Home() {
                 <View style={styles.sessionActions}>
                     <TouchableOpacity
                         onPress={() => {
-                            setSessionGoalInput((sessionGoal ?? DEFAULT_SESSION_GOAL).toString());
+                            setSessionGoalInput(effectiveSessionGoal.toString());
                             setShowSessionGoalSheet(true);
                         }}
                         style={styles.sessionPauseButton}
@@ -424,7 +450,7 @@ export default function Home() {
                         <TouchableOpacity onPress={handleSetSessionGoal} style={styles.sheetButton}>
                             <Text style={styles.sheetButtonText}>Set Goal</Text>
                         </TouchableOpacity>
-                        {sessionGoal && (
+                        {effectiveSessionGoal !== DEFAULT_SESSION_GOAL && (
                             <TouchableOpacity onPress={handleClearSessionGoal} style={styles.sessionGoalClearButton}>
                                 <Text style={styles.sessionGoalClearButtonText}>Clear Goal</Text>
                             </TouchableOpacity>
