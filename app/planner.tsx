@@ -7,28 +7,15 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
-    ImageBackground,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const RING_SIZE = 180;
-const RING_STROKE_WIDTH = 12;
-const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
-const MILESTONES = [
-    { label: "1 Lakh", value: 100000, emoji: "📿" },
-    { label: "10 Lakh", value: 1000000, emoji: "🌙" },
-    { label: "50 Lakh", value: 5000000, emoji: "✨" },
-    { label: "1 Crore", value: 10000000, emoji: "☪️" },
-];
 
 const GOAL_PRESETS = [
     { label: "1L", value: 100000, fullLabel: "1 Lakh" },
@@ -225,16 +212,13 @@ export default function Planner() {
 
     const { lifetimeTotal, totalGoal, dailyTarget } = plannerData;
     const remainingGoal = Math.max(0, totalGoal - lifetimeTotal);
-    const progressPercent = totalGoal > 0 ? Math.min((lifetimeTotal / totalGoal) * 100, 100) : 0;
-    const progressOffset = RING_CIRCUMFERENCE - (progressPercent / 100) * RING_CIRCUMFERENCE;
 
-    const daysToFinish = dailyTarget > 0 ? Math.ceil(remainingGoal / dailyTarget) : 0;
-    const finishDate = new Date();
-    finishDate.setDate(finishDate.getDate() + daysToFinish);
-
-    const nextMilestone =
-        MILESTONES.find((milestone) => lifetimeTotal < milestone.value) ??
-        MILESTONES[MILESTONES.length - 1];
+    const nextMilestone = [
+        { label: "1 Lakh", value: 100000, emoji: "📿" },
+        { label: "10 Lakh", value: 1000000, emoji: "🌙" },
+        { label: "50 Lakh", value: 5000000, emoji: "✨" },
+        { label: "1 Crore", value: 10000000, emoji: "☪️" },
+    ].find((milestone) => lifetimeTotal < milestone.value) ?? { label: "1 Crore", value: 10000000, emoji: "☪️" };
     const nextMilestoneRemaining = Math.max(0, nextMilestone.value - lifetimeTotal);
     const daysToNextMilestone =
         dailyTarget > 0 ? Math.ceil(nextMilestoneRemaining / dailyTarget) : 0;
@@ -245,6 +229,7 @@ export default function Planner() {
     const paceDifference = averagePerDay - requiredDailyPace;
     const isPaceAhead = paceDifference > 0;
     const isPaceOnTrack = Math.abs(paceDifference) < requiredDailyPace * 0.1; // Within 10%
+    const daysToFinish = dailyTarget > 0 ? Math.ceil(remainingGoal / dailyTarget) : 0;
     const daysSavedOrLost = requiredDailyPace > 0 ? Math.floor((paceDifference * daysToFinish) / requiredDailyPace) : 0;
 
     let paceStatus: "ahead" | "ontrack" | "behind" = "ontrack";
@@ -268,16 +253,6 @@ export default function Planner() {
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <SimpleHeader translateY={headerTranslateY} />
-            <View pointerEvents="none" style={styles.backgroundLayer}>
-                <ImageBackground
-                    source={require("../assets/images/gumbad.png")}
-                    resizeMode="cover"
-                    style={styles.backgroundImage}
-                    imageStyle={styles.backgroundImageAsset}
-                >
-                    <View style={styles.backgroundTint} />
-                </ImageBackground>
-            </View>
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={[
@@ -616,24 +591,11 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.colors.background.primary,
     },
-    backgroundLayer: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-    },
-    backgroundImage: {
+    scrollView: {
         flex: 1,
-        width: "100%",
-        height: "100%",
     },
-    backgroundImageAsset: {
-        opacity: 0.15,
-    },
-    backgroundTint: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(5, 7, 9, 0.72)",
+    scrollContent: {
+        paddingHorizontal: 16,
     },
     loadingContainer: {
         flex: 1,
@@ -644,73 +606,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: theme.colors.text.secondary,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingHorizontal: 16,
-    },
-    heroCard: {
-        backgroundColor: "rgba(16,185,129,0.08)",
-        borderRadius: 24,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.12)",
-        marginBottom: 24,
-        alignItems: "center",
-    },
-    heroEyebrow: {
-        fontSize: 13,
-        fontWeight: "700",
-        letterSpacing: 0.5,
-        textTransform: "uppercase",
-        color: theme.colors.text.secondary,
-        marginBottom: 20,
-    },
-    ringContainer: {
-        position: "relative",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 20,
-    },
-    ringInner: {
-        position: "absolute",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    ringPercent: {
-        fontSize: 36,
-        fontWeight: "800",
-        color: theme.colors.text.primary,
-    },
-    ringLabel: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginTop: 4,
-    },
-    heroStats: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 24,
-    },
-    heroStat: {
-        alignItems: "center",
-    },
-    heroStatValue: {
-        fontSize: 24,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-        marginBottom: 4,
-    },
-    heroStatLabel: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-    },
-    heroDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: "rgba(255,255,255,0.1)",
     },
     section: {
         marginBottom: 24,
