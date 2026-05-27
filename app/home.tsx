@@ -26,6 +26,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = "#10b981";
+const DEFAULT_SESSION_GOAL = 100;
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
@@ -55,7 +56,9 @@ export default function Home() {
     const [sessionCount, setSessionCount] = useState(0);
     const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
     const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(0);
-    const [sessionGoalsCompleted, setSessionGoalsCompleted] = useState(0); // Track how many times goal was hit
+    const [sessionGoal, setSessionGoal] = useState<number | null>(null);
+    const [sessionGoalInput, setSessionGoalInput] = useState("");
+    const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const progressAnim = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
@@ -69,10 +72,8 @@ export default function Home() {
     const isComplete = count >= target;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
 
-    const projectedTodayCompleted = count + sessionCount;
-    // Use modulo to reset progress ring when goal is reached
-    const effectiveCount = target > 0 ? projectedTodayCompleted % target : projectedTodayCompleted;
-    const sessionProgress = target > 0 ? (effectiveCount / target) * 100 : 0;
+    const effectiveSessionGoal = sessionGoal ?? DEFAULT_SESSION_GOAL;
+    const sessionProgress = Math.min((sessionCount / effectiveSessionGoal) * 100, 100);
     const sessionProgressOffset = RING_CIRCUMFERENCE - (sessionProgress / 100) * RING_CIRCUMFERENCE;
 
     useFocusEffect(
@@ -134,8 +135,8 @@ export default function Home() {
                 } catch (error) {
                     console.error("Haptics failed", error);
                 }
-                // Reset count to allow multiple goal completions per day
-                newCount = newCount - target;
+                // Reset count to allow multiple goal completions per day.
+                newCount = newCount % target;
             }
 
             await saveData({
@@ -153,11 +154,13 @@ export default function Home() {
         setShowManualSheet(false);
         setSessionActive(true);
         setSessionPaused(false);
-        setSessionGoalsCompleted(0);
         if (!sessionStartedAt) {
             setSessionStartedAt(Date.now());
             setSessionElapsedSeconds(0);
             setSessionCount(0);
+            setSessionGoal(null);
+            setSessionGoalInput("");
+            setShowSessionGoalSheet(false);
         }
     }, [headerTranslateY, insets.top, sessionStartedAt, tabBarHeight, tabBarTranslateY]);
 
@@ -174,49 +177,46 @@ export default function Home() {
 
         const projectedTotal = count + newSessionCount;
 
-        // Check if goal is reached during session
+        if (sessionCount < effectiveSessionGoal && newSessionCount >= effectiveSessionGoal) {
+            try {
+                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch (error) {
+                console.error("Haptics failed", error);
+            }
+            return;
+        }
+
+        // Check if daily goal is reached during session.
         if (projectedTotal >= target && target > 0 && projectedTotal % target === 0) {
             try {
                 await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
                 console.error("Haptics failed", error);
             }
-            // Track goal completion locally
-            setSessionGoalsCompleted(prev => prev + 1);
         }
-    }, [sessionActive, sessionPaused, sessionCount, count, target]);
+    }, [sessionActive, sessionPaused, sessionCount, effectiveSessionGoal, count, target]);
 
     const endSession = useCallback(async () => {
         if (!sessionActive) return;
         const finalCount = sessionCount;
-        const goalsCompleted = sessionGoalsCompleted;
 
         setSessionActive(false);
         setSessionPaused(false);
         setSessionCount(0);
         setSessionStartedAt(null);
         setSessionElapsedSeconds(0);
-        setSessionGoalsCompleted(0);
+        setSessionGoal(null);
+        setSessionGoalInput("");
+        setShowSessionGoalSheet(false);
 
         showTabBar();
         headerTranslateY.value = withTiming(0, { duration: 300 });
         tabBarTranslateY.value = withTiming(0, { duration: 300 });
 
-        if (finalCount > 0 || goalsCompleted > 0) {
-            // Calculate final values accounting for goal completions
-            const totalAdded = finalCount + (goalsCompleted * target);
-            let newCount = count + totalAdded;
-            const newLifetimeTotal = lifetimeTotal + totalAdded;
-            const newStreak = count === 0 && totalAdded > 0 ? streak + 1 : streak;
-
-            // Handle any remaining goal completions
-            while (newCount >= target && target > 0) {
-                newCount = newCount - target;
-            }
-
-            void applyIncrement(totalAdded);
+        if (finalCount > 0) {
+            void applyIncrement(finalCount);
         }
-    }, [sessionActive, sessionCount, sessionGoalsCompleted, count, target, lifetimeTotal, streak, showTabBar, headerTranslateY, tabBarTranslateY, applyIncrement]);
+    }, [sessionActive, sessionCount, showTabBar, headerTranslateY, tabBarTranslateY, applyIncrement]);
 
     const pauseOrResumeSession = () => {
         if (!sessionActive) return;
@@ -229,6 +229,21 @@ export default function Home() {
         await applyIncrement(amount);
         setManualAddValue("");
         setShowManualSheet(false);
+        Keyboard.dismiss();
+    };
+
+    const handleSetSessionGoal = () => {
+        const nextGoal = parseInt(sessionGoalInput.replace(/,/g, ""), 10);
+        if (!nextGoal || nextGoal <= 0) return;
+        setSessionGoal(nextGoal);
+        setShowSessionGoalSheet(false);
+        Keyboard.dismiss();
+    };
+
+    const handleClearSessionGoal = () => {
+        setSessionGoal(null);
+        setSessionGoalInput("");
+        setShowSessionGoalSheet(false);
         Keyboard.dismiss();
     };
 
@@ -261,7 +276,22 @@ export default function Home() {
             <SafeAreaView style={styles.sessionContainer} edges={["top", "bottom"]}>
                 <View style={styles.sessionHeader}>
                     <Text style={styles.sessionTimer}>{formatDuration(sessionElapsedSeconds)}</Text>
-                    <Text style={styles.sessionCount}>{formatNumber(sessionCount)}</Text>
+                    <Text
+                        style={styles.sessionCount}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.75}
+                    >
+                        {formatNumber(sessionCount)}
+                    </Text>
+                    <Text
+                        style={styles.sessionGoalLabel}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        of {formatNumber(effectiveSessionGoal)}
+                    </Text>
                     {syncing && <Text style={styles.syncingText}>Syncing...</Text>}
                 </View>
 
@@ -296,15 +326,69 @@ export default function Home() {
 
                 <View style={styles.sessionActions}>
                     <TouchableOpacity
+                        onPress={() => {
+                            setSessionGoalInput((sessionGoal ?? DEFAULT_SESSION_GOAL).toString());
+                            setShowSessionGoalSheet(true);
+                        }}
+                        style={styles.sessionPauseButton}
+                        activeOpacity={0.7}
+                    >
+                        <Text
+                            style={styles.sessionPauseButtonText}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.75}
+                        >
+                            Goal
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
                         onPress={pauseOrResumeSession}
                         style={styles.sessionPauseButton}
                         activeOpacity={0.7}
                     >
-                        <Text style={styles.sessionPauseButtonText}>
+                        <Text
+                            style={styles.sessionPauseButtonText}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.75}
+                        >
                             {sessionPaused ? "Resume" : "Pause"}
                         </Text>
                     </TouchableOpacity>
                 </View>
+
+                {showSessionGoalSheet && (
+                    <TouchableOpacity
+                        style={styles.sessionGoalOverlay}
+                        activeOpacity={1}
+                        onPress={() => setShowSessionGoalSheet(false)}
+                    />
+                )}
+
+                {showSessionGoalSheet && (
+                    <View style={styles.sessionGoalSheet}>
+                        <View style={styles.sheetHandle} />
+                        <Text style={styles.sheetTitle}>Session Goal</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={sessionGoalInput}
+                            onChangeText={setSessionGoalInput}
+                            keyboardType="numeric"
+                            placeholder="Enter goal"
+                            placeholderTextColor={theme.colors.text.tertiary}
+                        />
+                        <TouchableOpacity onPress={handleSetSessionGoal} style={styles.sheetButton}>
+                            <Text style={styles.sheetButtonText}>Set Goal</Text>
+                        </TouchableOpacity>
+                        {sessionGoal && (
+                            <TouchableOpacity onPress={handleClearSessionGoal} style={styles.sessionGoalClearButton}>
+                                <Text style={styles.sessionGoalClearButtonText}>Clear Goal</Text>
+                            </TouchableOpacity>
+                        )}
+                        <KeyboardSpacer />
+                    </View>
+                )}
             </SafeAreaView>
         );
     }
@@ -661,19 +745,26 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     sessionCount: {
-        fontSize: 64,
+        fontSize: 56,
         fontWeight: "700",
         color: theme.colors.text.primary,
     },
+    sessionGoalLabel: {
+        marginTop: 4,
+        fontSize: 17,
+        fontWeight: "500",
+        color: theme.colors.text.secondary,
+    },
     sessionTapArea: {
         flex: 1,
-        justifyContent: "center",
+        justifyContent: "flex-end",
         alignItems: "center",
     },
     sessionRing: {
         position: "relative",
         alignItems: "center",
         justifyContent: "center",
+        marginBottom: 20,
     },
     sessionTapHint: {
         position: "absolute",
@@ -681,22 +772,51 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
     },
     sessionActions: {
-        alignItems: "center",
+        flexDirection: "row",
+        justifyContent: "center",
+        gap: 12,
         paddingBottom: 24,
     },
     sessionPauseButton: {
         backgroundColor: theme.colors.surface.primary,
         borderRadius: 16,
         paddingVertical: 18,
-        paddingHorizontal: 48,
+        paddingHorizontal: 24,
         alignItems: "center",
         borderWidth: 1,
         borderColor: theme.colors.border.primary,
-        minWidth: 160,
+        minWidth: 132,
     },
     sessionPauseButtonText: {
         fontSize: 17,
         fontWeight: "600",
         color: theme.colors.text.primary,
+    },
+    sessionGoalOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.45)",
+    },
+    sessionGoalSheet: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: theme.colors.surface.elevated,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+    },
+    sessionGoalClearButton: {
+        padding: 16,
+        alignItems: "center",
+    },
+    sessionGoalClearButtonText: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: theme.colors.text.secondary,
     },
 });
