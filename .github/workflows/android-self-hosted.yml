@@ -6,7 +6,7 @@ on:
       app_variant:
         description: App variant to build
         required: false
-        default: preview
+        default: production
         type: choice
         options:
           - development
