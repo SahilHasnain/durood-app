@@ -27,7 +27,7 @@ jobs:
     env:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
-      APP_VARIANT: ${{ inputs.app_variant || 'preview' }}
+      APP_VARIANT: ${{ inputs.app_variant || 'production' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
