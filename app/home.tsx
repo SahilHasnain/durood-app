@@ -13,6 +13,7 @@ import {
     Animated,
     AppState,
     BackHandler,
+    Image,
     Keyboard,
     Pressable,
     ScrollView,
@@ -311,16 +312,6 @@ export default function Home() {
         setSessionPaused(true);
     }, [sessionActive, sessionPaused, sessionStartedAt]);
 
-    const pauseOrResumeSession = () => {
-        if (!sessionActive) return;
-        if (!sessionPaused) {
-            pauseSession();
-            return;
-        }
-
-        resumeSession();
-    };
-
     const handleManualAdd = async () => {
         const amount = parseInt(manualAddValue.replace(/,/g, ""), 10);
         if (!amount || amount <= 0) return;
@@ -386,24 +377,16 @@ export default function Home() {
     if (sessionActive) {
         return (
             <SafeAreaView style={styles.sessionContainer} edges={["top", "bottom"]}>
+                <View style={styles.sessionImageArea}>
+                    <Image
+                        source={require("@/assets/images/jalian-mubarak.jpg")}
+                        style={styles.sessionImage}
+                        resizeMode="cover"
+                    />
+                </View>
+
                 <View style={styles.sessionHeader}>
                     <Text style={styles.sessionTimer}>{formatDuration(sessionElapsedSeconds)}</Text>
-                    <Text
-                        style={styles.sessionCount}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.75}
-                    >
-                        {formatNumber(displayedSessionCount)}
-                    </Text>
-                    <Text
-                        style={styles.sessionGoalLabel}
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.8}
-                    >
-                        of {formatNumber(effectiveSessionGoal)}
-                    </Text>
                 </View>
 
                 <Pressable style={styles.sessionTapArea} onPress={addToSession}>
@@ -431,7 +414,16 @@ export default function Home() {
                                 transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
                             />
                         </Svg>
-                        <Text style={styles.sessionTapHint}>Tap to count</Text>
+                        <View style={styles.sessionRingContent}>
+                            <Text
+                                style={styles.sessionCount}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.55}
+                            >
+                                {formatNumber(displayedSessionCount)}
+                            </Text>
+                        </View>
                     </View>
                 </Pressable>
 
@@ -450,21 +442,7 @@ export default function Home() {
                             adjustsFontSizeToFit
                             minimumFontScale={0.75}
                         >
-                            Goal
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={pauseOrResumeSession}
-                        style={styles.sessionPauseButton}
-                        activeOpacity={0.7}
-                    >
-                        <Text
-                            style={styles.sessionPauseButtonText}
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            minimumFontScale={0.75}
-                        >
-                            {sessionPaused ? "Resume" : "Pause"}
+                            Goal {formatNumber(effectiveSessionGoal)}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -814,29 +792,32 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingHorizontal: 24,
     },
+    sessionImageArea: {
+        height: "40%",
+        marginHorizontal: -24,
+        overflow: "hidden",
+        backgroundColor: theme.colors.surface.primary,
+    },
+    sessionImage: {
+        width: "100%",
+        height: "100%",
+    },
     sessionHeader: {
         alignItems: "center",
-        paddingTop: 40,
+        paddingTop: 20,
     },
     sessionTimer: {
         fontSize: 18,
         color: theme.colors.text.secondary,
-        marginBottom: 16,
     },
     sessionCount: {
-        fontSize: 56,
+        fontSize: 48,
         fontWeight: "700",
         color: theme.colors.text.primary,
     },
-    sessionGoalLabel: {
-        marginTop: 4,
-        fontSize: 17,
-        fontWeight: "500",
-        color: theme.colors.text.secondary,
-    },
     sessionTapArea: {
         flex: 1,
-        justifyContent: "flex-end",
+        justifyContent: "center",
         alignItems: "center",
     },
     sessionRing: {
@@ -845,10 +826,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         marginBottom: 20,
     },
-    sessionTapHint: {
+    sessionRingContent: {
         position: "absolute",
-        fontSize: 16,
-        color: theme.colors.text.tertiary,
+        alignItems: "center",
+        justifyContent: "center",
+        width: "70%",
     },
     sessionActions: {
         flexDirection: "row",
