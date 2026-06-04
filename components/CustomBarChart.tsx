@@ -1,6 +1,6 @@
 import { theme } from "@/constants/theme";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 interface DailyRecord {
     date: string;
@@ -13,6 +13,8 @@ interface CustomBarChartProps {
 }
 
 export function CustomBarChart({ data }: CustomBarChartProps) {
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
     if (data.length === 0) return null;
 
     const maxValue = Math.max(...data.map((r) => r.count), ...data.map((r) => r.target), 1);
@@ -23,6 +25,11 @@ export function CustomBarChart({ data }: CustomBarChartProps) {
     const barsToShow = Math.min(data.length, 14);
     const startIndex = Math.max(0, data.length - barsToShow);
     const displayData = data.slice(startIndex);
+    const selectedRecord = selectedIndex === null ? null : displayData[selectedIndex];
+
+    const formatDate = (value: string) => {
+        return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
+    };
 
     return (
         <View style={styles.container}>
@@ -35,7 +42,7 @@ export function CustomBarChart({ data }: CustomBarChartProps) {
                 </View>
 
                 {/* Bars */}
-                <View style={[styles.barsContainer, { height: chartHeight }]}>
+                <View style={[styles.barsContainer, { height: chartHeight }]}> 
                     {/* Grid lines */}
                     <View style={styles.gridLine} />
                     <View style={styles.gridLine} />
@@ -47,19 +54,16 @@ export function CustomBarChart({ data }: CustomBarChartProps) {
                             const heightPercent = (record.count / maxValue) * 100;
                             const barHeight = (heightPercent / 100) * barMaxHeight;
                             const metTarget = record.count >= record.target;
+                            const isSelected = selectedIndex === index;
 
                             return (
-                                <View key={`${record.date}-${index}`} style={styles.barWrapper}>
-                                    <View style={styles.barValueContainer}>
-                                        <Text
-                                            style={[
-                                                styles.barValue,
-                                                { opacity: barHeight > 60 ? 1 : 0.7 },
-                                            ]}
-                                        >
-                                            {record.count}
-                                        </Text>
-                                    </View>
+                                <Pressable
+                                    key={`${record.date}-${index}`}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`${formatDate(record.date)} count ${record.count}`}
+                                    onPress={() => setSelectedIndex(isSelected ? null : index)}
+                                    style={styles.barWrapper}
+                                >
                                     <View
                                         style={[
                                             styles.bar,
@@ -68,13 +72,35 @@ export function CustomBarChart({ data }: CustomBarChartProps) {
                                                 backgroundColor: metTarget
                                                     ? "#10b981"
                                                     : "rgba(255,255,255,0.18)",
+                                                borderColor: isSelected ? theme.colors.text.primary : "transparent",
                                             },
                                         ]}
                                     />
-                                </View>
+                                </Pressable>
                             );
                         })}
                     </View>
+
+                    {selectedRecord && (
+                        <View
+                            pointerEvents="none"
+                            style={[
+                                styles.tooltip,
+                                selectedIndex === 0 && styles.tooltipLeft,
+                                selectedIndex === displayData.length - 1 && styles.tooltipRight,
+                                selectedIndex !== 0 && selectedIndex !== displayData.length - 1 && {
+                                    left: `${((selectedIndex + 0.5) / displayData.length) * 100}%`,
+                                    transform: [{ translateX: -59 }],
+                                },
+                            ]}
+                        >
+                            <Text style={styles.tooltipDate}>{formatDate(selectedRecord.date)}</Text>
+                            <Text style={styles.tooltipCount}>{selectedRecord.count.toLocaleString()}</Text>
+                            <Text style={styles.tooltipMeta}>
+                                {selectedRecord.count >= selectedRecord.target ? "Target met" : `Target ${selectedRecord.target}`}
+                            </Text>
+                        </View>
+                    )}
                 </View>
             </View>
 
@@ -150,26 +176,49 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
         marginHorizontal: 2,
     },
-    barValueContainer: {
-        height: 20,
-        justifyContent: "flex-end",
-        minWidth: 30,
-    },
-    barValue: {
-        fontSize: 10,
-        color: theme.colors.text.secondary,
-        fontWeight: "700",
-        textAlign: "center",
-    },
     bar: {
         width: "100%",
         borderRadius: 6,
-        marginTop: 4,
         minWidth: 6,
+        borderWidth: 1,
+    },
+    tooltip: {
+        position: "absolute",
+        top: 6,
+        width: 118,
+        borderRadius: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        backgroundColor: theme.colors.surface.elevated,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+    },
+    tooltipLeft: {
+        left: 0,
+    },
+    tooltipRight: {
+        right: 0,
+    },
+    tooltipDate: {
+        fontSize: 11,
+        fontWeight: "700",
+        color: theme.colors.text.secondary,
+    },
+    tooltipCount: {
+        marginTop: 2,
+        fontSize: 18,
+        fontWeight: "900",
+        color: theme.colors.text.primary,
+    },
+    tooltipMeta: {
+        marginTop: 1,
+        fontSize: 10,
+        fontWeight: "700",
+        color: "#10b981",
     },
     xAxis: {
         flexDirection: "row",
-        marginTop: 12,
+        marginTop: 10,
         marginLeft: 53,
     },
     xLabel: {

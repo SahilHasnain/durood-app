@@ -36,16 +36,10 @@ function SectionCard({
 }) {
     return (
         <Pressable onPress={onPress} style={[styles.sectionCard, isToday && styles.todaySectionCard]}>
-            <View style={styles.sectionIcon}>
-                <Ionicons
-                    name={isComplete ? "checkmark" : isToday ? "sparkles" : "book-outline"}
-                    size={18}
-                    color={isToday || isComplete ? "#10b981" : theme.colors.text.secondary}
-                />
-            </View>
             <View style={styles.sectionTextWrap}>
                 <View style={styles.sectionTitleRow}>
                     <Text style={styles.sectionTitle}>{section.title}</Text>
+                    {isComplete && <Ionicons name="checkmark-circle" size={16} color="#10b981" />}
                     {isToday && <Text style={styles.todayBadge}>Today</Text>}
                 </View>
                 <Text style={styles.sectionMeta}>{section.subtitle}</Text>
@@ -368,14 +362,6 @@ const styles = StyleSheet.create({
     todaySectionCard: {
         backgroundColor: "rgba(16,185,129,0.1)",
         borderColor: "rgba(16,185,129,0.2)",
-    },
-    sectionIcon: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.06)",
     },
     sectionTextWrap: {
         flex: 1,

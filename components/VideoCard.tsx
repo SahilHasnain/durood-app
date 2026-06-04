@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     placeholderIconWrapper: {
         padding: 12,
         borderRadius: 9999,
-        backgroundColor: (colors.accent.secondary || "#FF6B6B") + "20",
+        backgroundColor: (colors.accent.secondary || "#10b981") + "20",
     },
     placeholderText: {
         marginTop: 8,

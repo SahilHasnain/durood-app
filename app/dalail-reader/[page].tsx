@@ -25,7 +25,7 @@ import {
     View,
     type ViewToken,
 } from "react-native";
-import { useSharedValue, withTiming } from "react-native-reanimated";
+import { withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -34,14 +34,12 @@ const IMAGE_HEIGHT = IMAGE_WIDTH / 0.68;
 
 function DalailReaderPage({
     page,
-    controlsVisible,
-    onToggleControls,
     onZoomChange,
+    headerOffset,
 }: {
     page: number;
-    controlsVisible: boolean;
-    onToggleControls: () => void;
     onZoomChange: (isZoomed: boolean) => void;
+    headerOffset: number;
 }) {
     const { asset, isLoading } = useResolvedDalailPage(page);
     const [hasLoadError, setHasLoadError] = useState(false);
@@ -52,12 +50,11 @@ function DalailReaderPage({
 
     if (asset?.source && !hasLoadError) {
         return (
-            <View style={styles.pageSurface}>
+            <View style={[styles.pageSurface, { paddingTop: headerOffset }]}> 
                 <DalailZoomableImage
                     source={asset.source}
                     width={IMAGE_WIDTH}
                     height={IMAGE_HEIGHT}
-                    onPress={onToggleControls}
                     onZoomChange={onZoomChange}
                     onError={() => setHasLoadError(true)}
                 />
@@ -66,7 +63,7 @@ function DalailReaderPage({
     }
 
     return (
-        <Pressable onPress={onToggleControls} style={styles.pageFallback}>
+        <View style={[styles.pageFallback, { paddingTop: headerOffset }]}> 
             {isLoading ? <ActivityIndicator color="#10b981" size="large" /> : null}
             <Text style={styles.fallbackTitle}>{isLoading ? "Opening Dalail page..." : `Page ${page} not ready yet`}</Text>
             <Text style={styles.fallbackText}>
@@ -74,7 +71,7 @@ function DalailReaderPage({
                     ? "The reader is fetching the page image."
                     : "The reader is ready; this page will appear after the Dalail image assets finish uploading."}
             </Text>
-        </Pressable>
+        </View>
     );
 }
 
@@ -87,13 +84,11 @@ export default function DalailReaderScreen() {
     const pages = useRef(Array.from({ length: DALAIL_ASSET_MANIFEST.totalPages }, (_, index) => index + 1)).current;
     const flatListRef = useRef<FlatList<number>>(null);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const controlsOpacity = useSharedValue(1);
 
     const { saveProgress, markWirdComplete, isWirdCompleteToday } = useDalailProgress();
     const { isBookmarked, getBookmarkForPage, addBookmark, removeBookmark } = useDalailBookmarks();
 
     const [currentPage, setCurrentPage] = useState(initialPage);
-    const [controlsVisible, setControlsVisible] = useState(true);
     const [isZoomed, setIsZoomed] = useState(false);
     const [isJumpVisible, setIsJumpVisible] = useState(false);
     const [pageInput, setPageInput] = useState(String(initialPage));
@@ -104,6 +99,8 @@ export default function DalailReaderScreen() {
     const sectionPages = currentSection.endPage - currentSection.startPage + 1;
     const currentBookmarked = isBookmarked(currentPage);
     const currentWirdComplete = isWirdCompleteToday(currentSection.id);
+    const bookProgress = (currentPage / DALAIL_ASSET_MANIFEST.totalPages) * 100;
+    const headerOffset = insets.top + 60;
 
     useEffect(() => {
         tabBarTranslateY.value = withTiming(tabBarHeight + 50, { duration: 200 });
@@ -111,10 +108,6 @@ export default function DalailReaderScreen() {
             tabBarTranslateY.value = withTiming(0, { duration: 200 });
         };
     }, [tabBarHeight, tabBarTranslateY]);
-
-    useEffect(() => {
-        controlsOpacity.value = withTiming(controlsVisible ? 1 : 0, { duration: 180 });
-    }, [controlsOpacity, controlsVisible]);
 
     useEffect(() => {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -171,9 +164,8 @@ export default function DalailReaderScreen() {
                 renderItem={({ item }) => (
                     <DalailReaderPage
                         page={item}
-                        controlsVisible={controlsVisible}
-                        onToggleControls={() => setControlsVisible((value) => !value)}
                         onZoomChange={setIsZoomed}
+                        headerOffset={headerOffset}
                     />
                 )}
                 horizontal
@@ -189,52 +181,48 @@ export default function DalailReaderScreen() {
                 }}
             />
 
-            {controlsVisible && (
-                <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}> 
-                    <Pressable style={styles.iconButton} onPress={() => router.back()}>
-                        <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
-                    </Pressable>
-                    <View style={styles.titleWrap}>
-                        <Text style={styles.readerTitle}>{DALAIL_TITLE}</Text>
-                        <Text style={styles.readerMeta} numberOfLines={1}>
-                            {currentSection.title} • Page {pageInSection} of {sectionPages}
-                        </Text>
-                    </View>
-                    <Pressable style={styles.iconButton} onPress={toggleBookmark}>
-                        <Ionicons name={currentBookmarked ? "bookmark" : "bookmark-outline"} size={21} color={currentBookmarked ? "#10b981" : theme.colors.text.primary} />
-                    </Pressable>
+            <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}> 
+                <Pressable style={styles.iconButton} onPress={() => router.back()}>
+                    <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+                </Pressable>
+                <View style={styles.titleWrap}>
+                    <Text style={styles.readerTitle}>{DALAIL_TITLE}</Text>
+                    <Text style={styles.readerMeta} numberOfLines={1}>
+                        {currentSection.title} • Page {pageInSection} of {sectionPages}
+                    </Text>
                 </View>
-            )}
+                <Pressable style={styles.iconButton} onPress={toggleBookmark}>
+                    <Ionicons name={currentBookmarked ? "bookmark" : "bookmark-outline"} size={21} color={currentBookmarked ? "#10b981" : theme.colors.text.primary} />
+                </Pressable>
+            </View>
 
-            {controlsVisible && (
-                <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}> 
-                    <View style={styles.pageControlRow}>
-                        <Pressable style={styles.navButton} onPress={() => moveToPage(currentPage - 1)} disabled={currentPage <= 1}>
-                            <Ionicons name="chevron-back" size={18} color={currentPage <= 1 ? theme.colors.text.tertiary : theme.colors.text.primary} />
-                            <Text style={[styles.navButtonText, currentPage <= 1 && styles.disabledText]}>Previous</Text>
-                        </Pressable>
-                        <Pressable style={styles.pagePill} onPress={() => setIsJumpVisible(true)}>
-                            <Text style={styles.pagePillText}>Page {currentPage} / {DALAIL_ASSET_MANIFEST.totalPages}</Text>
-                            <Text style={styles.pagePillHint}>Tap to jump</Text>
-                        </Pressable>
-                        <Pressable style={styles.navButton} onPress={() => moveToPage(currentPage + 1)} disabled={currentPage >= DALAIL_ASSET_MANIFEST.totalPages}>
-                            <Text style={[styles.navButtonText, currentPage >= DALAIL_ASSET_MANIFEST.totalPages && styles.disabledText]}>Next</Text>
-                            <Ionicons name="chevron-forward" size={18} color={currentPage >= DALAIL_ASSET_MANIFEST.totalPages ? theme.colors.text.tertiary : theme.colors.text.primary} />
-                        </Pressable>
+            <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}> 
+                <View style={styles.footerMetaRow}>
+                    <View style={styles.footerTextWrap}>
+                        <Text style={styles.footerMeta} numberOfLines={1}>
+                            Page {currentPage} / {DALAIL_ASSET_MANIFEST.totalPages}
+                        </Text>
+                        <View style={styles.progressTrack}>
+                            <View style={[styles.progressFill, { width: `${bookProgress}%` }]} />
+                        </View>
                     </View>
-                    {currentPage >= currentSection.endPage - 1 && typeof currentSection.weekday === "number" && (
-                        <Pressable
-                            style={[styles.completeButton, currentWirdComplete && styles.completeButtonDone]}
-                            onPress={completeCurrentWird}
-                        >
-                            <Ionicons name={currentWirdComplete ? "checkmark-circle" : "checkmark-circle-outline"} size={18} color={currentWirdComplete ? "#10b981" : "#03140d"} />
-                            <Text style={[styles.completeButtonText, currentWirdComplete && styles.completeButtonDoneText]}>
-                                {currentWirdComplete ? "Wird Complete" : "Mark Wird Complete"}
-                            </Text>
-                        </Pressable>
-                    )}
+                    <Pressable style={styles.jumpButton} onPress={() => setIsJumpVisible(true)}>
+                        <Ionicons name="search-outline" size={17} color="#03140d" />
+                        <Text style={styles.jumpButtonText}>Jump</Text>
+                    </Pressable>
                 </View>
-            )}
+                {currentPage >= currentSection.endPage - 1 && typeof currentSection.weekday === "number" && (
+                    <Pressable
+                        style={[styles.completeButton, currentWirdComplete && styles.completeButtonDone]}
+                        onPress={completeCurrentWird}
+                    >
+                        <Ionicons name={currentWirdComplete ? "checkmark-circle" : "checkmark-circle-outline"} size={18} color={currentWirdComplete ? "#10b981" : "#03140d"} />
+                        <Text style={[styles.completeButtonText, currentWirdComplete && styles.completeButtonDoneText]}>
+                            {currentWirdComplete ? "Wird Complete" : "Mark Wird Complete"}
+                        </Text>
+                    </Pressable>
+                )}
+            </View>
 
             {completeMessage && (
                 <View style={styles.toast}>
@@ -279,7 +267,7 @@ const styles = StyleSheet.create({
         width: SCREEN_WIDTH,
         flex: 1,
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-start",
         backgroundColor: "#050505",
     },
     pageFallback: {
@@ -350,50 +338,47 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: "rgba(255,255,255,0.08)",
     },
-    pageControlRow: {
+    footerMetaRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        gap: 10,
+        gap: 12,
     },
-    navButton: {
-        minHeight: 42,
-        borderRadius: 14,
-        paddingHorizontal: 12,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 4,
-        backgroundColor: "rgba(255,255,255,0.08)",
+    footerTextWrap: {
+        flex: 1,
+        minWidth: 0,
     },
-    navButtonText: {
-        fontSize: 13,
+    progressTrack: {
+        marginTop: 8,
+        height: 4,
+        borderRadius: 999,
+        overflow: "hidden",
+        backgroundColor: "rgba(255,255,255,0.1)",
+    },
+    progressFill: {
+        height: "100%",
+        borderRadius: 999,
+        backgroundColor: "#10b981",
+    },
+    footerMeta: {
+        marginTop: 3,
+        fontSize: 14,
         fontWeight: "800",
         color: theme.colors.text.primary,
     },
-    disabledText: {
-        color: theme.colors.text.tertiary,
-    },
-    pagePill: {
-        flex: 1,
+    jumpButton: {
         minHeight: 42,
+        paddingHorizontal: 16,
         borderRadius: 14,
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(16,185,129,0.12)",
-        borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.2)",
+        gap: 7,
+        backgroundColor: "#10b981",
     },
-    pagePillText: {
-        fontSize: 13,
+    jumpButtonText: {
+        fontSize: 14,
         fontWeight: "900",
-        color: "#10b981",
-    },
-    pagePillHint: {
-        marginTop: 1,
-        fontSize: 10,
-        fontWeight: "700",
-        color: theme.colors.text.tertiary,
+        color: "#03140d",
     },
     completeButton: {
         minHeight: 46,

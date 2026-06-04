@@ -5,7 +5,7 @@ export const colors = {
     tertiary: "#666666",
   },
   accent: {
-    secondary: "#FF6B6B",
+    secondary: "#10b981",
   },
   background: {
     primary: "#000000",
@@ -21,8 +21,8 @@ export const theme = {
   colors: {
     primary: {
       main: colors.accent.secondary,
-      light: "#ff8a80",
-      dark: "#e65a50",
+      light: "#34d399",
+      dark: "#059669",
     },
     text: {
       primary: colors.text.primary,

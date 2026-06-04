@@ -4,6 +4,7 @@ import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehData } from "@/hooks/useTasbeehData";
 import { SessionRecord } from "@/services/tasbeehService";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
@@ -21,6 +22,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
+    useWindowDimensions,
     View
 } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
@@ -71,6 +73,7 @@ export default function Home() {
 
     const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
     const insets = useSafeAreaInsets();
+    const { height: windowHeight } = useWindowDimensions();
     const headerTranslateY = useSharedValue(0);
 
     const progress = target > 0 ? ((count % target) / target) * 100 : 0;
@@ -79,6 +82,7 @@ export default function Home() {
     const remainingToday = target > 0 ? Math.max(0, target - (count % target || (isComplete ? target : 0))) : 0;
     const displayedDailyCount = target > 0 && isComplete && count % target === 0 ? target : target > 0 ? count % target : count;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
+    const sessionImageHeight = windowHeight * 0.4 + insets.top;
 
     const effectiveSessionGoal = sessionGoal ?? preferredSessionGoal;
     const displayedSessionCount =
@@ -379,8 +383,10 @@ export default function Home() {
 
     if (sessionActive) {
         return (
-            <SafeAreaView style={styles.sessionContainer} edges={["top", "bottom"]}>
-                <View style={styles.sessionImageArea}>
+            <SafeAreaView style={styles.sessionContainer} edges={["bottom"]}>
+                <View
+                    style={[styles.sessionImageArea, { height: sessionImageHeight }]}
+                >
                     <Image
                         source={require("@/assets/images/jalian-mubarak.jpg")}
                         style={styles.sessionImage}
@@ -501,13 +507,22 @@ export default function Home() {
                 <View style={styles.summaryCard}>
                     <View style={styles.summaryRow}>
                         <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Lifetime</Text>
-                            <Text style={styles.summaryValue}>{formatNumber(lifetimeTotal)}</Text>
+                            <View style={styles.summaryIconWrap}>
+                                <Ionicons name="infinite-outline" size={18} color={TASBEEH_PROGRESS_COLOR} />
+                            </View>
+                            <View style={styles.summaryTextWrap}>
+                                <Text style={styles.summaryLabel}>Lifetime</Text>
+                                <Text style={styles.summaryValue}>{formatNumber(lifetimeTotal)}</Text>
+                            </View>
                         </View>
-                        <View style={styles.summaryDivider} />
                         <View style={styles.summaryItem}>
-                            <Text style={styles.summaryLabel}>Streak</Text>
-                            <Text style={styles.summaryValue}>{streak} days</Text>
+                            <View style={styles.summaryIconWrap}>
+                                <Ionicons name="flame-outline" size={18} color={TASBEEH_PROGRESS_COLOR} />
+                            </View>
+                            <View style={styles.summaryTextWrap}>
+                                <Text style={styles.summaryLabel}>Streak</Text>
+                                <Text style={styles.summaryValue}>{streak} days</Text>
+                            </View>
                         </View>
                     </View>
                 </View>
@@ -658,34 +673,49 @@ const styles = StyleSheet.create({
     },
     summaryCard: {
         width: "100%",
-        backgroundColor: theme.colors.surface.primary,
-        borderRadius: 16,
-        padding: 20,
+        marginBottom: 22,
+        padding: 4,
+        borderRadius: 22,
+        backgroundColor: "rgba(255,255,255,0.035)",
         borderWidth: 1,
-        borderColor: theme.colors.border.primary,
-        marginBottom: 24,
+        borderColor: "rgba(255,255,255,0.08)",
     },
     summaryRow: {
         flexDirection: "row",
-        alignItems: "center",
+        gap: 8,
     },
     summaryItem: {
         flex: 1,
+        minHeight: 78,
+        flexDirection: "row",
         alignItems: "center",
+        gap: 10,
+        borderRadius: 18,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        backgroundColor: theme.colors.surface.primary,
     },
-    summaryDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: theme.colors.border.primary,
+    summaryIconWrap: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(16,185,129,0.12)",
+    },
+    summaryTextWrap: {
+        flex: 1,
+        minWidth: 0,
     },
     summaryLabel: {
-        fontSize: 13,
+        fontSize: 12,
+        fontWeight: "700",
         color: theme.colors.text.secondary,
-        marginBottom: 4,
+        marginBottom: 3,
     },
     summaryValue: {
-        fontSize: 24,
-        fontWeight: "700",
+        fontSize: 22,
+        fontWeight: "900",
         color: theme.colors.text.primary,
     },
     counterContainer: {
@@ -810,7 +840,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
     sessionImageArea: {
-        height: "40%",
         marginHorizontal: -24,
         overflow: "hidden",
         backgroundColor: theme.colors.surface.primary,
