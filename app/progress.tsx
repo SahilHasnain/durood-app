@@ -1,4 +1,4 @@
-import { LineChart } from "@/components/LineChart";
+import { CustomBarChart } from "@/components/CustomBarChart";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,21 +6,9 @@ import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
-import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
-
-const RING_SIZE = 180;
-const RING_STROKE_WIDTH = 12;
-const RING_RADIUS = (RING_SIZE - RING_STROKE_WIDTH) / 2;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
@@ -59,11 +47,11 @@ export default function Progress() {
     useFocusEffect(
         useCallback(() => {
             const activeUserId = user?.id;
-            if (progressInitialized && initializedUserId === activeUserId) return;
-
-            loadProgressData(activeUserId);
+            if (!progressInitialized || initializedUserId !== activeUserId) {
+                void loadProgressData(activeUserId);
+            }
             if (!plannerData) {
-                loadPlannerData(activeUserId);
+                void loadPlannerData(activeUserId);
             }
         }, [user?.id, progressInitialized, initializedUserId, loadProgressData, plannerData, loadPlannerData])
     );
@@ -80,6 +68,14 @@ export default function Progress() {
         );
     }
 
+    const totalGoal = plannerData?.totalGoal ?? Math.max(progressStats.lifetimeTotal, 100000);
+    const remaining = Math.max(0, totalGoal - progressStats.lifetimeTotal);
+    const completionPercent = totalGoal > 0
+        ? Math.min((progressStats.lifetimeTotal / totalGoal) * 100, 100)
+        : 0;
+    const todayRemaining = Math.max(0, progressStats.todayTarget - progressStats.todayCount);
+
+
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <SimpleHeader translateY={headerTranslateY} />
@@ -87,156 +83,81 @@ export default function Progress() {
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    {
-                        paddingTop: HEADER_HEIGHT + 8,
-                        paddingBottom: tabBarHeight + 16,
-                    },
+                    { paddingTop: HEADER_HEIGHT + 8, paddingBottom: tabBarHeight + 48 },
                 ]}
                 showsVerticalScrollIndicator={false}
             >
-                {plannerData && (
-                    <View style={styles.heroCard}>
-                        <Text style={styles.heroEyebrow}>
-                            Journey to {formatCompactNumber(plannerData.totalGoal)}
-                        </Text>
-                        <View style={styles.ringContainer}>
-                            <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-                                <Circle
-                                    cx={RING_SIZE / 2}
-                                    cy={RING_SIZE / 2}
-                                    r={RING_RADIUS}
-                                    stroke="rgba(255,255,255,0.1)"
-                                    strokeWidth={RING_STROKE_WIDTH}
-                                    fill="none"
-                                />
-                                <Circle
-                                    cx={RING_SIZE / 2}
-                                    cy={RING_SIZE / 2}
-                                    r={RING_RADIUS}
-                                    stroke="#10b981"
-                                    strokeWidth={RING_STROKE_WIDTH}
-                                    strokeLinecap="round"
-                                    strokeDasharray={RING_CIRCUMFERENCE}
-                                    strokeDashoffset={
-                                        RING_CIRCUMFERENCE -
-                                        (Math.min((progressStats.lifetimeTotal / plannerData.totalGoal) * 100, 100) / 100) *
-                                        RING_CIRCUMFERENCE
-                                    }
-                                    fill="none"
-                                    transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
-                                />
-                            </Svg>
-                            <View style={styles.ringInner}>
-                                <Text style={styles.ringPercent}>
-                                    {Math.min((progressStats.lifetimeTotal / plannerData.totalGoal) * 100, 100).toFixed(1)}%
-                                </Text>
-                                <Text style={styles.ringLabel}>Complete</Text>
-                            </View>
-                        </View>
-                        <View style={styles.heroStats}>
-                            <View style={styles.heroStat}>
-                                <Text style={styles.heroStatValue}>
-                                    {formatCompactNumber(progressStats.lifetimeTotal)}
-                                </Text>
-                                <Text style={styles.heroStatLabel}>Completed</Text>
-                            </View>
-                            <View style={styles.heroDivider} />
-                            <View style={styles.heroStat}>
-                                <Text style={styles.heroStatValue}>
-                                    {formatCompactNumber(Math.max(0, plannerData.totalGoal - progressStats.lifetimeTotal))}
-                                </Text>
-                                <Text style={styles.heroStatLabel}>Remaining</Text>
-                            </View>
-                        </View>
+                <View style={styles.summaryCard}>
+                    <Text style={styles.eyebrow}>Journey Progress</Text>
+                    <Text style={styles.percentText}>{completionPercent.toFixed(1)}%</Text>
+                    <Text style={styles.summaryText}>
+                        {formatNumber(progressStats.lifetimeTotal)} of {formatNumber(totalGoal)} completed
+                    </Text>
+                    <View style={styles.progressTrack}>
+                        <View style={[styles.progressFill, { width: `${completionPercent}%` }]} />
                     </View>
-                )}
-
-                <View style={styles.quickStatsRow}>
-                    <View style={styles.quickStat}>
-                        <Text style={styles.quickStatValue}>{progressStats.currentStreak}</Text>
-                        <Text style={styles.quickStatLabel}>Day Streak</Text>
-                    </View>
-                    <View style={styles.quickStatDivider} />
-                    <View style={styles.quickStat}>
-                        <Text style={styles.quickStatValue}>{formatNumber(progressStats.averagePerDay)}</Text>
-                        <Text style={styles.quickStatLabel}>Avg/Day</Text>
-                    </View>
-                    <View style={styles.quickStatDivider} />
-                    <View style={styles.quickStat}>
-                        <Text style={styles.quickStatValue}>{formatNumber(progressStats.bestDay)}</Text>
-                        <Text style={styles.quickStatLabel}>Best Day</Text>
+                    <View style={styles.summaryFooter}>
+                        <Text style={styles.footerText}>{formatCompactNumber(remaining)} remaining</Text>
+                        <Text style={styles.footerText}>Goal {formatCompactNumber(totalGoal)}</Text>
                     </View>
                 </View>
 
-                <View style={styles.section}>
+                <View style={styles.statRow}>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statValue}>{progressStats.currentStreak}</Text>
+                        <Text style={styles.statLabel}>Streak</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statValue}>{formatCompactNumber(progressStats.averagePerDay)}</Text>
+                        <Text style={styles.statLabel}>Month Avg</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statValue}>{formatCompactNumber(progressStats.bestDay)}</Text>
+                        <Text style={styles.statLabel}>Best Day</Text>
+                    </View>
+                </View>
+
+                <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Today</Text>
-                    <View style={styles.periodCard}>
-                        <View style={styles.periodRow}>
-                            <Text style={styles.periodLabel}>Sessions</Text>
-                            <Text style={styles.periodValue}>
-                                {progressStats.todaySessions}
+                    <View style={styles.todayRow}>
+                        <View>
+                            <Text style={styles.todayValue}>
+                                {formatNumber(progressStats.todayCount)} / {formatNumber(progressStats.todayTarget)}
+                            </Text>
+                            <Text style={styles.mutedText}>
+                                {todayRemaining > 0 ? `${formatNumber(todayRemaining)} remaining` : "Daily target complete"}
                             </Text>
                         </View>
-                        <View style={styles.periodDivider} />
-                        <View style={styles.periodRow}>
-                            <Text style={styles.periodLabel}>Total</Text>
-                            <Text style={styles.periodValue}>
-                                {formatNumber(progressStats.todayCount)}
-                            </Text>
+                        <View style={styles.sessionPill}>
+                            <Text style={styles.sessionPillValue}>{progressStats.todaySessions}</Text>
+                            <Text style={styles.sessionPillLabel}>sessions</Text>
                         </View>
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>This Month</Text>
-                    <View style={styles.chartCard}>
-                        <LineChart data={progressStats.dailyHistory} />
+                <View style={styles.card}>
+                    <View style={styles.chartHeader}>
+                        <Text style={styles.sectionTitle}>This Month</Text>
+                        <View style={styles.chipRow}>
+                            <Text style={styles.chip}>Week {formatCompactNumber(progressStats.weeklyTotal)}</Text>
+                            <Text style={styles.chip}>Month {formatCompactNumber(progressStats.monthlyTotal)}</Text>
+                        </View>
                     </View>
+                    {progressStats.dailyHistory.length > 0 ? (
+                        <CustomBarChart data={progressStats.dailyHistory} />
+                    ) : (
+                        <View style={styles.emptyChart}>
+                            <Text style={styles.mutedText}>Start counting to see this month here.</Text>
+                        </View>
+                    )}
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Period Totals</Text>
-                    <View style={styles.periodCard}>
-                        <View style={styles.periodRow}>
-                            <Text style={styles.periodLabel}>This Week</Text>
-                            <Text style={styles.periodValue}>
-                                {formatNumber(progressStats.weeklyTotal)}
-                            </Text>
-                        </View>
-                        <View style={styles.periodDivider} />
-                        <View style={styles.periodRow}>
-                            <Text style={styles.periodLabel}>This Month</Text>
-                            <Text style={styles.periodValue}>
-                                {formatNumber(progressStats.monthlyTotal)}
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Streaks</Text>
-                    <View style={styles.periodCard}>
-                        <View style={styles.periodRow}>
-                            <Text style={styles.periodLabel}>Current Streak</Text>
-                            <Text style={styles.periodValue}>{progressStats.currentStreak} days</Text>
-                        </View>
-                        <View style={styles.periodDivider} />
-                        <View style={styles.periodRow}>
-                            <Text style={styles.periodLabel}>Longest Streak</Text>
-                            <Text style={styles.periodValue}>{progressStats.longestStreak} days</Text>
-                        </View>
-                    </View>
-                </View>
-
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Projection</Text>
-                    <View style={styles.projectionCard}>
-                        <Text style={styles.projectionLabel}>At current pace, finish by</Text>
-                        <Text style={styles.projectionDate}>{progressStats.estimatedFinishDate}</Text>
-                        <Text style={styles.projectionDistance}>
-                            About {progressStats.estimatedFinishDistance} from now
-                        </Text>
-                    </View>
+                <View style={styles.finishCard}>
+                    <Text style={styles.finishLabel}>Estimated Finish</Text>
+                    <Text style={styles.finishDate}>{progressStats.estimatedFinishDate}</Text>
+                    <Text style={styles.finishText}>
+                        At this month&apos;s pace, about {progressStats.estimatedFinishDistance} from now
+                    </Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -263,180 +184,168 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 16,
-        paddingBottom: 24,
+        gap: 16,
     },
-    section: {
-        marginBottom: 24,
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-        marginBottom: 4,
-    },
-    sectionSubtitle: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-    },
-    quickStatsRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "rgba(18, 18, 20, 0.8)",
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 24,
+    summaryCard: {
+        borderRadius: 28,
+        padding: 24,
+        backgroundColor: "rgba(16,185,129,0.09)",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.05)",
+        borderColor: "rgba(16,185,129,0.2)",
     },
-    quickStat: {
-        flex: 1,
-        alignItems: "center",
-    },
-    quickStatValue: {
-        fontSize: 24,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-        marginBottom: 4,
-    },
-    quickStatLabel: {
+    eyebrow: {
         fontSize: 12,
+        fontWeight: "700",
+        letterSpacing: 0.7,
+        textTransform: "uppercase",
         color: theme.colors.text.secondary,
+        marginBottom: 10,
     },
-    quickStatDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: "rgba(255,255,255,0.1)",
+    percentText: {
+        fontSize: 46,
+        fontWeight: "800",
+        color: theme.colors.text.primary,
     },
-    chartCard: {
-        backgroundColor: "rgba(18, 18, 20, 0.82)",
-        borderRadius: 24,
-        padding: 18,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.05)",
-    },
-    emptyChart: {
-        height: 180,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    emptyChartText: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: theme.colors.text.secondary,
-        marginBottom: 4,
-    },
-    emptyChartSubtext: {
-        fontSize: 13,
-        color: theme.colors.text.tertiary,
-    },
-    periodCard: {
-        backgroundColor: "rgba(18, 18, 20, 0.8)",
-        borderRadius: 22,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.05)",
-    },
-    periodRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-    },
-    periodLabel: {
+    summaryText: {
+        marginTop: 4,
         fontSize: 15,
         color: theme.colors.text.secondary,
     },
-    periodValue: {
+    progressTrack: {
+        height: 8,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.08)",
+        overflow: "hidden",
+        marginTop: 22,
+    },
+    progressFill: {
+        height: "100%",
+        borderRadius: 999,
+        backgroundColor: "#10b981",
+    },
+    summaryFooter: {
+        marginTop: 12,
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    footerText: {
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+    },
+    statRow: {
+        flexDirection: "row",
+        gap: 10,
+    },
+    statCard: {
+        flex: 1,
+        borderRadius: 20,
+        padding: 16,
+        backgroundColor: theme.colors.surface.primary,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.06)",
+    },
+    statValue: {
+        fontSize: 22,
+        fontWeight: "800",
+        color: theme.colors.text.primary,
+        marginBottom: 4,
+    },
+    statLabel: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+    },
+    card: {
+        borderRadius: 24,
+        padding: 18,
+        backgroundColor: theme.colors.surface.primary,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.06)",
+    },
+    sectionTitle: {
         fontSize: 18,
         fontWeight: "700",
         color: theme.colors.text.primary,
     },
-    periodDivider: {
-        height: 1,
-        backgroundColor: "rgba(255,255,255,0.06)",
-        marginVertical: 16,
-    },
-    projectionCard: {
-        backgroundColor: "rgba(16,185,129,0.08)",
-        borderRadius: 24,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.18)",
-        alignItems: "center",
-    },
-    projectionLabel: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginBottom: 8,
-    },
-    projectionDate: {
-        fontSize: 24,
-        fontWeight: "700",
-        color: "#10b981",
-    },
-    projectionDistance: {
-        marginTop: 8,
-        fontSize: 13,
-        color: theme.colors.text.secondary,
-    },
-    heroCard: {
-        backgroundColor: "rgba(16,185,129,0.08)",
-        borderRadius: 24,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.12)",
-        marginBottom: 24,
-        alignItems: "center",
-    },
-    heroEyebrow: {
-        fontSize: 13,
-        fontWeight: "700",
-        letterSpacing: 0.5,
-        textTransform: "uppercase",
-        color: theme.colors.text.secondary,
-        marginBottom: 20,
-    },
-    ringContainer: {
-        position: "relative",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 20,
-    },
-    ringInner: {
-        position: "absolute",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    ringPercent: {
-        fontSize: 36,
-        fontWeight: "800",
-        color: theme.colors.text.primary,
-    },
-    ringLabel: {
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        marginTop: 4,
-    },
-    heroStats: {
+    todayRow: {
+        marginTop: 14,
         flexDirection: "row",
         alignItems: "center",
-        gap: 24,
+        justifyContent: "space-between",
     },
-    heroStat: {
-        alignItems: "center",
-    },
-    heroStatValue: {
+    todayValue: {
         fontSize: 24,
-        fontWeight: "700",
+        fontWeight: "800",
         color: theme.colors.text.primary,
         marginBottom: 4,
     },
-    heroStatLabel: {
-        fontSize: 13,
+    mutedText: {
+        fontSize: 14,
         color: theme.colors.text.secondary,
     },
-    heroDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: "rgba(255,255,255,0.1)",
+    sessionPill: {
+        minWidth: 82,
+        borderRadius: 18,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        alignItems: "center",
+        backgroundColor: "rgba(255,255,255,0.05)",
+    },
+    sessionPillValue: {
+        fontSize: 18,
+        fontWeight: "800",
+        color: theme.colors.text.primary,
+    },
+    sessionPillLabel: {
+        fontSize: 11,
+        color: theme.colors.text.tertiary,
+    },
+    chartHeader: {
+        gap: 12,
+    },
+    chipRow: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    chip: {
+        overflow: "hidden",
+        borderRadius: 999,
+        paddingVertical: 7,
+        paddingHorizontal: 10,
+        backgroundColor: "rgba(255,255,255,0.05)",
+        color: theme.colors.text.secondary,
+        fontSize: 12,
+        fontWeight: "700",
+    },
+
+    emptyChart: {
+        height: 140,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    finishCard: {
+        borderRadius: 24,
+        padding: 22,
+        backgroundColor: "rgba(16,185,129,0.08)",
+        borderWidth: 1,
+        borderColor: "rgba(16,185,129,0.16)",
+    },
+    finishLabel: {
+        fontSize: 13,
+        fontWeight: "700",
+        textTransform: "uppercase",
+        letterSpacing: 0.6,
+        color: theme.colors.text.secondary,
+        marginBottom: 8,
+    },
+    finishDate: {
+        fontSize: 26,
+        fontWeight: "800",
+        color: "#10b981",
+    },
+    finishText: {
+        marginTop: 8,
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        lineHeight: 20,
     },
 });
