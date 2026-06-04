@@ -93,7 +93,7 @@ function getMonthStartKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-const DEFAULT_TOTAL_GOAL = 10000000; // 1 Crore
+const DEFAULT_TOTAL_GOAL = 100000; // 1 Lakh
 
 function formatTimeFromNow(totalDays: number): string {
   if (totalDays <= 0) return "today";

@@ -28,7 +28,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = "#10b981";
-const DEFAULT_SESSION_GOAL = 100;
+const DEFAULT_SESSION_GOAL = 33;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 
 function formatNumber(value: number): string {
@@ -75,6 +75,9 @@ export default function Home() {
 
     const progress = target > 0 ? ((count % target) / target) * 100 : 0;
     const isComplete = count >= target;
+    const dailyGoalCompletions = target > 0 ? Math.floor(count / target) : 0;
+    const remainingToday = target > 0 ? Math.max(0, target - (count % target || (isComplete ? target : 0))) : 0;
+    const displayedDailyCount = target > 0 && isComplete && count % target === 0 ? target : target > 0 ? count % target : count;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
 
     const effectiveSessionGoal = sessionGoal ?? preferredSessionGoal;
@@ -108,7 +111,7 @@ export default function Home() {
                 }
             })
             .catch((error) => {
-                console.error("Failed to load session goal:", error);
+                console.error("Failed to load session focus:", error);
             });
 
         return () => {
@@ -442,7 +445,7 @@ export default function Home() {
                             adjustsFontSizeToFit
                             minimumFontScale={0.75}
                         >
-                            Goal {formatNumber(effectiveSessionGoal)}
+                            Focus {formatNumber(effectiveSessionGoal)}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -458,13 +461,13 @@ export default function Home() {
                 {showSessionGoalSheet && (
                     <View style={styles.sessionGoalSheet}>
                         <View style={styles.sheetHandle} />
-                        <Text style={styles.sheetTitle}>Session Goal</Text>
+                        <Text style={styles.sheetTitle}>Session Focus</Text>
                         <TextInput
                             style={styles.input}
                             value={sessionGoalInput}
                             onChangeText={setSessionGoalInput}
                             keyboardType="numeric"
-                            placeholder="Enter goal"
+                            placeholder="Enter focus count"
                             placeholderTextColor={theme.colors.text.tertiary}
                         />
                         <TouchableOpacity onPress={handleSetSessionGoal} style={styles.sheetButton}>
@@ -538,8 +541,13 @@ export default function Home() {
                                 />
                             </Svg>
                             <View style={styles.progressInner}>
-                                <Text style={styles.count}>{formatNumber(target > 0 ? count % target : count)}</Text>
+                                <Text style={styles.count}>{formatNumber(displayedDailyCount)}</Text>
                                 <Text style={styles.targetText}>of {formatNumber(target)}</Text>
+                                <Text style={[styles.completionText, isComplete && styles.completionTextComplete]}>
+                                    {dailyGoalCompletions > 0
+                                        ? `Daily goal completed ${dailyGoalCompletions}x`
+                                        : `${formatNumber(remainingToday)} remaining today`}
+                                </Text>
                             </View>
                         </View>
                     </TouchableOpacity>
@@ -707,6 +715,15 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: theme.colors.text.secondary,
     },
+    completionText: {
+        marginTop: 10,
+        fontSize: 13,
+        fontWeight: "600",
+        color: theme.colors.text.tertiary,
+    },
+    completionTextComplete: {
+        color: TASBEEH_PROGRESS_COLOR,
+    },
     actionRow: {
         width: "100%",
         flexDirection: "row",
@@ -722,8 +739,8 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.border.primary,
     },
     actionButtonPrimary: {
-        backgroundColor: theme.colors.primary.main,
-        borderColor: theme.colors.primary.main,
+        backgroundColor: TASBEEH_PROGRESS_COLOR,
+        borderColor: TASBEEH_PROGRESS_COLOR,
     },
     actionButtonText: {
         fontSize: 15,
