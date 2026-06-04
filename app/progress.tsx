@@ -188,7 +188,7 @@ export default function Progress() {
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Last 30 Days</Text>
+                    <Text style={styles.sectionTitle}>This Month</Text>
                     <View style={styles.chartCard}>
                         <LineChart data={progressStats.dailyHistory} />
                     </View>

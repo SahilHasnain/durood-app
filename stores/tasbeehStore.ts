@@ -84,6 +84,15 @@ function getTodayKey(): string {
   ).padStart(2, "0")}`;
 }
 
+function getElapsedDaysInCurrentMonth(): number {
+  return new Date().getDate();
+}
+
+function getMonthStartKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
 const DEFAULT_TOTAL_GOAL = 10000000; // 1 Crore
 
 function formatTimeFromNow(totalDays: number): string {
@@ -144,9 +153,10 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
     try {
       set({ loading: true });
 
-      // Always hydrate from local storage first so offline launches show real data.
-      await loadFromAsyncStorage(set);
-      set({ loading: true });
+      if (!userId) {
+        await loadFromAsyncStorage(set);
+        set({ loading: true });
+      }
 
       const [goal, todayProgress] = await Promise.all([
         TasbeehService.getUserGoal(userId),
@@ -167,10 +177,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         count: resolvedTodayProgress?.count ?? get().count,
         target: resolvedGoal?.dailyTarget ?? get().target,
         lifetimeTotal: resolvedGoal?.lifetimeTotal ?? get().lifetimeTotal,
-        streak:
-          calculatedStreak.currentStreak ||
-          resolvedGoal?.currentStreak ||
-          get().streak,
+        streak: calculatedStreak.currentStreak,
         loading: false,
         syncing: false,
         initialized: true,
@@ -246,7 +253,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
 
       const [goal, history] = await Promise.all([
         TasbeehService.getUserGoal(userId),
-        TasbeehService.getDailyHistory(30, userId),
+        TasbeehService.getCurrentMonthHistory(userId),
       ]);
 
       const lifetimeTotal = goal?.lifetimeTotal ?? 0;
@@ -265,10 +272,9 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       const bestDay =
         history.length > 0 ? Math.max(...history.map((r) => r.count)) : 0;
 
-      const averagePerDay =
-        history.length > 0 ? Math.round(lifetimeTotal / history.length) : 0;
+      const averagePerDay = Math.round(monthlyTotal / getElapsedDaysInCurrentMonth());
 
-      const remainingGoal = 10000000 - lifetimeTotal;
+      const remainingGoal = Math.max(0, (goal?.totalGoal ?? DEFAULT_TOTAL_GOAL) - lifetimeTotal);
       const estimatedDays =
         averagePerDay > 0 ? Math.ceil(remainingGoal / averagePerDay) : 0;
       const finishDate = new Date();
@@ -574,11 +580,14 @@ async function buildLocalProgressStats(): Promise<ProgressStats> {
   const streak = streakStr ? parseInt(streakStr, 10) : 0;
   const todayRecord = history.find((record) => record.date === getTodayKey());
   const todaySessions = todayRecord?.sessions ?? [];
-  const weeklyTotal = history.slice(0, 7).reduce((sum, record) => sum + record.count, 0);
-  const monthlyTotal = history.slice(0, 30).reduce((sum, record) => sum + record.count, 0);
-  const bestDay = history.length > 0 ? Math.max(...history.map((record) => record.count)) : 0;
-  const averagePerDay = history.length > 0 ? Math.round(lifetimeTotal / history.length) : 0;
-  const remainingGoal = 10000000 - lifetimeTotal;
+  const currentMonthHistory = history
+    .filter((record) => record.date >= getMonthStartKey())
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const weeklyTotal = currentMonthHistory.slice(0, 7).reduce((sum, record) => sum + record.count, 0);
+  const monthlyTotal = currentMonthHistory.reduce((sum, record) => sum + record.count, 0);
+  const bestDay = currentMonthHistory.length > 0 ? Math.max(...currentMonthHistory.map((record) => record.count)) : 0;
+  const averagePerDay = Math.round(monthlyTotal / getElapsedDaysInCurrentMonth());
+  const remainingGoal = Math.max(0, DEFAULT_TOTAL_GOAL - lifetimeTotal);
   const estimatedDays = averagePerDay > 0 ? Math.ceil(remainingGoal / averagePerDay) : 0;
   const finishDate = new Date();
   finishDate.setDate(finishDate.getDate() + estimatedDays);
@@ -604,7 +613,7 @@ async function buildLocalProgressStats(): Promise<ProgressStats> {
           })
         : "-",
     estimatedFinishDistance: averagePerDay > 0 ? formatTimeFromNow(estimatedDays) : "?",
-    dailyHistory: history.slice().reverse(),
+    dailyHistory: currentMonthHistory.slice().reverse(),
   };
 }
 

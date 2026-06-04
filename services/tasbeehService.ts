@@ -98,6 +98,19 @@ function getYesterdayKey(): string {
   ).padStart(2, "0")}`;
 }
 
+function getMonthStartKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function getMonthEndKey(): string {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(
+    end.getDate()
+  ).padStart(2, "0")}`;
+}
+
 // User Goal Operations
 export async function getUserGoal(clerkUserId?: string): Promise<UserGoal | null> {
   try {
@@ -292,6 +305,33 @@ export async function getDailyHistory(days: number = 30, clerkUserId?: string): 
   }
 }
 
+export async function getCurrentMonthHistory(clerkUserId?: string): Promise<DailyProgress[]> {
+  try {
+    const userId = await getUserId(clerkUserId);
+    const response = await databases.listDocuments(
+      config.databaseId,
+      TASBEEH_COLLECTION_ID,
+      [
+        Query.equal("userId", userId),
+        Query.greaterThanEqual("date", getMonthStartKey()),
+        Query.lessThanEqual("date", getMonthEndKey()),
+        Query.orderDesc("date"),
+        Query.limit(31),
+      ]
+    );
+
+    return (response.documents as unknown as (
+      DailyProgress & { sessions?: string | SessionRecord[] }
+    )[]).map((progress) => ({
+      ...progress,
+      sessions: parseStoredSessions(progress.sessions),
+    }));
+  } catch (error) {
+    console.error("Failed to get current month history:", error);
+    return [];
+  }
+}
+
 // Sync Operations
 export async function syncFromLocalStorage(clerkUserId?: string): Promise<void> {
   try {
@@ -430,7 +470,8 @@ export async function calculateStreak(clerkUserId?: string): Promise<{
 }
 
 function getDateBefore(dateStr: string, days: number): string {
-  const date = new Date(dateStr);
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
   date.setDate(date.getDate() - days);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
     date.getDate()
