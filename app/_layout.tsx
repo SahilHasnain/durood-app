@@ -40,6 +40,19 @@ function RootLayoutContent() {
         }}
       />
       <Tabs.Screen
+        name="dalail"
+        options={{
+          title: "Dalail",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "book" : "book-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="progress"
         options={{
           title: "Progress",
@@ -106,6 +119,12 @@ function RootLayoutContent() {
       />
       <Tabs.Screen
         name="video"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="dalail-reader"
         options={{
           href: null,
         }}

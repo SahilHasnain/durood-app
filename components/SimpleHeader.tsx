@@ -1,7 +1,9 @@
 import { colors } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
@@ -14,6 +16,7 @@ interface SimpleHeaderProps {
 
 export function SimpleHeader({ translateY }: SimpleHeaderProps) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -24,15 +27,25 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       <View style={[styles.content, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoWrapper}>
-            <Image
-              source={require("@/assets/images/icon.png")}
-              style={styles.logo}
-              contentFit="cover"
-            />
+        <View style={styles.headerRow}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logoWrapper}>
+              <Image
+                source={require("@/assets/images/icon.png")}
+                style={styles.logo}
+                contentFit="cover"
+              />
+            </View>
+            <Text style={styles.title}>Durood e Pak</Text>
           </View>
-          <Text style={styles.title}>Durood e Pak</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+            onPress={() => router.push("/profile")}
+            style={styles.profileButton}
+          >
+            <Ionicons name="person-outline" size={20} color={colors.text.primary} />
+          </Pressable>
         </View>
       </View>
     </Animated.View>
@@ -54,6 +67,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   logoContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -73,5 +92,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: colors.text.primary,
+  },
+  profileButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
 });
