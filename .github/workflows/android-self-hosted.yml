@@ -166,5 +166,5 @@ jobs:
         run: |
           cd android
           bundle install
-          fastlane android deploy
+          bundle exec fastlane android deploy
 
