@@ -38,14 +38,12 @@ function SectionCard({
         <Pressable onPress={onPress} style={[styles.sectionCard, isToday && styles.todaySectionCard]}>
             <View style={styles.sectionTextWrap}>
                 <View style={styles.sectionTitleRow}>
-                    <Text style={styles.sectionTitle}>{section.title}</Text>
+                    <Text style={[styles.sectionTitle, isToday && styles.todaySectionTitle]}>{section.title}</Text>
                     {isComplete && <Ionicons name="checkmark-circle" size={16} color="#10b981" />}
-                    {isToday && <Text style={styles.todayBadge}>Today</Text>}
                 </View>
-                <Text style={styles.sectionMeta}>{section.subtitle}</Text>
+                {isToday && <Text style={styles.todayBadge}>Today</Text>}
                 <Text style={styles.sectionPageMeta}>Pages {section.startPage}-{section.endPage}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.colors.text.tertiary} />
         </Pressable>
     );
 }
@@ -60,12 +58,8 @@ export default function DalailScreen() {
     const todaySection = todaySections.find((section) => !isWirdCompleteToday(section.id)) ?? todaySections[0];
     const weekSections = getDalailWeekSections();
     const todayComplete = todaySections.every((section) => isWirdCompleteToday(section.id));
-    const continueText = progress.lastReadAt ? `Continue from page ${progress.lastPage}` : "Start from beginning";
-    const todayTitle = todaySections.length > 1 ? "Monday Cycle Wird" : todaySection.title;
-    const todaySubtitle = todaySections.length > 1
-        ? "Complete Day 8 and begin Day 1 for the Monday-to-Monday cycle."
-        : todaySection.subtitle;
-
+    const continueText = progress.lastReadAt ? `Continue from page ${progress.lastPage}` : "Start";
+    const todayTitle = todaySections.length > 1 ? "Monday Cycle" : todaySection.title;
     useFocusEffect(
         useCallback(() => {
             headerTranslateY.value = 0;
@@ -100,11 +94,8 @@ export default function DalailScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.heroCard}>
-                    <Text style={styles.eyebrow}>Daily Salawat Wird</Text>
+                    <Text style={styles.eyebrow}>Daily Salawat</Text>
                     <Text style={styles.heroTitle}>{DALAIL_TITLE}</Text>
-                    <Text style={styles.heroSubtitle}>
-                        Read the familiar weekday portion of Dalailul Khairat with a calm, focused reader.
-                    </Text>
                     <View style={styles.heroActions}>
                         <Pressable style={styles.primaryButton} onPress={() => openPage(todaySection.startPage)}>
                             <Ionicons name="book" size={18} color="#03140d" />
@@ -116,12 +107,12 @@ export default function DalailScreen() {
                     </View>
                 </View>
 
-                <View style={styles.todayCard}>
+                <Pressable style={styles.todayCard} onPress={() => openPage(todaySection.startPage)}>
                     <View style={styles.todayTextWrap}>
                         <View style={styles.todayHeaderRow}>
                             <View style={styles.todayLabelRow}>
                                 <Ionicons name="calendar-outline" size={14} color="#10b981" />
-                                <Text style={styles.cardLabel}>Today</Text>
+                                <Text style={styles.cardLabel}>{todaySections.length > 1 ? "Today’s Portions" : "Today’s Portion"}</Text>
                             </View>
                             <View style={[styles.statusPill, todayComplete && styles.completePill]}>
                                 <Text style={[styles.statusPillText, todayComplete && styles.completePillText]}>
@@ -130,23 +121,34 @@ export default function DalailScreen() {
                             </View>
                         </View>
                         <Text style={styles.todayTitle}>{todayTitle}</Text>
-                        <Text style={styles.mutedText}>{todaySubtitle}</Text>
-                        <View style={styles.pageChipRow}>
-                            {todaySections.map((section) => (
-                                <Pressable key={section.id} style={styles.pageChip} onPress={() => openPage(section.startPage)}>
-                                    <Text style={styles.pageChipText}>Pages {section.startPage}-{section.endPage}</Text>
-                                </Pressable>
-                            ))}
-                        </View>
+                        {todaySections.length > 1 ? (
+                            <View style={styles.pageChipRow}>
+                                {todaySections.map((section) => (
+                                    <Pressable key={section.id} style={styles.pageChip} onPress={() => openPage(section.startPage)}>
+                                        <Text style={styles.pageChipText}>Pages {section.startPage}-{section.endPage}</Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                        ) : (
+                            <Text style={styles.todayMeta}>Pages {todaySection.startPage}-{todaySection.endPage}</Text>
+                        )}
                     </View>
-                </View>
+                    <View style={styles.todayOpenAction}>
+                        <Text style={styles.todayOpenText}>Open</Text>
+                        <Ionicons name="chevron-forward" size={18} color="#10b981" />
+                    </View>
+                </Pressable>
 
                 <View style={styles.card}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.cardTitle}>Weekly Cycle</Text>
-                        <Text style={styles.mutedText}>Choose today’s wird or open any day. Last read {formatDate(progress.lastReadAt)}.</Text>
+                        <Text style={styles.mutedText}>Choose today’s portion or open any day. Last read {formatDate(progress.lastReadAt)}.</Text>
                     </View>
-                    <View style={styles.sectionList}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.sectionList}
+                    >
                         {weekSections.map((section) => (
                             <SectionCard
                                 key={section.id}
@@ -156,7 +158,7 @@ export default function DalailScreen() {
                                 onPress={() => openPage(section.startPage)}
                             />
                         ))}
-                    </View>
+                    </ScrollView>
                 </View>
 
                 {bookmarks.length > 0 && (
@@ -214,16 +216,10 @@ const styles = StyleSheet.create({
         fontWeight: "900",
         color: theme.colors.text.primary,
     },
-    heroSubtitle: {
-        marginTop: 8,
-        fontSize: 14,
-        lineHeight: 20,
-        color: theme.colors.text.secondary,
-    },
     heroActions: {
         flexDirection: "row",
         gap: 10,
-        marginTop: 22,
+        marginTop: 18,
     },
     primaryButton: {
         flex: 1,
@@ -261,8 +257,12 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.surface.primary,
         borderWidth: 1,
         borderColor: theme.colors.border.primary,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
     },
     todayTextWrap: {
+        flex: 1,
         gap: 6,
     },
     todayHeaderRow: {
@@ -285,9 +285,14 @@ const styles = StyleSheet.create({
         letterSpacing: 0.6,
     },
     todayTitle: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: "900",
         color: theme.colors.text.primary,
+    },
+    todayMeta: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: theme.colors.text.secondary,
     },
     mutedText: {
         fontSize: 13,
@@ -305,6 +310,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
         gap: 8,
+        marginTop: 2,
     },
     pageChipText: {
         fontSize: 12,
@@ -328,6 +334,16 @@ const styles = StyleSheet.create({
     completePillText: {
         color: "#10b981",
     },
+    todayOpenAction: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 2,
+    },
+    todayOpenText: {
+        fontSize: 12,
+        fontWeight: "900",
+        color: "#10b981",
+    },
     card: {
         borderRadius: 24,
         padding: 18,
@@ -346,15 +362,13 @@ const styles = StyleSheet.create({
     },
     sectionList: {
         gap: 10,
+        paddingRight: 18,
     },
     sectionCard: {
-        minHeight: 68,
+        width: 116,
+        minHeight: 92,
         borderRadius: 18,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
+        padding: 12,
         backgroundColor: "rgba(255,255,255,0.04)",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.05)",
@@ -365,19 +379,24 @@ const styles = StyleSheet.create({
     },
     sectionTextWrap: {
         flex: 1,
+        justifyContent: "space-between",
     },
     sectionTitleRow: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "space-between",
         gap: 8,
-        marginBottom: 3,
     },
     sectionTitle: {
         fontSize: 15,
         fontWeight: "800",
         color: theme.colors.text.primary,
     },
+    todaySectionTitle: {
+        color: "#10b981",
+    },
     todayBadge: {
+        alignSelf: "flex-start",
         overflow: "hidden",
         borderRadius: 999,
         paddingHorizontal: 8,
@@ -392,7 +411,6 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
     sectionPageMeta: {
-        marginTop: 3,
         fontSize: 11,
         color: theme.colors.text.tertiary,
         fontWeight: "700",

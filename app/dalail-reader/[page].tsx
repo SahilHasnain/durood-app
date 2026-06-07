@@ -11,10 +11,11 @@ import { useDalailBookmarks } from "@/hooks/useDalailBookmarks";
 import { useDalailProgress } from "@/hooks/useDalailProgress";
 import { useResolvedDalailPage } from "@/hooks/useResolvedDalailPage";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    BackHandler,
     Dimensions,
     FlatList,
     Modal,
@@ -102,12 +103,24 @@ export default function DalailReaderScreen() {
     const bookProgress = (currentPage / DALAIL_ASSET_MANIFEST.totalPages) * 100;
     const headerOffset = insets.top + 60;
 
-    useEffect(() => {
-        tabBarTranslateY.value = withTiming(tabBarHeight + 50, { duration: 200 });
-        return () => {
-            tabBarTranslateY.value = withTiming(0, { duration: 200 });
-        };
-    }, [tabBarHeight, tabBarTranslateY]);
+    const closeReader = useCallback(() => {
+        router.replace("/dalail" as never);
+    }, [router]);
+
+    useFocusEffect(
+        useCallback(() => {
+            tabBarTranslateY.value = withTiming(tabBarHeight + 50, { duration: 200 });
+            const backSubscription = BackHandler.addEventListener("hardwareBackPress", () => {
+                closeReader();
+                return true;
+            });
+
+            return () => {
+                backSubscription.remove();
+                tabBarTranslateY.value = withTiming(0, { duration: 200 });
+            };
+        }, [closeReader, tabBarHeight, tabBarTranslateY])
+    );
 
     useEffect(() => {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -182,7 +195,7 @@ export default function DalailReaderScreen() {
             />
 
             <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}> 
-                <Pressable style={styles.iconButton} onPress={() => router.back()}>
+                <Pressable style={styles.iconButton} onPress={closeReader}>
                     <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
                 </Pressable>
                 <View style={styles.titleWrap}>

@@ -82,7 +82,7 @@ export default function Home() {
     const remainingToday = target > 0 ? Math.max(0, target - (count % target || (isComplete ? target : 0))) : 0;
     const displayedDailyCount = target > 0 && isComplete && count % target === 0 ? target : target > 0 ? count % target : count;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
-    const sessionImageHeight = windowHeight * 0.4 + insets.top;
+    const sessionImageHeight = windowHeight * 0.4;
 
     const effectiveSessionGoal = sessionGoal ?? preferredSessionGoal;
     const displayedSessionCount =
@@ -383,7 +383,7 @@ export default function Home() {
 
     if (sessionActive) {
         return (
-            <SafeAreaView style={styles.sessionContainer} edges={["bottom"]}>
+            <SafeAreaView style={styles.sessionContainer} edges={["top", "bottom"]}>
                 <View
                     style={[styles.sessionImageArea, { height: sessionImageHeight }]}
                 >
@@ -512,16 +512,32 @@ export default function Home() {
                             </View>
                             <View style={styles.summaryTextWrap}>
                                 <Text style={styles.summaryLabel}>Lifetime</Text>
-                                <Text style={styles.summaryValue}>{formatNumber(lifetimeTotal)}</Text>
+                                <Text
+                                    style={styles.summaryValue}
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit
+                                    minimumFontScale={0.7}
+                                >
+                                    {formatNumber(lifetimeTotal)}
+                                </Text>
                             </View>
                         </View>
+                    </View>
+                    <View style={styles.summaryRow}>
                         <View style={styles.summaryItem}>
                             <View style={styles.summaryIconWrap}>
                                 <Ionicons name="flame-outline" size={18} color={TASBEEH_PROGRESS_COLOR} />
                             </View>
                             <View style={styles.summaryTextWrap}>
                                 <Text style={styles.summaryLabel}>Streak</Text>
-                                <Text style={styles.summaryValue}>{streak} days</Text>
+                                <Text
+                                    style={styles.summaryValue}
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit
+                                    minimumFontScale={0.7}
+                                >
+                                    {streak} days
+                                </Text>
                             </View>
                         </View>
                     </View>
@@ -679,6 +695,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.035)",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
+        gap: 8,
     },
     summaryRow: {
         flexDirection: "row",

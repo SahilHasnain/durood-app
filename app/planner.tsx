@@ -26,13 +26,15 @@ const GOAL_PRESETS = [
 ];
 
 const DATE_PRESETS = [
-    { label: "3 mo", days: 90 },
-    { label: "6 mo", days: 180 },
     { label: "1 yr", days: 365 },
     { label: "2 yr", days: 730 },
+    { label: "3 yr", days: 1095 },
+    { label: "5 yr", days: 1825 },
 ];
 
-const DAILY_PRESETS = [100, 500, 1000, 3000];
+const DEFAULT_DAILY_PACE = 1000;
+
+const DAILY_PRESETS = [100, 500, DEFAULT_DAILY_PACE, 3000];
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(Math.max(0, Math.round(value)));
@@ -77,14 +79,6 @@ function daysBetween(targetDate: Date): number {
     return Math.max(1, Math.ceil((target.getTime() - today.getTime()) / 86400000));
 }
 
-function formatDate(date: Date): string {
-    return new Intl.DateTimeFormat("en-IN", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-    }).format(date);
-}
-
 function formatDuration(days: number): string {
     if (days <= 0) return "today";
     const years = Math.floor(days / 365);
@@ -98,7 +92,7 @@ function formatDuration(days: number): string {
 
 export default function Planner() {
     const HEADER_HEIGHT = 60;
-    const { tabBarHeight } = useTabBarVisibility();
+    const { tabBarHeight, showTabBar } = useTabBarVisibility();
     const { user } = useAuth();
     const headerTranslateY = useSharedValue(0);
 
@@ -112,14 +106,16 @@ export default function Planner() {
     const updateDailyTarget = useTasbeehStore((state) => state.updateDailyTarget);
     const updateTotalGoal = useTasbeehStore((state) => state.updateTotalGoal);
 
-    const [mode, setMode] = useState<"date" | "pace">("date");
+    const [mode, setMode] = useState<"date" | "pace">("pace");
     const [goalInput, setGoalInput] = useState("");
     const [dailyInput, setDailyInput] = useState("");
-    const [targetDate, setTargetDate] = useState(addDays(365));
+    const [targetDate, setTargetDate] = useState(addDays(1825));
     const [updating, setUpdating] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
+            showTabBar();
+
             const activeUserId = user?.id;
             if (!plannerInitialized || initializedUserId !== activeUserId) {
                 void loadPlannerData(activeUserId);
@@ -134,6 +130,7 @@ export default function Planner() {
             loadPlannerData,
             progressStats,
             loadProgressData,
+            showTabBar,
         ])
     );
 
@@ -164,10 +161,7 @@ export default function Planner() {
         ? Math.ceil(remaining / targetDays)
         : parseAmount(dailyInput);
     const finishDays = calculatedDailyTarget > 0 ? Math.ceil(remaining / calculatedDailyTarget) : 0;
-    const finishDate = addDays(finishDays);
     const paceGap = calculatedDailyTarget - currentAvg;
-    const completionPercent = goal > 0 ? Math.min((lifetimeTotal / goal) * 100, 100) : 0;
-
     const handleUpdatePlan = async () => {
         if (goal <= 0 || calculatedDailyTarget <= 0) {
             Alert.alert("Check plan", "Enter a goal and daily target first.");
@@ -188,6 +182,13 @@ export default function Planner() {
         }
     };
 
+    const showImpactHint = () => {
+        Alert.alert(
+            "Impact Preview",
+            "This compares your selected daily target with your current average. If it shows +500/day, you need 500 more per day than your current pace."
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <SimpleHeader translateY={headerTranslateY} />
@@ -195,29 +196,11 @@ export default function Planner() {
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    { paddingTop: HEADER_HEIGHT + 8, paddingBottom: tabBarHeight + 32 },
+                    { paddingTop: HEADER_HEIGHT + 8, paddingBottom: tabBarHeight + 64 },
                 ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                <View style={styles.heroCard}>
-                    <Text style={styles.eyebrow}>Your Plan</Text>
-                    <Text style={styles.heroTitle}>{formatNumber(calculatedDailyTarget)}/day</Text>
-                    <Text style={styles.heroSubtitle}>
-                        {mode === "date"
-                            ? `to finish by ${formatDate(targetDate)}`
-                            : `finishes around ${formatDate(finishDate)}`}
-                    </Text>
-
-                    <View style={styles.progressTrack}>
-                        <View style={[styles.progressFill, { width: `${completionPercent}%` }]} />
-                    </View>
-                    <View style={styles.heroStats}>
-                        <Text style={styles.heroStat}>{formatCompactNumber(lifetimeTotal)} done</Text>
-                        <Text style={styles.heroStat}>{formatCompactNumber(remaining)} left</Text>
-                    </View>
-                </View>
-
                 <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Goal</Text>
                     <View style={styles.presetRow}>
@@ -247,16 +230,16 @@ export default function Planner() {
                     <Text style={styles.sectionTitle}>Build Plan</Text>
                     <View style={styles.modeToggle}>
                         <TouchableOpacity
-                            style={[styles.modeButton, mode === "date" && styles.modeButtonActive]}
-                            onPress={() => setMode("date")}
-                        >
-                            <Text style={[styles.modeText, mode === "date" && styles.modeTextActive]}>Finish Date</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
                             style={[styles.modeButton, mode === "pace" && styles.modeButtonActive]}
                             onPress={() => setMode("pace")}
                         >
                             <Text style={[styles.modeText, mode === "pace" && styles.modeTextActive]}>Daily Pace</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.modeButton, mode === "date" && styles.modeButtonActive]}
+                            onPress={() => setMode("date")}
+                        >
+                            <Text style={[styles.modeText, mode === "date" && styles.modeTextActive]}>Finish Date</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -309,7 +292,12 @@ export default function Planner() {
                 </View>
 
                 <View style={styles.previewCard}>
-                    <Text style={styles.sectionTitle}>Impact Preview</Text>
+                    <View style={styles.previewHeader}>
+                        <Text style={styles.previewTitle}>Impact Preview</Text>
+                        <TouchableOpacity style={styles.hintButton} onPress={showImpactHint} activeOpacity={0.75}>
+                            <Text style={styles.hintButtonText}>?</Text>
+                        </TouchableOpacity>
+                    </View>
                     <View style={styles.previewRow}>
                         <Text style={styles.previewLabel}>Daily target</Text>
                         <Text style={styles.previewValue}>{formatNumber(calculatedDailyTarget)}</Text>
@@ -362,52 +350,6 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 16,
         gap: 16,
-    },
-    heroCard: {
-        borderRadius: 28,
-        padding: 24,
-        backgroundColor: "rgba(16,185,129,0.1)",
-        borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.22)",
-    },
-    eyebrow: {
-        fontSize: 12,
-        fontWeight: "700",
-        letterSpacing: 0.7,
-        textTransform: "uppercase",
-        color: theme.colors.text.secondary,
-        marginBottom: 10,
-    },
-    heroTitle: {
-        fontSize: 42,
-        fontWeight: "800",
-        color: theme.colors.text.primary,
-    },
-    heroSubtitle: {
-        marginTop: 6,
-        fontSize: 15,
-        color: theme.colors.text.secondary,
-    },
-    progressTrack: {
-        height: 8,
-        borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.08)",
-        overflow: "hidden",
-        marginTop: 24,
-    },
-    progressFill: {
-        height: "100%",
-        borderRadius: 999,
-        backgroundColor: "#10b981",
-    },
-    heroStats: {
-        marginTop: 12,
-        flexDirection: "row",
-        justifyContent: "space-between",
-    },
-    heroStat: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
     },
     card: {
         borderRadius: 24,
@@ -493,6 +435,32 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.04)",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.07)",
+    },
+    previewHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 14,
+    },
+    previewTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+    },
+    hintButton: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(255,255,255,0.07)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+    },
+    hintButtonText: {
+        fontSize: 13,
+        fontWeight: "900",
+        color: theme.colors.text.secondary,
     },
     previewRow: {
         flexDirection: "row",

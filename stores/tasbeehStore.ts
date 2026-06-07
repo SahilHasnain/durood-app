@@ -94,6 +94,7 @@ function getMonthStartKey(): string {
 }
 
 const DEFAULT_TOTAL_GOAL = 100000; // 1 Lakh
+const DEFAULT_PLANNER_DAILY_TARGET = 1000;
 
 function formatTimeFromNow(totalDays: number): string {
   if (totalDays <= 0) return "today";
@@ -350,7 +351,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         plannerData: {
           lifetimeTotal: goal?.lifetimeTotal ?? 0,
           totalGoal: goal?.totalGoal ?? DEFAULT_TOTAL_GOAL,
-          dailyTarget: goal?.dailyTarget ?? 100,
+          dailyTarget: goal?.dailyTarget ?? DEFAULT_PLANNER_DAILY_TARGET,
         },
         plannerLoading: false,
         plannerInitialized: true,
@@ -626,6 +627,6 @@ async function buildLocalPlannerData(): Promise<PlannerData> {
   return {
     lifetimeTotal: lifetimeStr ? parseInt(lifetimeStr, 10) : 0,
     totalGoal: DEFAULT_TOTAL_GOAL,
-    dailyTarget: targetStr ? parseInt(targetStr, 10) : 100,
+    dailyTarget: targetStr ? parseInt(targetStr, 10) : DEFAULT_PLANNER_DAILY_TARGET,
   };
 }

@@ -41,7 +41,7 @@ export const DALAIL_SECTIONS: DalailSection[] = [
     },
     {
         id: "monday-1",
-        title: "Monday Wird (Day 1)",
+        title: "Monday (Day 1)",
         subtitle: "Begin the cycle with today's portion",
         weekday: 1,
         cycleDay: 1,
@@ -50,7 +50,7 @@ export const DALAIL_SECTIONS: DalailSection[] = [
     },
     {
         id: "tuesday",
-        title: "Tuesday Wird (Day 2)",
+        title: "Tuesday (Day 2)",
         subtitle: "Continue the daily Dalail routine",
         weekday: 2,
         cycleDay: 2,
@@ -59,7 +59,7 @@ export const DALAIL_SECTIONS: DalailSection[] = [
     },
     {
         id: "wednesday",
-        title: "Wednesday Wird (Day 3)",
+        title: "Wednesday (Day 3)",
         subtitle: "Keep the weekly cycle steady",
         weekday: 3,
         cycleDay: 3,
@@ -68,8 +68,8 @@ export const DALAIL_SECTIONS: DalailSection[] = [
     },
     {
         id: "thursday",
-        title: "Thursday Wird (Day 4)",
-        subtitle: "Read today's assigned wird",
+        title: "Thursday (Day 4)",
+        subtitle: "Read today's assigned portion",
         weekday: 4,
         cycleDay: 4,
         startPage: 173,
@@ -77,7 +77,7 @@ export const DALAIL_SECTIONS: DalailSection[] = [
     },
     {
         id: "friday",
-        title: "Friday Wird (Day 5)",
+        title: "Friday (Day 5)",
         subtitle: "Salawat for the blessed day",
         weekday: 5,
         cycleDay: 5,
@@ -86,7 +86,7 @@ export const DALAIL_SECTIONS: DalailSection[] = [
     },
     {
         id: "saturday",
-        title: "Saturday Wird (Day 6)",
+        title: "Saturday (Day 6)",
         subtitle: "Continue from the weekly cycle",
         weekday: 6,
         cycleDay: 6,
@@ -95,7 +95,7 @@ export const DALAIL_SECTIONS: DalailSection[] = [
     },
     {
         id: "sunday",
-        title: "Sunday Wird (Day 7)",
+        title: "Sunday (Day 7)",
         subtitle: "Complete the cycle",
         weekday: 0,
         cycleDay: 7,
@@ -104,7 +104,7 @@ export const DALAIL_SECTIONS: DalailSection[] = [
     },
     {
         id: "monday-8",
-        title: "Monday Wird (Day 8 - Cycle End)",
+        title: "Monday (Day 8 - Cycle End)",
         subtitle: "Return to the beginning",
         weekday: 1,
         cycleDay: 8,

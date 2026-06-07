@@ -15,24 +15,26 @@ function formatNumber(value: number): string {
 }
 
 function formatCompactNumber(value: number): string {
+    const formatDecimal = (amount: number) => amount.toFixed(1).replace(/\.0$/, "");
+
     if (value >= 10000000) {
         const crores = value / 10000000;
-        return crores % 1 === 0 ? `${crores}Cr` : `${crores.toFixed(1)}Cr`;
+        return `${formatDecimal(crores)}Cr`;
     }
     if (value >= 100000) {
         const lakhs = value / 100000;
-        return lakhs % 1 === 0 ? `${lakhs}L` : `${lakhs.toFixed(1)}L`;
+        return `${formatDecimal(lakhs)}L`;
     }
     if (value >= 1000) {
         const thousands = value / 1000;
-        return thousands % 1 === 0 ? `${thousands}K` : `${thousands.toFixed(1)}K`;
+        return `${formatDecimal(thousands)}K`;
     }
     return value.toString();
 }
 
 export default function Progress() {
     const HEADER_HEIGHT = 60;
-    const { tabBarHeight } = useTabBarVisibility();
+    const { tabBarHeight, showTabBar } = useTabBarVisibility();
     const { user } = useAuth();
     const headerTranslateY = useSharedValue(0);
 
@@ -46,6 +48,8 @@ export default function Progress() {
 
     useFocusEffect(
         useCallback(() => {
+            showTabBar();
+
             const activeUserId = user?.id;
             if (!progressInitialized || initializedUserId !== activeUserId) {
                 void loadProgressData(activeUserId);
@@ -53,7 +57,7 @@ export default function Progress() {
             if (!plannerData) {
                 void loadPlannerData(activeUserId);
             }
-        }, [user?.id, progressInitialized, initializedUserId, loadProgressData, plannerData, loadPlannerData])
+        }, [user?.id, progressInitialized, initializedUserId, loadProgressData, plannerData, loadPlannerData, showTabBar])
     );
 
     if (progressLoading || !progressStats) {
@@ -90,16 +94,35 @@ export default function Progress() {
                 <View style={styles.summaryCard}>
                     <Text style={styles.eyebrow}>Journey Progress</Text>
                     <Text style={styles.percentText}>{completionPercent.toFixed(1)}%</Text>
-                    <Text style={styles.summaryText}>
-                        {formatNumber(progressStats.lifetimeTotal)} of {formatNumber(totalGoal)} completed
-                    </Text>
                     <View style={styles.progressTrack}>
                         <View style={[styles.progressFill, { width: `${completionPercent}%` }]} />
                     </View>
-                    <View style={styles.summaryFooter}>
-                        <Text style={styles.footerText}>{formatCompactNumber(remaining)} remaining</Text>
-                        <Text style={styles.footerText}>Goal {formatCompactNumber(totalGoal)}</Text>
+                    <View style={styles.summaryNumbersCard}>
+                        <View style={styles.summaryNumberItem}>
+                            <Text style={styles.summaryNumberLabel}>Completed</Text>
+                            <Text
+                                style={styles.summaryNumberValue}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.7}
+                            >
+                                {formatNumber(progressStats.lifetimeTotal)}
+                            </Text>
+                        </View>
+                        <View style={styles.summaryNumberDivider} />
+                        <View style={styles.summaryNumberItem}>
+                            <Text style={styles.summaryNumberLabel}>Goal</Text>
+                            <Text
+                                style={styles.summaryNumberValue}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.7}
+                            >
+                                {formatNumber(totalGoal)}
+                            </Text>
+                        </View>
                     </View>
+                    <Text style={styles.summaryText}>{formatCompactNumber(remaining)} remaining</Text>
                 </View>
 
                 <View style={styles.statRow}>
@@ -207,9 +230,11 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
     },
     summaryText: {
-        marginTop: 4,
-        fontSize: 15,
+        marginTop: 10,
+        fontSize: 13,
+        fontWeight: "700",
         color: theme.colors.text.secondary,
+        textAlign: "center",
     },
     progressTrack: {
         height: 8,
@@ -223,14 +248,36 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         backgroundColor: "#10b981",
     },
-    summaryFooter: {
-        marginTop: 12,
+    summaryNumbersCard: {
+        marginTop: 16,
+        borderRadius: 18,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
         flexDirection: "row",
-        justifyContent: "space-between",
+        alignItems: "center",
+        backgroundColor: "rgba(255,255,255,0.06)",
     },
-    footerText: {
-        fontSize: 13,
-        color: theme.colors.text.secondary,
+    summaryNumberItem: {
+        flex: 1,
+        gap: 4,
+    },
+    summaryNumberLabel: {
+        fontSize: 11,
+        fontWeight: "800",
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+        color: theme.colors.text.tertiary,
+    },
+    summaryNumberValue: {
+        fontSize: 18,
+        fontWeight: "900",
+        color: theme.colors.text.primary,
+    },
+    summaryNumberDivider: {
+        width: 1,
+        height: 34,
+        marginHorizontal: 12,
+        backgroundColor: "rgba(255,255,255,0.1)",
     },
     statRow: {
         flexDirection: "row",
