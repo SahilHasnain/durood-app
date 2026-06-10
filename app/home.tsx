@@ -32,6 +32,10 @@ import Svg, { Circle } from "react-native-svg";
 const TASBEEH_PROGRESS_COLOR = "#10b981";
 const DEFAULT_SESSION_GOAL = 33;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
+const SESSION_IMAGES = [
+    require("@/assets/images/jalian-mubarak.jpg"),
+    require("@/assets/images/gumbad.png"),
+];
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
@@ -66,6 +70,7 @@ export default function Home() {
     const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionGoalInput, setSessionGoalInput] = useState("");
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
+    const [sessionImageIndex, setSessionImageIndex] = useState(0);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const progressAnim = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
@@ -347,6 +352,10 @@ export default function Home() {
         Keyboard.dismiss();
     };
 
+    const changeSessionImage = useCallback(() => {
+        setSessionImageIndex((currentIndex) => (currentIndex + 1) % SESSION_IMAGES.length);
+    }, []);
+
     useEffect(() => {
         const subscription = AppState.addEventListener("change", (nextAppState) => {
             if (nextAppState !== "active") {
@@ -388,10 +397,19 @@ export default function Home() {
                     style={[styles.sessionImageArea, { height: sessionImageHeight }]}
                 >
                     <Image
-                        source={require("@/assets/images/jalian-mubarak.jpg")}
+                        source={SESSION_IMAGES[sessionImageIndex]}
                         style={styles.sessionImage}
                         resizeMode="cover"
                     />
+                    <TouchableOpacity
+                        accessibilityLabel="Change session image"
+                        activeOpacity={0.72}
+                        hitSlop={10}
+                        onPress={changeSessionImage}
+                        style={styles.sessionImageButton}
+                    >
+                        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.82)" />
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.sessionHeader}>
@@ -864,6 +882,19 @@ const styles = StyleSheet.create({
     sessionImage: {
         width: "100%",
         height: "100%",
+    },
+    sessionImageButton: {
+        position: "absolute",
+        right: 14,
+        bottom: 14,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.22)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.16)",
     },
     sessionHeader: {
         alignItems: "center",

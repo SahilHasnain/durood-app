@@ -175,7 +175,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       ]);
 
       set({
-        count: resolvedTodayProgress?.count ?? get().count,
+        count: resolvedTodayProgress?.count ?? 0,
         target: resolvedGoal?.dailyTarget ?? get().target,
         lifetimeTotal: resolvedGoal?.lifetimeTotal ?? get().lifetimeTotal,
         streak: calculatedStreak.currentStreak,
@@ -208,11 +208,21 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
   saveData: async (newData, userId?: string, sessionRecord?: TasbeehService.SessionRecord) => {
     try {
       const currentState = get();
-      const updatedData = { ...currentState, ...newData };
       const todayKey = getTodayKey();
+      const lastActiveDate = await AsyncStorage.getItem(LAST_ACTIVE_DATE_KEY);
+      const isNewDay = Boolean(lastActiveDate && lastActiveDate !== todayKey);
+      const normalizedNewData = { ...newData };
+
+      if (isNewDay && typeof newData.count === "number") {
+        const incrementAmount = Math.max(0, newData.count - currentState.count);
+        normalizedNewData.count = incrementAmount;
+        normalizedNewData.streak = incrementAmount > 0 ? currentState.streak + 1 : currentState.streak;
+      }
+
+      const updatedData = { ...currentState, ...normalizedNewData };
 
       // Update local state immediately for responsive UI
-      set({ ...newData, syncing: true, progressInitialized: false });
+      set({ ...normalizedNewData, syncing: true, progressInitialized: false });
 
       await persistLocalSnapshot(updatedData, todayKey, sessionRecord);
 
@@ -231,6 +241,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
   },
 
   reload: async (userId?: string) => {
+    set({ initialized: false });
     await get().loadData(userId);
   },
 
@@ -567,15 +578,13 @@ async function syncPendingState(
 }
 
 async function buildLocalProgressStats(): Promise<ProgressStats> {
-  const [countStr, targetStr, lifetimeStr, streakStr, history] = await Promise.all([
-    AsyncStorage.getItem("tasbeeh_count"),
+  const [targetStr, lifetimeStr, streakStr, history] = await Promise.all([
     AsyncStorage.getItem("tasbeeh_target"),
     AsyncStorage.getItem("tasbeeh_lifetime_total"),
     AsyncStorage.getItem("tasbeeh_streak"),
     readDailyHistory(),
   ]);
 
-  const count = countStr ? parseInt(countStr, 10) : 0;
   const target = targetStr ? parseInt(targetStr, 10) : 100;
   const lifetimeTotal = lifetimeStr ? parseInt(lifetimeStr, 10) : 0;
   const streak = streakStr ? parseInt(streakStr, 10) : 0;
@@ -599,8 +608,8 @@ async function buildLocalProgressStats(): Promise<ProgressStats> {
     longestStreak: streak,
     averagePerDay,
     bestDay,
-    todayCount: count,
-    todayTarget: target,
+    todayCount: todayRecord?.count ?? 0,
+    todayTarget: todayRecord?.target ?? target,
     todaySessions: todaySessions.length,
     todaySessionTotal: todaySessions.reduce((sum, session) => sum + session.count, 0),
     weeklyTotal,

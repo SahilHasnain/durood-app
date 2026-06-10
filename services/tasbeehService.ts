@@ -342,17 +342,19 @@ export async function syncFromLocalStorage(clerkUserId?: string): Promise<void> 
       todayCountStr,
       todayTargetStr,
       historyStr,
+      lastActiveDate,
     ] = await Promise.all([
       AsyncStorage.getItem("tasbeeh_lifetime_total"),
       AsyncStorage.getItem("tasbeeh_streak"),
       AsyncStorage.getItem("tasbeeh_count"),
       AsyncStorage.getItem("tasbeeh_target"),
       AsyncStorage.getItem("tasbeeh_daily_history"),
+      AsyncStorage.getItem("tasbeeh_last_active_date"),
     ]);
 
     const lifetimeTotal = lifetimeStr ? parseInt(lifetimeStr, 10) : 0;
     const currentStreak = streakStr ? parseInt(streakStr, 10) : 0;
-    const todayCount = todayCountStr ? parseInt(todayCountStr, 10) : 0;
+    const todayCount = lastActiveDate === getTodayKey() && todayCountStr ? parseInt(todayCountStr, 10) : 0;
     const todayTarget = todayTargetStr ? parseInt(todayTargetStr, 10) : 100;
 
     // Sync user goal
