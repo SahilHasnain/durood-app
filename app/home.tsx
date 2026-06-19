@@ -2,12 +2,13 @@ import KeyboardSpacer from "@/components/KeyboardSpacer";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTasbeehData } from "@/hooks/useTasbeehData";
 import { SessionRecord } from "@/services/tasbeehService";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
@@ -16,6 +17,7 @@ import {
     BackHandler,
     Image,
     Keyboard,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -55,7 +57,7 @@ export default function Home() {
     const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
     // Use Appwrite hook
-    const { count, target, lifetimeTotal, streak, loading, saveData, reload } =
+    const { count, target, lifetimeTotal, streak, loading, initialized, saveData, refreshData } =
         useTasbeehData();
 
     const [manualAddValue, setManualAddValue] = useState("");
@@ -67,6 +69,8 @@ export default function Home() {
     const [sessionPausedAt, setSessionPausedAt] = useState<number | null>(null);
     const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(0);
     const [preferredSessionGoal, setPreferredSessionGoal] = useState(DEFAULT_SESSION_GOAL);
+    const [showSignInSheet, setShowSignInSheet] = useState(false);
+    const { isAuthenticated, loading: authLoading } = useAuth();
     const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionGoalInput, setSessionGoalInput] = useState("");
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
@@ -105,8 +109,10 @@ export default function Home() {
         useCallback(() => {
             showTabBar();
             headerTranslateY.value = withTiming(0, { duration: 300 });
-            reload();
-        }, [headerTranslateY, showTabBar, reload])
+            if (initialized) {
+                refreshData();
+            }
+        }, [headerTranslateY, showTabBar, initialized, refreshData])
     );
 
     useEffect(() => {
@@ -127,6 +133,17 @@ export default function Home() {
             mounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (authLoading || isAuthenticated) return;
+        AsyncStorage.getItem("app_open_count").then((val) => {
+            const count = val ? parseInt(val, 10) : 0;
+            if (count >= 1) {
+                setShowSignInSheet(true);
+            }
+            AsyncStorage.setItem("app_open_count", String(count + 1));
+        });
+    }, [authLoading, isAuthenticated]);
 
     useEffect(() => {
         if (!sessionActive || sessionPaused || !sessionStartedAt) return;
@@ -659,6 +676,40 @@ export default function Home() {
                 </TouchableOpacity>
                 <KeyboardSpacer />
             </Animated.View>
+
+            <Modal
+                visible={showSignInSheet}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowSignInSheet(false)}
+            >
+                <Pressable style={styles.signInOverlay} onPress={() => setShowSignInSheet(false)}>
+                    <Pressable style={styles.signInSheet} onPress={() => {}}>
+                        <View style={styles.signInSheetHandle} />
+                        <Ionicons name="cloud-upload-outline" size={40} color={theme.colors.primary.main} />
+                        <Text style={styles.signInSheetTitle}>Save Your Progress</Text>
+                        <Text style={styles.signInSheetText}>
+                            Sign in to sync your tasbeeh counts, streaks, and goals across all your devices.
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.signInSheetButton}
+                            onPress={() => {
+                                setShowSignInSheet(false);
+                                router.push("/auth/login");
+                            }}
+                        >
+                            <Ionicons name="logo-google" size={20} color="#FFFFFF" />
+                            <Text style={styles.signInSheetButtonText}>Sign in with Google</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.signInSkipButton}
+                            onPress={() => setShowSignInSheet(false)}
+                        >
+                            <Text style={styles.signInSkipText}>Continue without account</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -970,6 +1021,67 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     sessionGoalClearButtonText: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: theme.colors.text.secondary,
+    },
+
+    signInOverlay: {
+        flex: 1,
+        justifyContent: "flex-end",
+        backgroundColor: "rgba(0,0,0,0.6)",
+    },
+    signInSheet: {
+        backgroundColor: theme.colors.surface.primary,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 28,
+        paddingBottom: 48,
+        paddingTop: 12,
+        alignItems: "center",
+        gap: 12,
+    },
+    signInSheetHandle: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: "rgba(255,255,255,0.15)",
+        marginBottom: 12,
+    },
+    signInSheetTitle: {
+        fontSize: 22,
+        fontWeight: "700",
+        color: theme.colors.text.primary,
+        textAlign: "center",
+    },
+    signInSheetText: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        textAlign: "center",
+        lineHeight: 20,
+        paddingHorizontal: 8,
+    },
+    signInSheetButton: {
+        marginTop: 8,
+        width: "100%",
+        backgroundColor: theme.colors.primary.main,
+        borderRadius: 12,
+        padding: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+    },
+    signInSheetButtonText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#FFFFFF",
+    },
+    signInSkipButton: {
+        padding: 12,
+        alignItems: "center",
+    },
+    signInSkipText: {
         fontSize: 15,
         fontWeight: "600",
         color: theme.colors.text.secondary,

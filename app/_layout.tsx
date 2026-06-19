@@ -7,9 +7,6 @@ import { ClerkProvider } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import * as SystemUI from "expo-system-ui";
-import { useEffect, useState } from "react";
-import { Text as RNText, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
@@ -152,50 +149,7 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    SystemUI.setBackgroundColorAsync("#000000");
-
-    console.log("🔐 Clerk initialization starting...");
-    console.log("📱 Publishable Key:", "pk_live_Y2xlcmsuZHVyb29kLmxpdmUk");
-
-    // Global error handler to catch Clerk errors
-    const originalError = console.error;
-    console.error = (...args) => {
-      originalError(...args);
-      const errorMsg = args.map(arg =>
-        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-      ).join(' ');
-      console.log("🔴 ERROR CAPTURED:", errorMsg);
-      if (errorMsg.toLowerCase().includes('clerk')) {
-        setError(errorMsg);
-      }
-    };
-
-    return () => {
-      console.error = originalError;
-    };
-  }, []);
-
   const publishableKey = "pk_live_Y2xlcmsuZHVyb29kLmxpdmUk";
-
-  if (error) {
-    console.log("❌ Showing error screen with message:", error);
-    return (
-      <View style={{ flex: 1, backgroundColor: "#000", justifyContent: "center", alignItems: "center", padding: 20 }}>
-        <Ionicons name="warning-outline" size={48} color="#ef4444" />
-        <RNText style={{ color: "#fff", fontSize: 18, fontWeight: "600", marginTop: 16, textAlign: "center" }}>
-          Initialization Error
-        </RNText>
-        <RNText style={{ color: "#999", fontSize: 12, marginTop: 8, textAlign: "center", fontFamily: "monospace" }}>
-          {error.substring(0, 500)}
-        </RNText>
-      </View>
-    );
-  }
-
-  console.log("🔄 Rendering ClerkProvider...");
 
   return (
     <ClerkProvider

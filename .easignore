@@ -5,8 +5,7 @@ node_modules/
 .expo/
 dist/
 build/
-android/app/build/
-android/.gradle/
+android/
 ios/build/
 ios/Pods/
 

@@ -40,24 +40,25 @@ export default function Progress() {
 
     const progressStats = useTasbeehStore((state) => state.progressStats);
     const progressLoading = useTasbeehStore((state) => state.progressLoading);
-    const progressInitialized = useTasbeehStore((state) => state.progressInitialized);
-    const initializedUserId = useTasbeehStore((state) => state.initializedUserId);
-    const loadProgressData = useTasbeehStore((state) => state.loadProgressData);
     const plannerData = useTasbeehStore((state) => state.plannerData);
-    const loadPlannerData = useTasbeehStore((state) => state.loadPlannerData);
 
     useFocusEffect(
         useCallback(() => {
             showTabBar();
 
             const activeUserId = user?.id;
-            if (!progressInitialized || initializedUserId !== activeUserId) {
-                void loadProgressData(activeUserId);
+            const state = useTasbeehStore.getState();
+            if (!state.progressInitialized || state.initializedUserId !== activeUserId) {
+                void state.loadProgressData(activeUserId);
+            } else {
+                void state.refreshProgressData(activeUserId);
             }
-            if (!plannerData) {
-                void loadPlannerData(activeUserId);
+            if (!state.plannerData) {
+                void state.loadPlannerData(activeUserId);
+            } else {
+                void state.refreshPlannerData(activeUserId);
             }
-        }, [user?.id, progressInitialized, initializedUserId, loadProgressData, plannerData, loadPlannerData, showTabBar])
+        }, [user?.id, showTabBar])
     );
 
     if (progressLoading || !progressStats) {
@@ -176,11 +177,9 @@ export default function Progress() {
                 </View>
 
                 <View style={styles.finishCard}>
-                    <Text style={styles.finishLabel}>Estimated Finish</Text>
-                    <Text style={styles.finishDate}>{progressStats.estimatedFinishDate}</Text>
-                    <Text style={styles.finishText}>
-                        At this month&apos;s pace, about {progressStats.estimatedFinishDistance} from now
-                    </Text>
+                    <Text style={styles.finishLabel}>Time Left at This Pace</Text>
+                    <Text style={styles.finishValue}>{progressStats.estimatedFinishDistance}</Text>
+                    <Text style={styles.finishSub}>Estimated completion: {progressStats.estimatedFinishDate}</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -384,15 +383,14 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
         marginBottom: 8,
     },
-    finishDate: {
-        fontSize: 26,
+    finishValue: {
+        fontSize: 32,
         fontWeight: "800",
         color: "#10b981",
     },
-    finishText: {
+    finishSub: {
         marginTop: 8,
-        fontSize: 14,
-        color: theme.colors.text.secondary,
-        lineHeight: 20,
+        fontSize: 13,
+        color: theme.colors.text.tertiary,
     },
 });

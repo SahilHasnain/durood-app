@@ -1,26 +1,59 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSSO } from "@clerk/clerk-expo";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Profile() {
     const { user, isAuthenticated, logout } = useAuth();
+    const { startSSOFlow } = useSSO();
+    const [submitting, setSubmitting] = useState(false);
+
+    const redirectUrl = useMemo(
+        () =>
+            AuthSession.makeRedirectUri({
+                scheme: "duroodapp",
+                path: "auth/continue",
+            }),
+        []
+    );
+
+    const handleGoogleSignIn = useCallback(async () => {
+        try {
+            setSubmitting(true);
+            const { createdSessionId, setActive } = await startSSOFlow({
+                strategy: "oauth_google",
+                redirectUrl,
+            });
+            if (createdSessionId && setActive) {
+                await setActive({ session: createdSessionId });
+            }
+        } catch (err: any) {
+            Alert.alert(
+                "Sign In Failed",
+                err?.message || "Could not complete Google sign-in."
+            );
+        } finally {
+            setSubmitting(false);
+        }
+    }, [redirectUrl, startSSOFlow]);
 
     const handleLogout = () => {
         Alert.alert("Sign Out", "Do you want to sign out of this account?", [
-            {
-                text: "Cancel",
-                style: "cancel",
-            },
+            { text: "Cancel", style: "cancel" },
             {
                 text: "Sign Out",
                 style: "destructive",
                 onPress: async () => {
                     try {
                         await logout();
-                        router.replace("/auth/login");
                     } catch (error) {
                         console.error("Sign out failed:", error);
                         Alert.alert("Sign Out Failed", "Could not sign out. Please try again.");
@@ -40,10 +73,18 @@ export default function Profile() {
                         Sign in to sync your progress across devices
                     </Text>
                     <TouchableOpacity
-                        style={styles.signInButton}
-                        onPress={() => router.push("/auth/login")}
+                        style={[styles.googleButton, submitting && styles.disabledButton]}
+                        onPress={handleGoogleSignIn}
+                        disabled={submitting}
                     >
-                        <Text style={styles.signInButtonText}>Sign In</Text>
+                        {submitting ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <>
+                                <Ionicons name="logo-google" size={22} color="#FFFFFF" />
+                                <Text style={styles.googleButtonText}>Sign in with Google</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -51,22 +92,22 @@ export default function Profile() {
     }
 
     return (
-            <SafeAreaView style={styles.container} edges={["top"]}>
-                <View style={styles.content}>
-                    <View style={styles.header}>
-                        <View style={styles.avatarContainer}>
-                            <Ionicons name="person-circle" size={80} color={theme.colors.primary.main} />
-                        </View>
-                        <Text style={styles.name}>{user?.name}</Text>
-                        <Text style={styles.email}>{user?.email}</Text>
+        <SafeAreaView style={styles.container} edges={["top"]}>
+            <View style={styles.content}>
+                <View style={styles.header}>
+                    <View style={styles.avatarContainer}>
+                        <Ionicons name="person-circle" size={80} color={theme.colors.primary.main} />
                     </View>
-
-                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                        <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
-                        <Text style={styles.logoutButtonText}>Sign Out</Text>
-                    </TouchableOpacity>
+                    <Text style={styles.name}>{user?.name}</Text>
+                    <Text style={styles.email}>{user?.email}</Text>
                 </View>
-            </SafeAreaView>
+
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+                    <Text style={styles.logoutButtonText}>Sign Out</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
     );
 }
 
@@ -99,13 +140,21 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 32,
     },
-    signInButton: {
+    googleButton: {
         backgroundColor: theme.colors.primary.main,
         borderRadius: 12,
-        paddingVertical: 14,
-        paddingHorizontal: 32,
+        padding: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        minHeight: 54,
+        width: "100%",
     },
-    signInButtonText: {
+    disabledButton: {
+        opacity: 0.7,
+    },
+    googleButtonText: {
         fontSize: 16,
         fontWeight: "600",
         color: "#FFFFFF",

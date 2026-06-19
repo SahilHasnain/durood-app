@@ -56,6 +56,7 @@ interface TasbeehState {
 
 interface TasbeehActions {
   loadData: (userId?: string) => Promise<void>;
+  refreshData: (userId?: string) => Promise<void>;
   saveData: (
     newData: Partial<Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak">>,
     userId?: string,
@@ -66,9 +67,11 @@ interface TasbeehActions {
   
   // Progress actions
   loadProgressData: (userId?: string) => Promise<void>;
+  refreshProgressData: (userId?: string) => Promise<void>;
   
   // Planner actions
   loadPlannerData: (userId?: string) => Promise<void>;
+  refreshPlannerData: (userId?: string) => Promise<void>;
   updateDailyTarget: (newTarget: number, userId?: string) => Promise<void>;
   updateTotalGoal: (newGoal: number, userId?: string) => Promise<void>;
 }
@@ -104,15 +107,15 @@ function formatTimeFromNow(totalDays: number): string {
 
   if (years <= 0) {
     return months > 0
-      ? `${months} month${months === 1 ? "" : "s"}`
-      : `${totalDays} day${totalDays === 1 ? "" : "s"}`;
+      ? `${months}mo`
+      : `${totalDays}d`;
   }
 
   if (months <= 0) {
-    return `${years} year${years === 1 ? "" : "s"}`;
+    return `${years}yr`;
   }
 
-  return `${years} year${years === 1 ? "" : "s"} ${months} month${months === 1 ? "" : "s"}`;
+  return `${years}yr ${months}mo`;
 }
 
 const initialState: TasbeehState = {
@@ -174,16 +177,52 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         TasbeehService.calculateStreak(userId),
       ]);
 
+      const appwriteLifetime = resolvedGoal?.lifetimeTotal ?? get().lifetimeTotal;
+      const appwriteStreak = calculatedStreak.currentStreak;
+      const appwriteCount = resolvedTodayProgress?.count ?? 0;
+      const appwriteTarget = resolvedGoal?.dailyTarget ?? get().target;
+
       set({
-        count: resolvedTodayProgress?.count ?? 0,
-        target: resolvedGoal?.dailyTarget ?? get().target,
-        lifetimeTotal: resolvedGoal?.lifetimeTotal ?? get().lifetimeTotal,
-        streak: calculatedStreak.currentStreak,
+        count: appwriteCount,
+        target: appwriteTarget,
+        lifetimeTotal: appwriteLifetime,
+        streak: appwriteStreak,
         loading: false,
         syncing: false,
         initialized: true,
         initializedUserId: userId,
       });
+
+      // Persist to AsyncStorage so offline fallback has data
+      const todayKey = getTodayKey();
+      const existingHistory = await readDailyHistory();
+      const todayIdx = existingHistory.findIndex((r) => r.date === todayKey);
+      const todayRecord: DailyRecord = {
+        date: todayKey,
+        count: appwriteCount,
+        target: appwriteTarget,
+      };
+      if (todayIdx >= 0) {
+        existingHistory[todayIdx] = {
+          ...existingHistory[todayIdx],
+          count: appwriteCount,
+          target: appwriteTarget,
+        };
+      } else {
+        existingHistory.unshift(todayRecord);
+      }
+      const mergedHistory = existingHistory
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 365);
+
+      await Promise.all([
+        AsyncStorage.setItem("tasbeeh_count", appwriteCount.toString()),
+        AsyncStorage.setItem("tasbeeh_target", appwriteTarget.toString()),
+        AsyncStorage.setItem("tasbeeh_lifetime_total", appwriteLifetime.toString()),
+        AsyncStorage.setItem("tasbeeh_streak", appwriteStreak.toString()),
+        AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
+        AsyncStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(mergedHistory)),
+      ]);
 
       if (
         resolvedGoal &&
@@ -205,6 +244,84 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
     }
   },
 
+  refreshData: async (userId?: string) => {
+    const state = get();
+    if (state.loading) return;
+
+    try {
+      const [goal, todayProgress] = await Promise.all([
+        TasbeehService.getUserGoal(userId),
+        TasbeehService.getTodayProgress(userId),
+      ]);
+
+      if (!goal && !todayProgress) {
+        await TasbeehService.syncFromLocalStorage(userId);
+      }
+
+      const [resolvedGoal, resolvedTodayProgress, calculatedStreak] = await Promise.all([
+        goal || TasbeehService.getUserGoal(userId),
+        todayProgress || TasbeehService.getTodayProgress(userId),
+        TasbeehService.calculateStreak(userId),
+      ]);
+
+      const hasData = resolvedGoal !== null || resolvedTodayProgress !== null || calculatedStreak.currentStreak > 0;
+      if (hasData) {
+        const appwriteLifetime = resolvedGoal?.lifetimeTotal ?? state.lifetimeTotal;
+        const appwriteStreak = calculatedStreak.currentStreak;
+        const appwriteCount = resolvedTodayProgress?.count ?? state.count;
+        const appwriteTarget = resolvedGoal?.dailyTarget ?? state.target;
+
+        set({
+          count: appwriteCount,
+          target: appwriteTarget,
+          lifetimeTotal: appwriteLifetime,
+          streak: appwriteStreak,
+        });
+
+        const todayKey = getTodayKey();
+        const existingHistory = await readDailyHistory();
+        const todayIdx = existingHistory.findIndex((r) => r.date === todayKey);
+        if (todayIdx >= 0) {
+          existingHistory[todayIdx] = {
+            ...existingHistory[todayIdx],
+            count: appwriteCount,
+            target: appwriteTarget,
+          };
+        } else {
+          existingHistory.unshift({ date: todayKey, count: appwriteCount, target: appwriteTarget });
+        }
+        const mergedHistory = existingHistory
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .slice(0, 365);
+
+        await Promise.all([
+          AsyncStorage.setItem("tasbeeh_count", appwriteCount.toString()),
+          AsyncStorage.setItem("tasbeeh_target", appwriteTarget.toString()),
+          AsyncStorage.setItem("tasbeeh_lifetime_total", appwriteLifetime.toString()),
+          AsyncStorage.setItem("tasbeeh_streak", appwriteStreak.toString()),
+          AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
+          AsyncStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(mergedHistory)),
+        ]);
+      }
+
+      if (
+        resolvedGoal &&
+        (resolvedGoal.currentStreak !== calculatedStreak.currentStreak ||
+          resolvedGoal.longestStreak !== calculatedStreak.longestStreak)
+      ) {
+        await TasbeehService.createOrUpdateUserGoal(
+          {
+            currentStreak: calculatedStreak.currentStreak,
+            longestStreak: calculatedStreak.longestStreak,
+          },
+          userId
+        );
+      }
+    } catch (error) {
+      console.error("Failed to refresh data:", error);
+    }
+  },
+
   saveData: async (newData, userId?: string, sessionRecord?: TasbeehService.SessionRecord) => {
     try {
       const currentState = get();
@@ -222,7 +339,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       const updatedData = { ...currentState, ...normalizedNewData };
 
       // Update local state immediately for responsive UI
-      set({ ...normalizedNewData, syncing: true, progressInitialized: false });
+      set({ ...normalizedNewData, syncing: true });
 
       await persistLocalSnapshot(updatedData, todayKey, sessionRecord);
 
@@ -330,6 +447,18 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         progressInitialized: true,
         initializedUserId: userId,
       });
+
+      // Persist progress data to AsyncStorage for offline fallback
+      await Promise.all([
+        AsyncStorage.setItem("tasbeeh_lifetime_total", lifetimeTotal.toString()),
+        AsyncStorage.setItem("tasbeeh_streak", currentStreak.toString()),
+        AsyncStorage.setItem("tasbeeh_target", (goal?.dailyTarget ?? 100).toString()),
+        AsyncStorage.setItem("tasbeeh_last_active_date", getTodayKey()),
+        AsyncStorage.setItem(
+          DAILY_HISTORY_KEY,
+          JSON.stringify(history)
+        ),
+      ]);
     } catch (error) {
       console.error("Failed to load progress data:", error);
       const localStats = await buildLocalProgressStats();
@@ -339,6 +468,80 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         progressInitialized: true,
         initializedUserId: userId,
       });
+    }
+  },
+
+  refreshProgressData: async (userId?: string) => {
+    try {
+      const [goal, history] = await Promise.all([
+        TasbeehService.getUserGoal(userId),
+        TasbeehService.getCurrentMonthHistory(userId),
+      ]);
+
+      const currentState = get();
+      const lifetimeTotal = goal?.lifetimeTotal ?? currentState.progressStats?.lifetimeTotal ?? 0;
+      const currentStreak = goal?.currentStreak ?? currentState.progressStats?.currentStreak ?? 0;
+      const longestStreak = goal?.longestStreak ?? currentState.progressStats?.longestStreak ?? 0;
+
+      // Offline guard — don't overwrite with empty data
+      const hasData = goal !== null || history.length > 0;
+      if (!hasData) return;
+
+      const todayRecord = history.find((record) => record.date === getTodayKey()) ?? history[0];
+
+      const weeklyTotal = history
+        .slice(0, 7)
+        .reduce((sum, record) => sum + record.count, 0);
+      const monthlyTotal = history.reduce((sum, record) => sum + record.count, 0);
+      const bestDay = history.length > 0 ? Math.max(...history.map((r) => r.count)) : 0;
+      const averagePerDay = Math.round(monthlyTotal / getElapsedDaysInCurrentMonth());
+
+      const remainingGoal = Math.max(0, (goal?.totalGoal ?? DEFAULT_TOTAL_GOAL) - lifetimeTotal);
+      const estimatedDays = averagePerDay > 0 ? Math.ceil(remainingGoal / averagePerDay) : 0;
+      const finishDate = new Date();
+      finishDate.setDate(finishDate.getDate() + estimatedDays);
+
+      const dailyHistory = history.slice().reverse().map((record) => ({
+        date: record.date,
+        count: record.count,
+        target: record.target,
+      }));
+
+      set({
+        progressStats: {
+          lifetimeTotal,
+          currentStreak,
+          longestStreak,
+          averagePerDay,
+          bestDay,
+          todayCount: todayRecord?.count ?? 0,
+          todayTarget: todayRecord?.target ?? 100,
+          todaySessions: todayRecord?.sessions?.length ?? 0,
+          todaySessionTotal: todayRecord?.sessions?.reduce((sum, s) => sum + s.count, 0) ?? 0,
+          weeklyTotal,
+          monthlyTotal,
+          estimatedFinishDate:
+            averagePerDay > 0
+              ? finishDate.toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "—",
+          estimatedFinishDistance: averagePerDay > 0 ? formatTimeFromNow(estimatedDays) : "?",
+          dailyHistory,
+        },
+      });
+
+      await Promise.all([
+        AsyncStorage.setItem("tasbeeh_lifetime_total", lifetimeTotal.toString()),
+        AsyncStorage.setItem("tasbeeh_streak", currentStreak.toString()),
+        AsyncStorage.setItem("tasbeeh_target", (goal?.dailyTarget ?? 100).toString()),
+        AsyncStorage.setItem("tasbeeh_last_active_date", getTodayKey()),
+        AsyncStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(history)),
+      ]);
+    } catch (error) {
+      console.error("Failed to refresh progress data:", error);
     }
   },
 
@@ -358,16 +561,25 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
 
       const goal = await TasbeehService.getUserGoal(userId);
 
+      const plannerLifetime = goal?.lifetimeTotal ?? 0;
+      const plannerTotalGoal = goal?.totalGoal ?? DEFAULT_TOTAL_GOAL;
+      const plannerDailyTarget = goal?.dailyTarget ?? DEFAULT_PLANNER_DAILY_TARGET;
+
       set({
         plannerData: {
-          lifetimeTotal: goal?.lifetimeTotal ?? 0,
-          totalGoal: goal?.totalGoal ?? DEFAULT_TOTAL_GOAL,
-          dailyTarget: goal?.dailyTarget ?? DEFAULT_PLANNER_DAILY_TARGET,
+          lifetimeTotal: plannerLifetime,
+          totalGoal: plannerTotalGoal,
+          dailyTarget: plannerDailyTarget,
         },
         plannerLoading: false,
         plannerInitialized: true,
         initializedUserId: userId,
       });
+
+      await Promise.all([
+        AsyncStorage.setItem("tasbeeh_lifetime_total", plannerLifetime.toString()),
+        AsyncStorage.setItem("tasbeeh_target", plannerDailyTarget.toString()),
+      ]);
     } catch (error) {
       console.error("Failed to load planner data:", error);
       const localPlannerData = await buildLocalPlannerData();
@@ -377,6 +589,32 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         plannerInitialized: true,
         initializedUserId: userId,
       });
+    }
+  },
+
+  refreshPlannerData: async (userId?: string) => {
+    try {
+      const goal = await TasbeehService.getUserGoal(userId);
+
+      const currentState = get();
+      const plannerLifetime = goal?.lifetimeTotal ?? currentState.plannerData?.lifetimeTotal ?? 0;
+      const plannerTotalGoal = goal?.totalGoal ?? currentState.plannerData?.totalGoal ?? DEFAULT_TOTAL_GOAL;
+      const plannerDailyTarget = goal?.dailyTarget ?? currentState.plannerData?.dailyTarget ?? DEFAULT_PLANNER_DAILY_TARGET;
+
+      set({
+        plannerData: {
+          lifetimeTotal: plannerLifetime,
+          totalGoal: plannerTotalGoal,
+          dailyTarget: plannerDailyTarget,
+        },
+      });
+
+      await Promise.all([
+        AsyncStorage.setItem("tasbeeh_lifetime_total", plannerLifetime.toString()),
+        AsyncStorage.setItem("tasbeeh_target", plannerDailyTarget.toString()),
+      ]);
+    } catch (error) {
+      console.error("Failed to refresh planner data:", error);
     }
   },
 

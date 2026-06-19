@@ -1,8 +1,8 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-// SecureStore is not supported on the web
-// https://github.com/expo/expo/issues/7744#issuecomment-611093485
+const memoryCache = new Map<string, string>();
+
 const createTokenCache = () => {
   return {
     getToken: async (key: string) => {
@@ -10,7 +10,14 @@ const createTokenCache = () => {
         if (Platform.OS === "web") {
           return null;
         }
+        const cached = memoryCache.get(key);
+        if (cached !== undefined) {
+          return cached;
+        }
         const item = await SecureStore.getItemAsync(key);
+        if (item !== null) {
+          memoryCache.set(key, item);
+        }
         return item;
       } catch (error) {
         console.error("Error getting token:", error);
@@ -22,6 +29,7 @@ const createTokenCache = () => {
         if (Platform.OS === "web") {
           return;
         }
+        memoryCache.set(key, token);
         return SecureStore.setItemAsync(key, token);
       } catch (error) {
         console.error("Error saving token:", error);

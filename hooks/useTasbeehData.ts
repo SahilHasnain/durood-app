@@ -13,6 +13,7 @@ export function useTasbeehData() {
   const initialized = useTasbeehStore((state) => state.initialized);
   const initializedUserId = useTasbeehStore((state) => state.initializedUserId);
   const loadData = useTasbeehStore((state) => state.loadData);
+  const refreshStoreData = useTasbeehStore((state) => state.refreshData);
   const saveStoreData = useTasbeehStore((state) => state.saveData);
   const reloadStoreData = useTasbeehStore((state) => state.reload);
 
@@ -39,6 +40,10 @@ export function useTasbeehData() {
   );
 
   const reload = useCallback(() => reloadStoreData(user?.id), [reloadStoreData, user?.id]);
+  const refreshData = useCallback(
+    () => refreshStoreData(user?.id),
+    [refreshStoreData, user?.id]
+  );
 
   return {
     count,
@@ -47,7 +52,9 @@ export function useTasbeehData() {
     streak,
     loading,
     syncing,
+    initialized,
     saveData,
     reload,
+    refreshData,
   };
 }
