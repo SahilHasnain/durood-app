@@ -76,16 +76,22 @@ function RootLayoutContent() {
         }}
       />
       <Tabs.Screen
-        name="videos"
+        name="fazilat"
         options={{
-          title: "Videos",
+          title: "Fazilat",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? "videocam" : "videocam-outline"}
+              name={focused ? "flower" : "flower-outline"}
               size={24}
               color={color}
             />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="videos"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen

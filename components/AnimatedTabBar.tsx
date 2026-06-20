@@ -22,7 +22,7 @@ export function AnimatedTabBar({
         transform: [{ translateY: translateY.value }],
     }));
 
-    const hiddenRouteNames = new Set(["index", "video", "shorts", "profile", "auth", "privacy-policy"]);
+    const hiddenRouteNames = new Set(["index", "video", "shorts", "videos", "profile", "auth", "privacy-policy"]);
     const visibleRoutes = state.routes.filter((route) => {
         return !hiddenRouteNames.has(route.name) && !route.name.startsWith("dalail-reader");
     });
