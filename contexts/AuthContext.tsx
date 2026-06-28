@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useClerk, useUser } from "@clerk/clerk-expo";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import NetInfo from "@react-native-community/netinfo";
@@ -24,6 +25,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: clerkUser, isLoaded } = useUser();
     const { signOut } = useClerk();
     const [clerkTimedOut, setClerkTimedOut] = useState(false);
+    const [knownSignedIn, setKnownSignedIn] = useState(false);
+    const [cachedName, setCachedName] = useState("");
+    const [cachedEmail, setCachedEmail] = useState("");
 
     useEffect(() => {
         if (isLoaded) return;
@@ -42,6 +46,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, [isLoaded]);
 
+    // Persist signed-in flag and user info so we can show correct UI when offline
+    useEffect(() => {
+        if (isLoaded && clerkUser) {
+            AsyncStorage.multiSet([
+                ["clerk_signed_in", "true"],
+                ["clerk_user_name", clerkUser.fullName || clerkUser.firstName || "User"],
+                ["clerk_user_email", clerkUser.primaryEmailAddress?.emailAddress || ""],
+            ]);
+        }
+    }, [isLoaded, clerkUser]);
+
+    // When offline/timed-out with no Clerk user, fall back to cached flag
+    useEffect(() => {
+        if (clerkTimedOut && !clerkUser) {
+            AsyncStorage.multiGet(["clerk_signed_in", "clerk_user_name", "clerk_user_email"]).then(
+                ([[, signedIn], [, name], [, email]]) => {
+                    setKnownSignedIn(signedIn === "true");
+                    setCachedName(name ?? "");
+                    setCachedEmail(email ?? "");
+                }
+            );
+        }
+    }, [clerkTimedOut, clerkUser]);
+
     console.log("🔍 AuthProvider - isLoaded:", isLoaded, "user:", clerkUser?.id || "null", "timedOut:", clerkTimedOut);
 
     // Transform Clerk user to our User interface
@@ -52,9 +80,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: clerkUser.fullName || clerkUser.firstName || "User",
             emailVerified: clerkUser.primaryEmailAddress?.verification?.status === "verified",
         }
-        : null;
+        : knownSignedIn
+          ? {
+              id: "",
+              email: cachedEmail,
+              name: cachedName,
+              emailVerified: false,
+          }
+          : null;
 
     const logout = async () => {
+        await AsyncStorage.multiRemove(["clerk_signed_in", "clerk_user_name", "clerk_user_email"]);
+        setKnownSignedIn(false);
+        setCachedName("");
+        setCachedEmail("");
         await signOut();
         useTasbeehStore.getState().reset();
     };
@@ -64,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             value={{
                 user,
                 loading: !isLoaded && !clerkTimedOut,
-                isAuthenticated: !!clerkUser,
+                isAuthenticated: !!clerkUser || (clerkTimedOut && knownSignedIn),
                 clerkUser,
                 logout,
             }}

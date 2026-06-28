@@ -32,7 +32,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = "#10b981";
-const DEFAULT_SESSION_GOAL = 33;
+const DEFAULT_SESSION_GOAL = 50;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const SIGN_IN_MILESTONE = 20000;
 const SIGN_IN_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;

@@ -80,6 +80,7 @@ interface TasbeehActions {
 const LAST_ACTIVE_DATE_KEY = "tasbeeh_last_active_date";
 const DAILY_HISTORY_KEY = "tasbeeh_daily_history";
 const PENDING_SYNC_KEY = "tasbeeh_pending_sync";
+const TOTAL_GOAL_KEY = "tasbeeh_total_goal";
 
 function getTodayKey(): string {
   const now = new Date();
@@ -223,6 +224,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         AsyncStorage.setItem("tasbeeh_streak", appwriteStreak.toString()),
         AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
         AsyncStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(mergedHistory)),
+        AsyncStorage.setItem(TOTAL_GOAL_KEY, (resolvedGoal?.totalGoal ?? DEFAULT_TOTAL_GOAL).toString()),
       ]);
 
       if (
@@ -475,6 +477,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         AsyncStorage.setItem("tasbeeh_streak", currentStreak.toString()),
         AsyncStorage.setItem("tasbeeh_target", (goal?.dailyTarget ?? 100).toString()),
         AsyncStorage.setItem("tasbeeh_last_active_date", getTodayKey()),
+        AsyncStorage.setItem(TOTAL_GOAL_KEY, (goal?.totalGoal ?? DEFAULT_TOTAL_GOAL).toString()),
         AsyncStorage.setItem(
           DAILY_HISTORY_KEY,
           JSON.stringify(history)
@@ -604,6 +607,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       await Promise.all([
         AsyncStorage.setItem("tasbeeh_lifetime_total", plannerLifetime.toString()),
         AsyncStorage.setItem("tasbeeh_target", plannerDailyTarget.toString()),
+        AsyncStorage.setItem(TOTAL_GOAL_KEY, plannerTotalGoal.toString()),
       ]);
     } catch (error) {
       console.error("Failed to load planner data:", error);
@@ -637,6 +641,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       await Promise.all([
         AsyncStorage.setItem("tasbeeh_lifetime_total", plannerLifetime.toString()),
         AsyncStorage.setItem("tasbeeh_target", plannerDailyTarget.toString()),
+        AsyncStorage.setItem(TOTAL_GOAL_KEY, plannerTotalGoal.toString()),
       ]);
     } catch (error) {
       console.error("Failed to refresh planner data:", error);
@@ -651,6 +656,8 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         },
         userId
       );
+
+      await AsyncStorage.setItem("tasbeeh_target", newTarget.toString());
 
       const state = get();
       if (state.plannerData) {
@@ -676,6 +683,8 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         },
         userId
       );
+
+      await AsyncStorage.setItem(TOTAL_GOAL_KEY, newGoal.toString());
 
       const state = get();
       if (state.plannerData) {
@@ -759,6 +768,9 @@ async function persistLocalSnapshot(
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 365);
 
+  const state = useTasbeehStore.getState();
+  const totalGoal = state.plannerData?.totalGoal ?? DEFAULT_TOTAL_GOAL;
+
   await Promise.all([
     AsyncStorage.setItem("tasbeeh_count", data.count.toString()),
     AsyncStorage.setItem("tasbeeh_target", data.target.toString()),
@@ -766,6 +778,7 @@ async function persistLocalSnapshot(
     AsyncStorage.setItem("tasbeeh_streak", data.streak.toString()),
     AsyncStorage.setItem(LAST_ACTIVE_DATE_KEY, todayKey),
     AsyncStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(trimmedHistory)),
+    AsyncStorage.setItem(TOTAL_GOAL_KEY, totalGoal.toString()),
     AsyncStorage.setItem(
       PENDING_SYNC_KEY,
       JSON.stringify({
@@ -841,16 +854,18 @@ async function syncPendingState(
 }
 
 async function buildLocalProgressStats(): Promise<ProgressStats> {
-  const [targetStr, lifetimeStr, streakStr, history] = await Promise.all([
+  const [targetStr, lifetimeStr, streakStr, totalGoalStr, history] = await Promise.all([
     AsyncStorage.getItem("tasbeeh_target"),
     AsyncStorage.getItem("tasbeeh_lifetime_total"),
     AsyncStorage.getItem("tasbeeh_streak"),
+    AsyncStorage.getItem(TOTAL_GOAL_KEY),
     readDailyHistory(),
   ]);
 
   const target = targetStr ? parseInt(targetStr, 10) : 100;
   const lifetimeTotal = lifetimeStr ? parseInt(lifetimeStr, 10) : 0;
   const streak = streakStr ? parseInt(streakStr, 10) : 0;
+  const totalGoal = totalGoalStr ? parseInt(totalGoalStr, 10) : DEFAULT_TOTAL_GOAL;
   const todayRecord = history.find((record) => record.date === getTodayKey());
   const todaySessions = todayRecord?.sessions ?? [];
   const currentMonthHistory = history
@@ -860,7 +875,7 @@ async function buildLocalProgressStats(): Promise<ProgressStats> {
   const monthlyTotal = currentMonthHistory.reduce((sum, record) => sum + record.count, 0);
   const bestDay = currentMonthHistory.length > 0 ? Math.max(...currentMonthHistory.map((record) => record.count)) : 0;
   const averagePerDay = Math.round(monthlyTotal / getElapsedDaysInCurrentMonth());
-  const remainingGoal = Math.max(0, DEFAULT_TOTAL_GOAL - lifetimeTotal);
+  const remainingGoal = Math.max(0, totalGoal - lifetimeTotal);
   const estimatedDays = averagePerDay > 0 ? Math.ceil(remainingGoal / averagePerDay) : 0;
   const finishDate = new Date();
   finishDate.setDate(finishDate.getDate() + estimatedDays);
@@ -891,14 +906,15 @@ async function buildLocalProgressStats(): Promise<ProgressStats> {
 }
 
 async function buildLocalPlannerData(): Promise<PlannerData> {
-  const [targetStr, lifetimeStr] = await Promise.all([
+  const [targetStr, lifetimeStr, totalGoalStr] = await Promise.all([
     AsyncStorage.getItem("tasbeeh_target"),
     AsyncStorage.getItem("tasbeeh_lifetime_total"),
+    AsyncStorage.getItem(TOTAL_GOAL_KEY),
   ]);
 
   return {
     lifetimeTotal: lifetimeStr ? parseInt(lifetimeStr, 10) : 0,
-    totalGoal: DEFAULT_TOTAL_GOAL,
+    totalGoal: totalGoalStr ? parseInt(totalGoalStr, 10) : DEFAULT_TOTAL_GOAL,
     dailyTarget: targetStr ? parseInt(targetStr, 10) : DEFAULT_PLANNER_DAILY_TARGET,
   };
 }
