@@ -63,6 +63,7 @@ interface TasbeehActions {
     sessionRecord?: TasbeehService.SessionRecord
   ) => Promise<void>;
   reload: (userId?: string) => Promise<void>;
+  retryPendingSync: (userId?: string) => Promise<void>;
   reset: () => void;
   
   // Progress actions
@@ -159,7 +160,7 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
 
       if (!userId) {
         await loadFromAsyncStorage(set);
-        set({ loading: true });
+        return;
       }
 
       const [goal, todayProgress] = await Promise.all([
@@ -360,6 +361,22 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
   reload: async (userId?: string) => {
     set({ initialized: false });
     await get().loadData(userId);
+  },
+
+  retryPendingSync: async (userId?: string) => {
+    const pendingStr = await AsyncStorage.getItem(PENDING_SYNC_KEY);
+    if (!pendingStr) return;
+
+    const state = get();
+    const result = await syncPendingState(userId, {
+      count: state.count,
+      target: state.target,
+      lifetimeTotal: state.lifetimeTotal,
+      streak: state.streak,
+    });
+    if (result) {
+      set({ streak: result.streak, syncing: false });
+    }
   },
 
   reset: () => {

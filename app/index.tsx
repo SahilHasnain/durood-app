@@ -1,7 +1,9 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
+import { cacheAllDalailAssets } from "@/services/dalailAssetCache";
+import NetInfo from "@react-native-community/netinfo";
 import { Redirect } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 export default function Index() {
@@ -10,6 +12,18 @@ export default function Index() {
   const initializedUserId = useTasbeehStore((state) => state.initializedUserId);
   const loading = useTasbeehStore((state) => state.loading);
   const loadData = useTasbeehStore((state) => state.loadData);
+  const cacheStarted = useRef(false);
+
+  useEffect(() => {
+    if (!cacheStarted.current) {
+      cacheStarted.current = true;
+      NetInfo.fetch().then((state) => {
+        if (state.isConnected) {
+          cacheAllDalailAssets();
+        }
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;

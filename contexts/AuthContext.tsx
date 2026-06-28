@@ -1,6 +1,7 @@
 import { useClerk, useUser } from "@clerk/clerk-expo";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
-import React, { createContext, useContext } from "react";
+import NetInfo from "@react-native-community/netinfo";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface User {
     id: string;
@@ -22,8 +23,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user: clerkUser, isLoaded } = useUser();
     const { signOut } = useClerk();
+    const [clerkTimedOut, setClerkTimedOut] = useState(false);
 
-    console.log("🔍 AuthProvider - isLoaded:", isLoaded, "user:", clerkUser?.id || "null");
+    useEffect(() => {
+        if (isLoaded) return;
+
+        const unsubNetInfo = NetInfo.addEventListener((state) => {
+            if (state.isConnected === false) {
+                setClerkTimedOut(true);
+            }
+        });
+
+        const fallbackTimer = setTimeout(() => setClerkTimedOut(true), 8000);
+
+        return () => {
+            unsubNetInfo();
+            clearTimeout(fallbackTimer);
+        };
+    }, [isLoaded]);
+
+    console.log("🔍 AuthProvider - isLoaded:", isLoaded, "user:", clerkUser?.id || "null", "timedOut:", clerkTimedOut);
 
     // Transform Clerk user to our User interface
     const user: User | null = clerkUser
@@ -44,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthContext.Provider
             value={{
                 user,
-                loading: !isLoaded,
+                loading: !isLoaded && !clerkTimedOut,
                 isAuthenticated: !!clerkUser,
                 clerkUser,
                 logout,

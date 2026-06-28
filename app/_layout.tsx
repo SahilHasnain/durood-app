@@ -1,15 +1,39 @@
 import { AnimatedTabBar } from "@/components/AnimatedTabBar";
 import { theme } from "@/constants/theme";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
+import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { tokenCache } from "@/utils/tokenCache";
 import { ClerkProvider } from "@clerk/clerk-expo";
+import NetInfo from "@react-native-community/netinfo";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useEffect, useRef } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
+
+function AutoSyncOnReconnect() {
+  const { user } = useAuth();
+  const wasOfflineRef = useRef(false);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const connected = state.isConnected ?? true;
+      if (!connected) {
+        wasOfflineRef.current = true;
+      } else if (wasOfflineRef.current) {
+        wasOfflineRef.current = false;
+        useTasbeehStore.getState().retryPendingSync(user?.id);
+      }
+    });
+
+    return unsubscribe;
+  }, [user?.id]);
+
+  return null;
+}
 
 function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
@@ -165,6 +189,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <AuthProvider>
+            <AutoSyncOnReconnect />
             <TabBarVisibilityProvider tabBarHeight={68}>
               <StatusBar style="light" />
               <RootLayoutContent />
