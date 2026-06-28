@@ -402,6 +402,10 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         TasbeehService.getCurrentMonthHistory(userId),
       ]);
 
+      if (!goal && history.length === 0) {
+        throw new Error("No progress data from Appwrite");
+      }
+
       const lifetimeTotal = goal?.lifetimeTotal ?? 0;
       const currentStreak = goal?.currentStreak ?? 0;
       const longestStreak = goal?.longestStreak ?? 0;
@@ -577,6 +581,10 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       set({ plannerLoading: true });
 
       const goal = await TasbeehService.getUserGoal(userId);
+
+      if (!goal) {
+        throw new Error("No planner data from Appwrite");
+      }
 
       const plannerLifetime = goal?.lifetimeTotal ?? 0;
       const plannerTotalGoal = goal?.totalGoal ?? DEFAULT_TOTAL_GOAL;

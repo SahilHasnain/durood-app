@@ -34,6 +34,10 @@ import Svg, { Circle } from "react-native-svg";
 const TASBEEH_PROGRESS_COLOR = "#10b981";
 const DEFAULT_SESSION_GOAL = 33;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
+const SIGN_IN_MILESTONE = 20000;
+const SIGN_IN_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+const LAST_PROMPT_MILESTONE_KEY = "sign_in_last_prompt_milestone";
+const LAST_PROMPT_TIME_KEY = "sign_in_last_prompt_time";
 const SESSION_IMAGES = [
     require("@/assets/images/jalian-mubarak.jpg"),
     require("@/assets/images/gumbad.png"),
@@ -134,16 +138,40 @@ export default function Home() {
         };
     }, []);
 
+    const lastPromptedMilestone = useRef(0);
+
     useEffect(() => {
-        if (authLoading || isAuthenticated) return;
-        AsyncStorage.getItem("app_open_count").then((val) => {
-            const count = val ? parseInt(val, 10) : 0;
-            if (count >= 1) {
-                setShowSignInSheet(true);
+        if (!initialized) return;
+        AsyncStorage.getItem(LAST_PROMPT_MILESTONE_KEY).then((val) => {
+            if (val) {
+                lastPromptedMilestone.current = parseInt(val, 10);
+            } else {
+                const current = Math.floor(lifetimeTotal / SIGN_IN_MILESTONE);
+                lastPromptedMilestone.current = current;
+                AsyncStorage.setItem(LAST_PROMPT_MILESTONE_KEY, String(current));
             }
-            AsyncStorage.setItem("app_open_count", String(count + 1));
         });
-    }, [authLoading, isAuthenticated]);
+    }, [initialized]);
+
+    useEffect(() => {
+        if (authLoading || isAuthenticated || !initialized) return;
+        if (lifetimeTotal < SIGN_IN_MILESTONE) return;
+
+        const currentMilestone = Math.floor(lifetimeTotal / SIGN_IN_MILESTONE);
+        if (currentMilestone <= lastPromptedMilestone.current) return;
+
+        AsyncStorage.getItem(LAST_PROMPT_TIME_KEY).then((timeStr) => {
+            const lastTime = timeStr ? parseInt(timeStr, 10) : 0;
+            if (Date.now() - lastTime < SIGN_IN_COOLDOWN_MS) return;
+
+            setShowSignInSheet(true);
+            lastPromptedMilestone.current = currentMilestone;
+            AsyncStorage.multiSet([
+                [LAST_PROMPT_MILESTONE_KEY, String(currentMilestone)],
+                [LAST_PROMPT_TIME_KEY, String(Date.now())],
+            ]);
+        });
+    }, [authLoading, isAuthenticated, initialized, lifetimeTotal]);
 
     useEffect(() => {
         if (!sessionActive || sessionPaused || !sessionStartedAt) return;
