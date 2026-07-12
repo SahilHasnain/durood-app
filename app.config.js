@@ -13,12 +13,12 @@ const getUniqueIdentifier = () => {
 
 const getAppName = () => {
   if (IS_DEV) {
-    return "Durood e Pak (Dev)";
+    return "Durood Time (Dev)";
   }
   if (IS_PREVIEW) {
-    return "Durood e Pak (Preview)";
+    return "Durood Time (Preview)";
   }
-  return "Durood e Pak";
+  return "Durood Time";
 };
 
 export default {
@@ -47,7 +47,7 @@ export default {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: getUniqueIdentifier(),
-      versionCode: 13,
+      versionCode: 14,
     },
     web: {
       bundler: "metro",

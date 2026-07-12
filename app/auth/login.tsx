@@ -115,7 +115,7 @@ export default function Login() {
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.header}>
-                    <Text style={styles.title}>Welcome to Durood</Text>
+                    <Text style={styles.title}>Welcome to Durood Time</Text>
                     <Text style={styles.subtitle}>
                         Sign in to sync your progress across devices
                     </Text>

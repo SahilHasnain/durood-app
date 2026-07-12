@@ -36,7 +36,7 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
                 contentFit="cover"
               />
             </View>
-            <Text style={styles.title}>Durood e Pak</Text>
+            <Text style={styles.title}>Durood Time</Text>
           </View>
           <Pressable
             accessibilityRole="button"
