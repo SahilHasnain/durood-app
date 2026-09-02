@@ -19,6 +19,8 @@ import {
   Text,
   View,
   ViewToken,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { withTiming } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -130,12 +132,15 @@ export default function Index() {
     seenShortIds,
   });
   const { translateY: tabBarTranslateY, tabBarHeight } = useTabBarVisibility();
+  const { width } = useWindowDimensions();
+  const isDesktopWeb = Platform.OS === "web" && width >= 1200;
   const [activeIndex, setActiveIndex] = React.useState(0);
   const flatListRef = useRef<FlatList>(null);
   const watchProgressRef = useRef<Map<string, number>>(new Map());
 
   useFocusEffect(
     useCallback(() => {
+      if (isDesktopWeb) return;
       tabBarTranslateY.value = withTiming(tabBarHeight + 50, {
         duration: 300,
       });
@@ -146,7 +151,7 @@ export default function Index() {
         });
         setActiveIndex(-1);
       };
-    }, [tabBarTranslateY, tabBarHeight])
+    }, [isDesktopWeb, tabBarTranslateY, tabBarHeight])
   );
 
   const handleWatchProgress = useCallback(

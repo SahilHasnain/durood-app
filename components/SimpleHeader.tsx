@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
@@ -17,6 +17,8 @@ interface SimpleHeaderProps {
 export function SimpleHeader({ translateY }: SimpleHeaderProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isDesktop = Platform.OS === "web" && width >= 1200;
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -26,7 +28,13 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      <View style={[styles.content, { paddingTop: insets.top + 12 }]}>
+      <View
+        style={[
+          styles.content,
+          isDesktop && styles.desktopContent,
+          { paddingTop: isDesktop ? 20 : insets.top + 12 },
+        ]}
+      >
         <View style={styles.headerRow}>
           <View style={styles.logoContainer}>
             <View style={styles.logoWrapper}>
@@ -66,6 +74,10 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingBottom: 12,
+  },
+  desktopContent: {
+    paddingHorizontal: 32,
+    paddingBottom: 16,
   },
   headerRow: {
     flexDirection: "row",

@@ -12,7 +12,7 @@ import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -52,6 +52,8 @@ export default function DalailScreen() {
     const router = useRouter();
     const headerTranslateY = useSharedValue(0);
     const { tabBarHeight } = useTabBarVisibility();
+    const { width } = useWindowDimensions();
+    const isDesktopWeb = Platform.OS === "web" && width >= 1200;
     const { progress, isLoaded, isWirdCompleteToday } = useDalailProgress();
     const { bookmarks } = useDalailBookmarks();
     const todaySections = getTodayDalailSections();
@@ -89,6 +91,7 @@ export default function DalailScreen() {
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
+                    isDesktopWeb && styles.desktopScrollContent,
                     { paddingTop: HEADER_HEIGHT + 8, paddingBottom: tabBarHeight + 48 },
                 ]}
                 showsVerticalScrollIndicator={false}
@@ -195,6 +198,12 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 16,
         gap: 16,
+    },
+    desktopScrollContent: {
+        width: "100%",
+        maxWidth: 1040,
+        alignSelf: "center",
+        paddingHorizontal: 32,
     },
     heroCard: {
         borderRadius: 28,

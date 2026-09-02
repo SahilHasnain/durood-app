@@ -18,6 +18,7 @@ import {
     Image,
     Keyboard,
     Modal,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -86,7 +87,8 @@ export default function Home() {
 
     const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
     const insets = useSafeAreaInsets();
-    const { height: windowHeight } = useWindowDimensions();
+    const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+    const isDesktopWeb = Platform.OS === "web" && windowWidth >= 1200;
     const headerTranslateY = useSharedValue(0);
 
     const progress = target > 0 ? ((count % target) / target) * 100 : 0;
@@ -437,9 +439,16 @@ export default function Home() {
 
     if (sessionActive) {
         return (
-            <SafeAreaView style={styles.sessionContainer} edges={["top", "bottom"]}>
+            <SafeAreaView
+                style={[styles.sessionContainer, isDesktopWeb && styles.desktopSessionContainer]}
+                edges={["top", "bottom"]}
+            >
                 <View
-                    style={[styles.sessionImageArea, { height: sessionImageHeight }]}
+                    style={[
+                        styles.sessionImageArea,
+                        { height: sessionImageHeight },
+                        isDesktopWeb && styles.desktopSessionImageArea,
+                    ]}
                 >
                     <Image
                         source={SESSION_IMAGES[sessionImageIndex]}
@@ -457,11 +466,24 @@ export default function Home() {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.sessionHeader}>
-                    <Text style={styles.sessionTimer}>{formatDuration(sessionElapsedSeconds)}</Text>
-                </View>
+                <View style={isDesktopWeb ? styles.desktopSessionContent : styles.mobileSessionContent}>
+                    {isDesktopWeb && (
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Return to Home"
+                            onPress={endSession}
+                            style={styles.sessionBackButton}
+                        >
+                            <Ionicons name="arrow-back" size={18} color={theme.colors.text.primary} />
+                            <Text style={styles.sessionBackText}>Back to Home</Text>
+                        </TouchableOpacity>
+                    )}
 
-                <Pressable style={styles.sessionTapArea} onPress={addToSession}>
+                    <View style={styles.sessionHeader}>
+                        <Text style={styles.sessionTimer}>{formatDuration(sessionElapsedSeconds)}</Text>
+                    </View>
+
+                    <Pressable style={styles.sessionTapArea} onPress={addToSession}>
                     <View style={styles.sessionRing}>
                         <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
                             <Circle
@@ -497,9 +519,9 @@ export default function Home() {
                             </Text>
                         </View>
                     </View>
-                </Pressable>
+                    </Pressable>
 
-                <View style={styles.sessionActions}>
+                    <View style={styles.sessionActions}>
                     <TouchableOpacity
                         onPress={() => {
                             setSessionGoalInput(effectiveSessionGoal.toString());
@@ -517,6 +539,7 @@ export default function Home() {
                             Focus {formatNumber(effectiveSessionGoal)}
                         </Text>
                     </TouchableOpacity>
+                    </View>
                 </View>
 
                 {showSessionGoalSheet && (
@@ -562,12 +585,13 @@ export default function Home() {
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
+                    isDesktopWeb && styles.desktopScrollContent,
                     { paddingTop: HEADER_HEIGHT + 8, paddingBottom: tabBarHeight + 80 },
                 ]}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Summary Card */}
-                <View style={styles.summaryCard}>
+                <View style={[styles.summaryCard, isDesktopWeb && styles.desktopSummaryCard]}>
                     <View style={styles.summaryRow}>
                         <View style={styles.summaryItem}>
                             <View style={styles.summaryIconWrap}>
@@ -607,7 +631,7 @@ export default function Home() {
                 </View>
 
                 {/* Counter and Actions Group */}
-                <View style={styles.bottomGroup}>
+                <View style={[styles.bottomGroup, isDesktopWeb && styles.desktopBottomGroup]}>
                     {/* Counter Ring */}
                     <TouchableOpacity activeOpacity={0.85} onPress={beginSession} style={styles.counterContainer}>
                         <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
@@ -780,9 +804,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         justifyContent: "space-between",
     },
+    desktopScrollContent: {
+        width: "100%",
+        maxWidth: 1200,
+        alignSelf: "center",
+        paddingHorizontal: 32,
+    },
     bottomGroup: {
         width: "100%",
         alignItems: "center",
+    },
+    desktopBottomGroup: {
+        maxWidth: 680,
+        alignSelf: "center",
     },
     summaryCard: {
         width: "100%",
@@ -793,6 +827,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
         gap: 8,
+    },
+    desktopSummaryCard: {
+        flexDirection: "row",
+        gap: 12,
+        padding: 8,
     },
     summaryRow: {
         flexDirection: "row",
@@ -952,6 +991,41 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.background.primary,
         justifyContent: "space-between",
         paddingHorizontal: 24,
+    },
+    desktopSessionContainer: {
+        flexDirection: "row",
+        paddingHorizontal: 0,
+    },
+    desktopSessionImageArea: {
+        width: "48%",
+        height: "100%",
+        marginHorizontal: 0,
+    },
+    desktopSessionContent: {
+        flex: 1,
+        minWidth: 0,
+        alignItems: "center",
+        paddingHorizontal: 40,
+        paddingTop: 24,
+        paddingBottom: 20,
+    },
+    mobileSessionContent: {
+        flex: 1,
+    },
+    sessionBackButton: {
+        alignSelf: "flex-start",
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        backgroundColor: "rgba(255,255,255,0.08)",
+    },
+    sessionBackText: {
+        color: theme.colors.text.primary,
+        fontSize: 14,
+        fontWeight: "600",
     },
     sessionImageArea: {
         marginHorizontal: -24,

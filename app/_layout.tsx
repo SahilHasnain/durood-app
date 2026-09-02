@@ -11,6 +11,7 @@ import { Tabs } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect, useRef } from "react";
+import { Platform, useWindowDimensions, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 
@@ -37,16 +38,19 @@ function AutoSyncOnReconnect() {
 
 function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
+  const { width } = useWindowDimensions();
+  const isDesktopWeb = Platform.OS === "web" && width >= 1200;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary.main,
-        tabBarInactiveTintColor: theme.colors.text.secondary,
-      }}
-      tabBar={(props) => <AnimatedTabBar {...props} translateY={translateY} />}
-    >
+    <View style={[{ flex: 1 }, isDesktopWeb && { paddingLeft: 232 }]}>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: theme.colors.primary.main,
+          tabBarInactiveTintColor: theme.colors.text.secondary,
+        }}
+        tabBar={(props) => <AnimatedTabBar {...props} translateY={translateY} />}
+      >
       <Tabs.Screen
         name="home"
         options={{
@@ -174,7 +178,8 @@ function RootLayoutContent() {
           href: null,
         }}
       />
-    </Tabs>
+      </Tabs>
+    </View>
   );
 }
 

@@ -23,6 +23,8 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
+  useWindowDimensions,
 } from "react-native";
 import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -48,6 +50,9 @@ export default function FazilatScreen() {
   const lastDirection = useRef<"up" | "down">("up");
 
   const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
+  const { width } = useWindowDimensions();
+  const isDesktopWeb = Platform.OS === "web" && width >= 1200;
+  const columnCount = isDesktopWeb ? 3 : Platform.OS === "web" && width >= 768 ? 2 : 1;
 
   const { videos, loading, error, hasMore, loadMore, refresh } = useDuroodVideos();
   const [progressData, setProgressData] = useState<Record<string, VideoProgress>>({});
@@ -180,19 +185,25 @@ export default function FazilatScreen() {
       const progressPercentage = prog ? prog.percentage : undefined;
 
       return (
-        <VideoCard
-          video={item}
-          onPress={() => handleVideoPress(item)}
-          progressPercentage={progressPercentage}
-        />
+        <View style={columnCount > 1 ? styles.gridItem : undefined}>
+          <VideoCard
+            video={item}
+            onPress={() => handleVideoPress(item)}
+            progressPercentage={progressPercentage}
+          />
+        </View>
       );
     },
-    [handleVideoPress, progressData],
+    [columnCount, handleVideoPress, progressData],
   );
 
   const renderEntry = useCallback(
-    ({ item }: { item: FazilatEntry }) => <FazilatCard entry={item} />,
-    [],
+      ({ item }: { item: FazilatEntry }) => (
+        <View style={columnCount > 1 ? styles.gridItem : undefined}>
+          <FazilatCard entry={item} grid={columnCount > 1} />
+        </View>
+      ),
+      [columnCount],
   );
 
   const renderVideoFooter = () => {
@@ -288,7 +299,9 @@ export default function FazilatScreen() {
           renderItem={renderEntry}
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.contentContainer}
+           contentContainerStyle={styles.contentContainer}
+           numColumns={columnCount}
+           columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderFazilatEmpty}
           ListFooterComponent={<View style={{ height: tabBarHeight + 40 }} />}
@@ -313,7 +326,9 @@ export default function FazilatScreen() {
             renderItem={renderVideo}
             keyExtractor={(item) => item.$id}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.contentContainer, { paddingBottom: 120 }]}
+             contentContainerStyle={[styles.contentContainer, { paddingBottom: 120 }]}
+             numColumns={columnCount}
+             columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderVideoEmpty}
           ListFooterComponent={renderVideoFooter}
@@ -352,6 +367,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingTop: 88,
     paddingBottom: 40,
+    paddingHorizontal: 16,
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 1200,
+  },
+  columnWrapper: {
+    gap: 20,
+  },
+  gridItem: {
+    flex: 1,
+    minWidth: 0,
   },
   segmentContainer: {
     paddingHorizontal: 16,

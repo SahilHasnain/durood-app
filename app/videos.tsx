@@ -16,6 +16,8 @@ import {
     StyleSheet,
     Text,
     View,
+    Platform,
+    useWindowDimensions,
 } from "react-native";
 import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -38,6 +40,9 @@ export default function HomeScreen() {
     const lastDirection = React.useRef<"up" | "down">("up");
 
     const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
+    const { width } = useWindowDimensions();
+    const isDesktopWeb = Platform.OS === "web" && width >= 1200;
+    const columnCount = isDesktopWeb ? 3 : Platform.OS === "web" && width >= 768 ? 2 : 1;
 
     // Load progress data
     React.useEffect(() => {
@@ -145,14 +150,16 @@ export default function HomeScreen() {
             const progressPercentage = progress ? progress.percentage : undefined;
 
             return (
-                <VideoCard
-                    video={item}
-                    onPress={() => handleVideoPress(item)}
-                    progressPercentage={progressPercentage}
-                />
+                <View style={columnCount > 1 ? styles.gridItem : undefined}>
+                    <VideoCard
+                        video={item}
+                        onPress={() => handleVideoPress(item)}
+                        progressPercentage={progressPercentage}
+                    />
+                </View>
             );
         },
-        [handleVideoPress, progressData]
+        [columnCount, handleVideoPress, progressData]
     );
 
     const renderFooter = () => {
@@ -197,6 +204,8 @@ export default function HomeScreen() {
                 keyExtractor={(item) => item.$id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.contentContainer}
+                numColumns={columnCount}
+                columnWrapperStyle={columnCount > 1 ? styles.columnWrapper : undefined}
                 ListEmptyComponent={renderEmpty}
                 ListFooterComponent={renderFooter}
                 onEndReached={() => {
@@ -233,6 +242,17 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         paddingTop: 88,
         paddingBottom: 120,
+        paddingHorizontal: 16,
+        alignSelf: "center",
+        width: "100%",
+        maxWidth: 1200,
+    },
+    columnWrapper: {
+        gap: 20,
+    },
+    gridItem: {
+        flex: 1,
+        minWidth: 0,
     },
     emptyContainer: {
         height: SCREEN_HEIGHT - 200,

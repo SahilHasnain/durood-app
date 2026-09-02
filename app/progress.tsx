@@ -6,7 +6,7 @@ import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -37,6 +37,8 @@ export default function Progress() {
     const { tabBarHeight, showTabBar } = useTabBarVisibility();
     const { user } = useAuth();
     const headerTranslateY = useSharedValue(0);
+    const { width } = useWindowDimensions();
+    const isDesktopWeb = Platform.OS === "web" && width >= 1200;
 
     const progressStats = useTasbeehStore((state) => state.progressStats);
     const progressLoading = useTasbeehStore((state) => state.progressLoading);
@@ -88,6 +90,7 @@ export default function Progress() {
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
+                    isDesktopWeb && styles.desktopScrollContent,
                     { paddingTop: HEADER_HEIGHT + 8, paddingBottom: tabBarHeight + 48 },
                 ]}
                 showsVerticalScrollIndicator={false}
@@ -141,7 +144,8 @@ export default function Progress() {
                     </View>
                 </View>
 
-                <View style={styles.card}>
+                <View style={isDesktopWeb ? styles.desktopCardRow : undefined}>
+                <View style={[styles.card, isDesktopWeb && styles.desktopHalfCard]}>
                     <Text style={styles.sectionTitle}>Today</Text>
                     <View style={styles.todayRow}>
                         <View>
@@ -159,7 +163,7 @@ export default function Progress() {
                     </View>
                 </View>
 
-                <View style={styles.card}>
+                <View style={[styles.card, isDesktopWeb && styles.desktopChartCard]}>
                     <View style={styles.chartHeader}>
                         <Text style={styles.sectionTitle}>This Month</Text>
                         <View style={styles.chipRow}>
@@ -175,8 +179,9 @@ export default function Progress() {
                         </View>
                     )}
                 </View>
+                </View>
 
-                <View style={styles.finishCard}>
+                <View style={[styles.finishCard, isDesktopWeb && styles.desktopFinishCard]}>
                     <Text style={styles.finishLabel}>Time Left at This Pace</Text>
                     <Text style={styles.finishValue}>{progressStats.estimatedFinishDistance}</Text>
                     <Text style={styles.finishSub}>Estimated completion: {progressStats.estimatedFinishDate}</Text>
@@ -207,6 +212,25 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 16,
         gap: 16,
+    },
+    desktopScrollContent: {
+        width: "100%",
+        maxWidth: 1200,
+        alignSelf: "center",
+        paddingHorizontal: 32,
+    },
+    desktopCardRow: {
+        flexDirection: "row" as const,
+        gap: 16,
+    },
+    desktopHalfCard: {
+        flex: 1,
+    },
+    desktopChartCard: {
+        flex: 1,
+    },
+    desktopFinishCard: {
+        width: "100%",
     },
     summaryCard: {
         borderRadius: 28,

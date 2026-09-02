@@ -6,7 +6,7 @@ import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -15,6 +15,8 @@ export default function Profile() {
     const { user, isAuthenticated, logout } = useAuth();
     const { startSSOFlow } = useSSO();
     const [submitting, setSubmitting] = useState(false);
+    const { width } = useWindowDimensions();
+    const isDesktopWeb = Platform.OS === "web" && width >= 1200;
 
     const redirectUrl = useMemo(
         () =>
@@ -66,7 +68,7 @@ export default function Profile() {
     if (!isAuthenticated) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
-                <View style={styles.notAuthContainer}>
+                <View style={[styles.notAuthContainer, isDesktopWeb && styles.desktopProfileContent]}>
                     <Ionicons name="person-circle-outline" size={80} color={theme.colors.text.tertiary} />
                     <Text style={styles.notAuthTitle}>Not Signed In</Text>
                     <Text style={styles.notAuthText}>
@@ -93,7 +95,7 @@ export default function Profile() {
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
-            <View style={styles.content}>
+            <View style={[styles.content, isDesktopWeb && styles.desktopProfileContent]}>
                 <View style={styles.header}>
                     <View style={styles.avatarContainer}>
                         <Ionicons name="person-circle" size={80} color={theme.colors.primary.main} />
@@ -120,6 +122,11 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 20,
         paddingVertical: 24,
+    },
+    desktopProfileContent: {
+        width: "100%",
+        maxWidth: 560,
+        alignSelf: "center",
     },
     notAuthContainer: {
         flex: 1,

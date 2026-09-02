@@ -114,6 +114,7 @@ export default function Login() {
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
             >
+                <View style={styles.formWidth}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Welcome to Durood Time</Text>
                     <Text style={styles.subtitle}>
@@ -151,10 +152,11 @@ export default function Login() {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.footer}>
+                <View style={[styles.footer, styles.formWidth]}>
                     <Text style={styles.footerText}>
                         By continuing, you agree to our Terms of Service and Privacy Policy
                     </Text>
+                </View>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -176,6 +178,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         paddingHorizontal: 24,
         paddingVertical: 40,
+    },
+    formWidth: {
+        width: "100%",
+        maxWidth: 480,
+        alignSelf: "center",
     },
     header: {
         marginBottom: 48,

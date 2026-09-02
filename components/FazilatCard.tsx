@@ -5,11 +5,12 @@ import { StyleSheet, Text, View } from "react-native";
 
 interface FazilatCardProps {
   entry: FazilatEntry;
+  grid?: boolean;
 }
 
-export const FazilatCard: React.FC<FazilatCardProps> = ({ entry }) => {
+export const FazilatCard: React.FC<FazilatCardProps> = ({ entry, grid = false }) => {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, grid && styles.gridCard]}>
       <View style={styles.accentLine} />
       <View style={styles.content}>
         <Text style={styles.title}>{entry.title}</Text>
@@ -35,6 +36,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
     overflow: "hidden",
+  },
+  gridCard: {
+    marginHorizontal: 0,
+    flex: 1,
   },
   accentLine: {
     width: 4,

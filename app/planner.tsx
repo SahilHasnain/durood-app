@@ -14,6 +14,8 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    Platform,
+    useWindowDimensions,
 } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -95,6 +97,8 @@ export default function Planner() {
     const { tabBarHeight, showTabBar } = useTabBarVisibility();
     const { user } = useAuth();
     const headerTranslateY = useSharedValue(0);
+    const { width } = useWindowDimensions();
+    const isDesktopWeb = Platform.OS === "web" && width >= 1200;
 
     const plannerData = useTasbeehStore((state) => state.plannerData);
     const plannerLoading = useTasbeehStore((state) => state.plannerLoading);
@@ -196,12 +200,13 @@ export default function Planner() {
                 style={styles.scrollView}
                 contentContainerStyle={[
                     styles.scrollContent,
+                    isDesktopWeb && styles.desktopScrollContent,
                     { paddingTop: HEADER_HEIGHT + 8, paddingBottom: tabBarHeight + 64 },
                 ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                <View style={styles.card}>
+                <View style={[styles.card, isDesktopWeb && styles.desktopCard]}>
                     <Text style={styles.sectionTitle}>Goal</Text>
                     <View style={styles.presetRow}>
                         {GOAL_PRESETS.map((preset) => (
@@ -226,7 +231,7 @@ export default function Planner() {
                     />
                 </View>
 
-                <View style={styles.card}>
+                <View style={[styles.card, isDesktopWeb && styles.desktopCard]}>
                     <Text style={styles.sectionTitle}>Build Plan</Text>
                     <View style={styles.modeToggle}>
                         <TouchableOpacity
@@ -291,7 +296,7 @@ export default function Planner() {
                     )}
                 </View>
 
-                <View style={styles.previewCard}>
+                <View style={[styles.previewCard, isDesktopWeb && styles.desktopPreviewCard]}>
                     <View style={styles.previewHeader}>
                         <Text style={styles.previewTitle}>Impact Preview</Text>
                         <TouchableOpacity style={styles.hintButton} onPress={showImpactHint} activeOpacity={0.75}>
@@ -350,6 +355,19 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 16,
         gap: 16,
+    },
+    desktopScrollContent: {
+        width: "100%",
+        maxWidth: 920,
+        alignSelf: "center",
+        paddingHorizontal: 32,
+    },
+    desktopCard: {
+        borderRadius: 20,
+    },
+    desktopPreviewCard: {
+        borderRadius: 20,
+        padding: 24,
     },
     card: {
         borderRadius: 24,

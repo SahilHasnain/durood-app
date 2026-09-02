@@ -24,23 +24,25 @@ import {
     Text,
     TextInput,
     View,
+    Platform,
+    useWindowDimensions,
     type ViewToken,
 } from "react-native";
 import { withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const IMAGE_WIDTH = SCREEN_WIDTH;
-const IMAGE_HEIGHT = IMAGE_WIDTH / 0.68;
 
 function DalailReaderPage({
     page,
     onZoomChange,
     headerOffset,
+    viewportWidth,
 }: {
     page: number;
     onZoomChange: (isZoomed: boolean) => void;
     headerOffset: number;
+    viewportWidth: number;
 }) {
     const { asset, isLoading } = useResolvedDalailPage(page);
     const [hasLoadError, setHasLoadError] = useState(false);
@@ -54,8 +56,8 @@ function DalailReaderPage({
             <View style={[styles.pageSurface, { paddingTop: headerOffset }]}> 
                 <DalailZoomableImage
                     source={asset.source}
-                    width={IMAGE_WIDTH}
-                    height={IMAGE_HEIGHT}
+                    width={Math.min(viewportWidth, 760)}
+                    height={Math.min(viewportWidth, 760) / 0.68}
                     onZoomChange={onZoomChange}
                     onError={() => setHasLoadError(true)}
                 />
@@ -80,6 +82,8 @@ export default function DalailReaderScreen() {
     const router = useRouter();
     const params = useLocalSearchParams<{ page?: string }>();
     const insets = useSafeAreaInsets();
+    const { width: viewportWidth } = useWindowDimensions();
+    const isDesktopWeb = Platform.OS === "web" && viewportWidth >= 1200;
     const { translateY: tabBarTranslateY, tabBarHeight } = useTabBarVisibility();
     const initialPage = clampDalailPage(Number(params.page ?? 1) || 1);
     const pages = useRef(Array.from({ length: DALAIL_ASSET_MANIFEST.totalPages }, (_, index) => index + 1)).current;
@@ -101,7 +105,7 @@ export default function DalailReaderScreen() {
     const currentBookmarked = isBookmarked(currentPage);
     const currentWirdComplete = isWirdCompleteToday(currentSection.id);
     const bookProgress = (currentPage / DALAIL_ASSET_MANIFEST.totalPages) * 100;
-    const headerOffset = insets.top + 60;
+    const headerOffset = (isDesktopWeb ? 0 : insets.top) + 60;
 
     const closeReader = useCallback(() => {
         router.replace("/dalail" as never);
@@ -178,7 +182,8 @@ export default function DalailReaderScreen() {
                     <DalailReaderPage
                         page={item}
                         onZoomChange={setIsZoomed}
-                        headerOffset={headerOffset}
+                         headerOffset={headerOffset}
+                         viewportWidth={viewportWidth}
                     />
                 )}
                 horizontal
@@ -194,7 +199,13 @@ export default function DalailReaderScreen() {
                 }}
             />
 
-            <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}> 
+            <View
+                style={[
+                    styles.topBar,
+                    isDesktopWeb && styles.desktopReaderBar,
+                    { paddingTop: isDesktopWeb ? 12 : insets.top + 8 },
+                ]}
+            >
                 <Pressable style={styles.iconButton} onPress={closeReader}>
                     <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
                 </Pressable>
@@ -209,7 +220,13 @@ export default function DalailReaderScreen() {
                 </Pressable>
             </View>
 
-            <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}> 
+            <View
+                style={[
+                    styles.bottomBar,
+                    isDesktopWeb && styles.desktopBottomBar,
+                    { paddingBottom: insets.bottom + 16 },
+                ]}
+            >
                 <View style={styles.footerMetaRow}>
                     <View style={styles.footerTextWrap}>
                         <Text style={styles.footerMeta} numberOfLines={1}>
@@ -318,6 +335,12 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: "rgba(255,255,255,0.08)",
     },
+    desktopReaderBar: {
+        maxWidth: 820,
+        alignSelf: "center",
+        width: "100%",
+        backgroundColor: "rgba(0,0,0,0.92)",
+    },
     iconButton: {
         width: 40,
         height: 40,
@@ -350,6 +373,12 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0,0,0,0.86)",
         borderTopWidth: 1,
         borderTopColor: "rgba(255,255,255,0.08)",
+    },
+    desktopBottomBar: {
+        maxWidth: 820,
+        alignSelf: "center",
+        width: "100%",
+        backgroundColor: "rgba(0,0,0,0.92)",
     },
     footerMetaRow: {
         flexDirection: "row",
