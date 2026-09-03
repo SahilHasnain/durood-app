@@ -36,7 +36,7 @@ export default function AdminPage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 rounded-3xl border border-white/10 bg-gradient-to-br from-sky-500/12 via-cyan-500/6 to-transparent p-8">
             <p className="mb-3 text-xs uppercase tracking-[0.22em] text-cyan-300/70">
-              Durood Admin
+              Durood Moments Admin
             </p>
             <h1 className="max-w-3xl text-4xl font-semibold tracking-tight">
               Operations console for ingesting and maintaining the durood video catalog.

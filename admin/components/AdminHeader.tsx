@@ -19,7 +19,7 @@ export default function AdminHeader() {
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 md:px-8 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <Link href="/" className="text-lg font-semibold tracking-tight text-white">
-            Durood Admin
+            Durood Moments Admin
           </Link>
           <p className="mt-1 text-xs uppercase tracking-[0.18em] text-sky-300/70">
             Internal Workspace

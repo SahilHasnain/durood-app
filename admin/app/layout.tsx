@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Durood Admin",
+  title: "Durood Moments Admin",
   description: "Admin panel for managing the durood-app database and upload pipeline",
 };
 

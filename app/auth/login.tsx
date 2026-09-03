@@ -59,7 +59,7 @@ export default function Login() {
             >
                 <View style={styles.formWidth}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Welcome to Durood Time</Text>
+                    <Text style={styles.title}>Welcome to Durood Moments</Text>
                     <Text style={styles.subtitle}>
                         Sign in to sync your progress across devices
                     </Text>

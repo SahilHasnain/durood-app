@@ -26,20 +26,28 @@ export default function Profile() {
         }
     }, [signInWithGoogle]);
 
+    const executeLogout = async () => {
+        try {
+            await logout();
+        } catch (error) {
+            console.error("Sign out failed:", error);
+            Alert.alert("Sign Out Failed", "Could not sign out. Please try again.");
+        }
+    };
+
     const handleLogout = () => {
+        // Alert button callbacks are not supported consistently by Expo Web.
+        if (Platform.OS === "web") {
+            void executeLogout();
+            return;
+        }
+
         Alert.alert("Sign Out", "Do you want to sign out of this account?", [
             { text: "Cancel", style: "cancel" },
             {
                 text: "Sign Out",
                 style: "destructive",
-                onPress: async () => {
-                    try {
-                        await logout();
-                    } catch (error) {
-                        console.error("Sign out failed:", error);
-                        Alert.alert("Sign Out Failed", "Could not sign out. Please try again.");
-                    }
-                },
+                onPress: executeLogout,
             },
         ]);
     };

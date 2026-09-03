@@ -84,7 +84,7 @@ export function AnimatedTabBar({
                         <Text style={styles.desktopLogoText}>D</Text>
                     </View>
                     <View>
-                        <Text style={styles.desktopBrandTitle}>Durood Time</Text>
+                        <Text style={styles.desktopBrandTitle}>Durood Moments</Text>
                         <Text style={styles.desktopBrandSubtitle}>Your daily salawat</Text>
                     </View>
                 </View>

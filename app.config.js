@@ -13,12 +13,12 @@ const getUniqueIdentifier = () => {
 
 const getAppName = () => {
   if (IS_DEV) {
-    return "Durood Time (Dev)";
+    return "Durood Moments (Dev)";
   }
   if (IS_PREVIEW) {
-    return "Durood Time (Preview)";
+    return "Durood Moments (Preview)";
   }
-  return "Durood Time";
+  return "Durood Moments";
 };
 
 export default {

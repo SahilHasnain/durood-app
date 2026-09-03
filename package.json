@@ -17,7 +17,9 @@
     "add:channel": "node scripts/add-channel.js",
     "ingest:videos": "node scripts/ingest-videos.js",
     "upload:video": "node scripts/upload-video.js",
-    "prebuild": "npx expo prebuild"
+    "prebuild": "npx expo prebuild",
+    "export": "npx expo export --platform web",
+    "deploy": "eas deploy --production"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
