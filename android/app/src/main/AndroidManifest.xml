@@ -26,6 +26,7 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="duroodapp"/>
         <data android:scheme="exp+durood-e-pak"/>
+        <data android:scheme="appwrite-callback-6946f98a001db8a3ab3a"/>
       </intent-filter>
     </activity>
   </application>
