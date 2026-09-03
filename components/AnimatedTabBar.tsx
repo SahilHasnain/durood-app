@@ -25,7 +25,7 @@ export function AnimatedTabBar({
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: isDesktop
-            ? [{ translateX: translateY.value > 0 ? -DESKTOP_NAV_WIDTH : 0 }]
+            ? [{ translateX: 0 }]
             : [{ translateY: translateY.value }],
     }));
 
