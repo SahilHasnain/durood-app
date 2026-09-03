@@ -1,47 +1,21 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSSO } from "@clerk/clerk-expo";
-import * as AuthSession from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-WebBrowser.maybeCompleteAuthSession();
-
 export default function Profile() {
-    const { user, isAuthenticated, logout, signInWithGoogle, authProvider } = useAuth();
-    const { startSSOFlow } = useSSO();
+    const { user, isAuthenticated, logout, signInWithGoogle } = useAuth();
     const [submitting, setSubmitting] = useState(false);
     const { width } = useWindowDimensions();
     const isDesktopWeb = Platform.OS === "web" && width >= 1200;
-
-    const redirectUrl = useMemo(
-        () =>
-            AuthSession.makeRedirectUri({
-                scheme: "duroodapp",
-                path: "auth/continue",
-            }),
-        []
-    );
 
     const handleGoogleSignIn = useCallback(async () => {
         try {
             setSubmitting(true);
 
-            if (authProvider === "appwrite") {
-                await signInWithGoogle();
-                return;
-            }
-
-            const { createdSessionId, setActive } = await startSSOFlow({
-                strategy: "oauth_google",
-                redirectUrl,
-            });
-            if (createdSessionId && setActive) {
-                await setActive({ session: createdSessionId });
-            }
+            await signInWithGoogle();
         } catch (err: any) {
             Alert.alert(
                 "Sign In Failed",
@@ -50,7 +24,7 @@ export default function Profile() {
         } finally {
             setSubmitting(false);
         }
-    }, [authProvider, redirectUrl, signInWithGoogle, startSSOFlow]);
+    }, [signInWithGoogle]);
 
     const handleLogout = () => {
         Alert.alert("Sign Out", "Do you want to sign out of this account?", [

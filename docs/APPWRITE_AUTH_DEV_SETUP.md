@@ -1,6 +1,6 @@
 # Appwrite Google Auth Development Test
 
-The app is temporarily hardcoded to Appwrite authentication while Google OAuth is being validated. The environment variable remains documented for the later provider switch, but the temporary hardcoded value currently takes precedence.
+The app uses Appwrite authentication globally. Google OAuth is configured for web, Android, and iOS.
 
 ## Appwrite Console
 
@@ -18,21 +18,7 @@ The URL above is only the Google-to-Appwrite callback. Do not pass it as the app
 
 ## Run Locally
 
-Set this in `.env.local`:
-
-```env
-EXPO_PUBLIC_AUTH_PROVIDER=appwrite
-```
-
-Then start the app normally. The existing login and Profile buttons use Appwrite Google OAuth. On web, Appwrite redirects to `/auth/appwrite-callback`. On Android and iOS, the app uses the `appwrite-callback-6946f98a001db8a3ab3a://` deep link.
-
-To use Clerk again locally:
-
-```env
-EXPO_PUBLIC_AUTH_PROVIDER=clerk
-```
-
-Restart Expo after changing the variable because Expo embeds public environment variables into the bundle.
+Start the app normally. The existing Login and Profile buttons use Appwrite Google OAuth. On web, Appwrite redirects to `/auth/appwrite-callback`. On Android and iOS, the app uses the `appwrite-callback-6946f98a001db8a3ab3a://` deep link.
 
 ## Native Development Build
 
@@ -43,5 +29,4 @@ Native OAuth callback handling requires a development build that contains the Ap
 - No Clerk users are migrated.
 - No existing Clerk documents are rewritten.
 - Appwrite user IDs are used only when Appwrite is selected.
-- Production and preview continue to use Clerk.
-- Switching back to Clerk is an environment-variable change.
+- Existing Clerk-linked data is not rewritten automatically.

@@ -7,9 +7,7 @@ export default function AuthLayout() {
                 headerShown: false,
             }}
         >
-            <Stack.Screen name="continue" />
             <Stack.Screen name="login" />
-            <Stack.Screen name="register" />
             <Stack.Screen name="appwrite-callback" />
         </Stack>
     );

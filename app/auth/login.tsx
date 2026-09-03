@@ -1,15 +1,11 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSSO } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
-import * as AuthSession from "expo-auth-session";
 import { router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -18,36 +14,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-WebBrowser.maybeCompleteAuthSession();
-
-function useWarmUpBrowser() {
-    useEffect(() => {
-        if (Platform.OS !== "android") {
-            return;
-        }
-
-        void WebBrowser.warmUpAsync();
-        return () => {
-            void WebBrowser.coolDownAsync();
-        };
-    }, []);
-}
-
 export default function Login() {
-    useWarmUpBrowser();
-
-    const { isAuthenticated, loading, signInWithGoogle, authProvider } = useAuth();
-    const { startSSOFlow } = useSSO();
+    const { isAuthenticated, loading, signInWithGoogle } = useAuth();
     const [submitting, setSubmitting] = useState(false);
-
-    const redirectUrl = useMemo(
-        () =>
-            AuthSession.makeRedirectUri({
-                scheme: "duroodapp",
-                path: "auth/continue",
-            }),
-        []
-    );
 
     useEffect(() => {
         if (isAuthenticated && !loading) {
@@ -59,41 +28,8 @@ export default function Login() {
         try {
             setSubmitting(true);
 
-            if (authProvider === "appwrite") {
-                await signInWithGoogle();
-                router.replace("/home");
-                return;
-            }
-
-            console.log("Starting OAuth flow with redirect URL:", redirectUrl);
-
-            const { createdSessionId, setActive, signIn, signUp, authSessionResult } =
-                await startSSOFlow({
-                    strategy: "oauth_google",
-                    redirectUrl,
-                });
-
-            const oauthSignIn = signIn as any;
-            const oauthSignUp = signUp as any;
-
-            console.log("OAuth flow completed", {
-                createdSessionId,
-                authSessionType: authSessionResult?.type,
-                signInStatus: oauthSignIn?.status,
-                signUpStatus: oauthSignUp?.status,
-                existingSession:
-                    oauthSignIn?.existingSession?.sessionId ??
-                    oauthSignUp?.existingSession?.sessionId ??
-                    null,
-            });
-
-            if (createdSessionId && setActive) {
-                await setActive({ session: createdSessionId });
-                router.replace("/home");
-                return;
-            }
-
-            router.push("/auth/continue");
+            await signInWithGoogle();
+            router.replace("/home");
         } catch (err: any) {
             console.error("OAuth error:", err);
             Alert.alert(
@@ -103,7 +39,7 @@ export default function Login() {
         } finally {
             setSubmitting(false);
         }
-    }, [authProvider, redirectUrl, signInWithGoogle, startSSOFlow]);
+    }, [signInWithGoogle]);
 
     if (loading) {
         return (

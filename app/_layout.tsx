@@ -3,8 +3,6 @@ import { theme } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
-import { tokenCache } from "@/utils/tokenCache";
-import { ClerkProvider } from "@clerk/clerk-expo";
 import NetInfo from "@react-native-community/netinfo";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
@@ -184,24 +182,17 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-  const publishableKey = "pk_live_Y2xlcmsuZHVyb29kLmxpdmUk";
-
   return (
-    <ClerkProvider
-      publishableKey={publishableKey}
-      tokenCache={tokenCache}
-    >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <AuthProvider>
-            <AutoSyncOnReconnect />
-            <TabBarVisibilityProvider tabBarHeight={68}>
-              <StatusBar style="light" />
-              <RootLayoutContent />
-            </TabBarVisibilityProvider>
-          </AuthProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </ClerkProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <AutoSyncOnReconnect />
+          <TabBarVisibilityProvider tabBarHeight={68}>
+            <StatusBar style="light" />
+            <RootLayoutContent />
+          </TabBarVisibilityProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

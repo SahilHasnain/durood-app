@@ -71,8 +71,7 @@ async function findUserByEmail(email) {
       console.log(`   - Progress records: ${progressCount.total}`);
     }
 
-    console.log('\n💡 To migrate a user, run:');
-    console.log('   node scripts/migrate-user-to-clerk.js <old-user-id> <new-clerk-user-id>\n');
+  console.log('\n💡 Use the listed user ID when manually checking or reassigning Appwrite documents.\n');
 
   } catch (error) {
     console.error('\n❌ Search failed:', error.message);

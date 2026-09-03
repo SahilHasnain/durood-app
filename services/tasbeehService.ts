@@ -56,10 +56,9 @@ function parseStoredSessions(
 }
 
 // Get user ID (authenticated or anonymous)
-async function getUserId(clerkUserId?: string): Promise<string> {
-  // If Clerk user ID is provided, use it
-  if (clerkUserId) {
-    return clerkUserId;
+async function getUserId(authenticatedUserId?: string): Promise<string> {
+  if (authenticatedUserId) {
+    return authenticatedUserId;
   }
 
   try {
@@ -112,9 +111,9 @@ function getMonthEndKey(): string {
 }
 
 // User Goal Operations
-export async function getUserGoal(clerkUserId?: string): Promise<UserGoal | null> {
+export async function getUserGoal(authenticatedUserId?: string): Promise<UserGoal | null> {
   try {
-    const userId = await getUserId(clerkUserId);
+    const userId = await getUserId(authenticatedUserId);
     const response = await databases.listDocuments(
       config.databaseId,
       TASBEEH_COLLECTION_ID + "_goals",
@@ -131,10 +130,10 @@ export async function getUserGoal(clerkUserId?: string): Promise<UserGoal | null
   }
 }
 
-export async function createOrUpdateUserGoal(data: Partial<UserGoal>, clerkUserId?: string): Promise<UserGoal | null> {
+export async function createOrUpdateUserGoal(data: Partial<UserGoal>, authenticatedUserId?: string): Promise<UserGoal | null> {
   try {
-    const userId = await getUserId(clerkUserId);
-    const existing = await getUserGoal(clerkUserId);
+    const userId = await getUserId(authenticatedUserId);
+    const existing = await getUserGoal(authenticatedUserId);
 
     const goalData = {
       userId,
@@ -174,9 +173,9 @@ export async function createOrUpdateUserGoal(data: Partial<UserGoal>, clerkUserI
 }
 
 // Daily Progress Operations
-export async function getTodayProgress(clerkUserId?: string): Promise<DailyProgress | null> {
+export async function getTodayProgress(authenticatedUserId?: string): Promise<DailyProgress | null> {
   try {
-    const userId = await getUserId(clerkUserId);
+    const userId = await getUserId(authenticatedUserId);
     const today = getTodayKey();
 
     const response = await databases.listDocuments(
@@ -205,15 +204,15 @@ export async function getTodayProgress(clerkUserId?: string): Promise<DailyProgr
 export async function createOrUpdateDailyProgress(
   count: number,
   target: number,
-  clerkUserId?: string,
+  authenticatedUserId?: string,
   date: string = getTodayKey(),
   sessions?: SessionRecord[]
 ): Promise<DailyProgress | null> {
   try {
-    const userId = await getUserId(clerkUserId);
+    const userId = await getUserId(authenticatedUserId);
     const existing = date === getTodayKey()
-      ? await getTodayProgress(clerkUserId)
-      : await getProgressByDate(date, clerkUserId);
+      ? await getTodayProgress(authenticatedUserId)
+      : await getProgressByDate(date, authenticatedUserId);
 
     const progressData = {
       userId,
@@ -252,10 +251,10 @@ export async function createOrUpdateDailyProgress(
 
 export async function getProgressByDate(
   date: string,
-  clerkUserId?: string
+  authenticatedUserId?: string
 ): Promise<DailyProgress | null> {
   try {
-    const userId = await getUserId(clerkUserId);
+    const userId = await getUserId(authenticatedUserId);
     const response = await databases.listDocuments(
       config.databaseId,
       TASBEEH_COLLECTION_ID,
@@ -280,9 +279,9 @@ export async function getProgressByDate(
   }
 }
 
-export async function getDailyHistory(days: number = 30, clerkUserId?: string): Promise<DailyProgress[]> {
+export async function getDailyHistory(days: number = 30, authenticatedUserId?: string): Promise<DailyProgress[]> {
   try {
-    const userId = await getUserId(clerkUserId);
+    const userId = await getUserId(authenticatedUserId);
     const response = await databases.listDocuments(
       config.databaseId,
       TASBEEH_COLLECTION_ID,
@@ -305,9 +304,9 @@ export async function getDailyHistory(days: number = 30, clerkUserId?: string): 
   }
 }
 
-export async function getCurrentMonthHistory(clerkUserId?: string): Promise<DailyProgress[]> {
+export async function getCurrentMonthHistory(authenticatedUserId?: string): Promise<DailyProgress[]> {
   try {
-    const userId = await getUserId(clerkUserId);
+    const userId = await getUserId(authenticatedUserId);
     const response = await databases.listDocuments(
       config.databaseId,
       TASBEEH_COLLECTION_ID,
@@ -333,7 +332,7 @@ export async function getCurrentMonthHistory(clerkUserId?: string): Promise<Dail
 }
 
 // Sync Operations
-export async function syncFromLocalStorage(clerkUserId?: string): Promise<void> {
+export async function syncFromLocalStorage(authenticatedUserId?: string): Promise<void> {
   try {
     // Get local data
     const [
@@ -363,10 +362,10 @@ export async function syncFromLocalStorage(clerkUserId?: string): Promise<void> 
       currentStreak,
       longestStreak: currentStreak,
       dailyTarget: todayTarget,
-    }, clerkUserId);
+    }, authenticatedUserId);
 
     // Sync today's progress
-    await createOrUpdateDailyProgress(todayCount, todayTarget, clerkUserId);
+    await createOrUpdateDailyProgress(todayCount, todayTarget, authenticatedUserId);
 
     // Sync history if available
     if (historyStr) {
@@ -377,7 +376,7 @@ export async function syncFromLocalStorage(clerkUserId?: string): Promise<void> 
         await createOrUpdateDailyProgress(
           record.count,
           record.target,
-          clerkUserId,
+          authenticatedUserId,
           record.date
         );
       }
@@ -390,12 +389,12 @@ export async function syncFromLocalStorage(clerkUserId?: string): Promise<void> 
 }
 
 // Calculate streak from history
-export async function calculateStreak(clerkUserId?: string): Promise<{
+export async function calculateStreak(authenticatedUserId?: string): Promise<{
   currentStreak: number;
   longestStreak: number;
 }> {
   try {
-    const history = await getDailyHistory(365, clerkUserId);
+    const history = await getDailyHistory(365, authenticatedUserId);
     const today = getTodayKey();
     const yesterday = getYesterdayKey();
 
