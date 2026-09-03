@@ -4,7 +4,6 @@ import { useSSO } from "@clerk/clerk-expo";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 WebBrowser.maybeCompleteAuthSession();
 
 export default function Profile() {
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, logout, signInWithGoogle, authProvider } = useAuth();
     const { startSSOFlow } = useSSO();
     const [submitting, setSubmitting] = useState(false);
     const { width } = useWindowDimensions();
@@ -30,6 +29,12 @@ export default function Profile() {
     const handleGoogleSignIn = useCallback(async () => {
         try {
             setSubmitting(true);
+
+            if (authProvider === "appwrite") {
+                await signInWithGoogle();
+                return;
+            }
+
             const { createdSessionId, setActive } = await startSSOFlow({
                 strategy: "oauth_google",
                 redirectUrl,
@@ -45,7 +50,7 @@ export default function Profile() {
         } finally {
             setSubmitting(false);
         }
-    }, [redirectUrl, startSSOFlow]);
+    }, [authProvider, redirectUrl, signInWithGoogle, startSSOFlow]);
 
     const handleLogout = () => {
         Alert.alert("Sign Out", "Do you want to sign out of this account?", [

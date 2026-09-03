@@ -28,7 +28,7 @@ export default {
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "duroodapp",
+    scheme: ["duroodapp", "appwrite-callback-6946f98a001db8a3ab3a"],
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     splash: {

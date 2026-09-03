@@ -36,7 +36,7 @@ function useWarmUpBrowser() {
 export default function Login() {
     useWarmUpBrowser();
 
-    const { isAuthenticated, loading } = useAuth();
+    const { isAuthenticated, loading, signInWithGoogle, authProvider } = useAuth();
     const { startSSOFlow } = useSSO();
     const [submitting, setSubmitting] = useState(false);
 
@@ -58,6 +58,13 @@ export default function Login() {
     const handleGoogleSignIn = useCallback(async () => {
         try {
             setSubmitting(true);
+
+            if (authProvider === "appwrite") {
+                await signInWithGoogle();
+                router.replace("/home");
+                return;
+            }
+
             console.log("Starting OAuth flow with redirect URL:", redirectUrl);
 
             const { createdSessionId, setActive, signIn, signUp, authSessionResult } =
@@ -96,7 +103,7 @@ export default function Login() {
         } finally {
             setSubmitting(false);
         }
-    }, [redirectUrl, startSSOFlow]);
+    }, [authProvider, redirectUrl, signInWithGoogle, startSSOFlow]);
 
     if (loading) {
         return (
