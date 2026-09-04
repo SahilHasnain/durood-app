@@ -18,7 +18,7 @@
     "ingest:videos": "node scripts/ingest-videos.js",
     "upload:video": "node scripts/upload-video.js",
     "prebuild": "npx expo prebuild",
-    "export": "npx expo export --platform web",
+    "export": "npx expo export --platform web && node scripts/prepare-web-deploy.mjs",
     "deploy": "eas deploy --production"
   },
   "dependencies": {

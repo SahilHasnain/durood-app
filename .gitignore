@@ -46,3 +46,9 @@ app-example
 temp-video/
 mp4
 m4a
+.opencode
+
+# Local Netlify folder
+.netlify
+
+.vercel
