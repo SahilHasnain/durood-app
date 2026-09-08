@@ -32,7 +32,7 @@ export default {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     splash: {
-      image: "./assets/images/splash-icon.png",
+      image: "./assets/images/icon.png",
       resizeMode: "contain",
       backgroundColor: "#0A0A0F",
     },
@@ -61,7 +61,7 @@ export default {
         "expo-splash-screen",
         {
           backgroundColor: "#0A0A0F",
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/icon.png",
           imageWidth: 200,
         },
       ],

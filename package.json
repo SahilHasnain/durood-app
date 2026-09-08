@@ -17,6 +17,7 @@
     "add:channel": "node scripts/add-channel.js",
     "ingest:videos": "node scripts/ingest-videos.js",
     "upload:video": "node scripts/upload-video.js",
+    "archive:dist": "node scripts/archive-dist.mjs",
     "prebuild": "npx expo prebuild",
     "export": "npx expo export --platform web && node scripts/prepare-web-deploy.mjs",
     "deploy": "eas deploy --production"
