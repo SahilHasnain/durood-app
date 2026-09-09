@@ -36,7 +36,7 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
         ]}
       >
         <View style={styles.headerRow}>
-          <View style={styles.logoContainer}>
+          <View style={[styles.logoContainer, isDesktop && styles.desktopLogoContainer]}>
             <View style={styles.logoWrapper}>
               <Image
                 source={require("@/assets/images/icon.png")}
@@ -50,7 +50,7 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
             accessibilityRole="button"
             accessibilityLabel="Open profile"
             onPress={() => router.push("/profile")}
-            style={styles.profileButton}
+            style={[styles.profileButton, isDesktop && styles.desktopProfileButton]}
           >
             <Ionicons name="person-outline" size={20} color={colors.text.primary} />
           </Pressable>
@@ -90,6 +90,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  desktopLogoContainer: {
+    display: "none",
+  },
   logoWrapper: {
     width: 32,
     height: 32,
@@ -114,5 +117,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
+  },
+  desktopProfileButton: {
+    marginLeft: "auto",
   },
 });

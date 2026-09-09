@@ -1,12 +1,13 @@
 import { theme } from "@/constants/theme";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React from "react";
-import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
+import { Image, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface AnimatedTabBarProps extends BottomTabBarProps {
     translateY: SharedValue<number>;
+    isFullscreen?: boolean;
 }
 
 const DESKTOP_BREAKPOINT = 1200;
@@ -17,6 +18,7 @@ export function AnimatedTabBar({
     descriptors,
     navigation,
     translateY,
+    isFullscreen,
 }: AnimatedTabBarProps) {
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
@@ -29,9 +31,11 @@ export function AnimatedTabBar({
             : [{ translateY: translateY.value }],
     }));
 
+    if (isDesktop && isFullscreen) return null;
+
     const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-policy"]);
     const visibleRoutes = state.routes.filter((route) => {
-        if (route.name === "shorts" && !isDesktop) return false;
+        if (route.name === "shorts") return false;
         return !hiddenRouteNames.has(route.name) && !route.name.startsWith("dalail-reader");
     });
 
@@ -80,9 +84,11 @@ export function AnimatedTabBar({
         >
             {isDesktop && (
                 <View style={styles.desktopBrand}>
-                    <View style={styles.desktopLogoMark}>
-                        <Text style={styles.desktopLogoText}>D</Text>
-                    </View>
+                    <Image
+                        source={require("@/assets/images/icon.png")}
+                        style={styles.desktopLogoMark}
+                        accessibilityLabel="Durood Moments logo"
+                    />
                     <View>
                         <Text style={styles.desktopBrandTitle}>Durood Moments</Text>
                         <Text style={styles.desktopBrandSubtitle}>Your daily salawat</Text>
@@ -170,14 +176,7 @@ const styles = {
         width: 34,
         height: 34,
         borderRadius: 17,
-        alignItems: "center" as const,
-        justifyContent: "center" as const,
-        backgroundColor: theme.colors.primary.main,
-    },
-    desktopLogoText: {
-        color: "#03140d",
-        fontSize: 18,
-        fontWeight: "800" as const,
+        overflow: "hidden" as const,
     },
     desktopBrandTitle: {
         color: theme.colors.text.primary,

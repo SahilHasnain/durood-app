@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, useWindowDimensions, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
@@ -38,16 +38,24 @@ function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
   const { width } = useWindowDimensions();
   const isDesktopWeb = Platform.OS === "web" && width >= 1200;
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
 
   return (
-    <View style={[{ flex: 1 }, isDesktopWeb && { paddingLeft: 232 }]}>
+    <View style={[{ flex: 1 }, isDesktopWeb && !isFullscreen && { paddingLeft: 232 }]}>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: theme.colors.primary.main,
           tabBarInactiveTintColor: theme.colors.text.secondary,
         }}
-        tabBar={(props) => <AnimatedTabBar {...props} translateY={translateY} />}
+        tabBar={(props) => <AnimatedTabBar {...props} translateY={translateY} isFullscreen={isFullscreen} />}
       >
       <Tabs.Screen
         name="home"

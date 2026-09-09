@@ -35,6 +35,7 @@ import Svg, { Circle } from "react-native-svg";
 const TASBEEH_PROGRESS_COLOR = "#10b981";
 const DEFAULT_SESSION_GOAL = 50;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
+const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
 const SIGN_IN_MILESTONE = 20000;
 const SIGN_IN_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const LAST_PROMPT_MILESTONE_KEY = "sign_in_last_prompt_milestone";
@@ -80,6 +81,8 @@ export default function Home() {
     const [sessionGoalInput, setSessionGoalInput] = useState("");
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
     const [sessionImageIndex, setSessionImageIndex] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const fullscreenPrefRef = useRef(false);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const progressAnim = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
@@ -134,6 +137,12 @@ export default function Home() {
             .catch((error) => {
                 console.error("Failed to load session focus:", error);
             });
+
+        AsyncStorage.getItem(FULLSCREEN_PREF_KEY)
+            .then((val) => {
+                if (mounted) fullscreenPrefRef.current = val === "true";
+            })
+            .catch(() => {});
 
         return () => {
             mounted = false;
@@ -248,6 +257,9 @@ export default function Home() {
         setShowManualSheet(false);
         setSessionActive(true);
         setSessionPaused(false);
+        if (isDesktopWeb && Platform.OS === "web" && fullscreenPrefRef.current && !document.fullscreenElement) {
+            (document.documentElement as any)?.requestFullscreen?.();
+        }
         if (!sessionStartedAt) {
             setSessionStartedAt(Date.now());
             setSessionPausedAt(null);
@@ -257,7 +269,7 @@ export default function Home() {
             setSessionGoalInput("");
             setShowSessionGoalSheet(false);
         }
-    }, [headerTranslateY, insets.top, sessionStartedAt, tabBarHeight, tabBarTranslateY]);
+    }, [headerTranslateY, insets.top, sessionStartedAt, tabBarHeight, tabBarTranslateY, isDesktopWeb]);
 
     const resumeSession = useCallback(() => {
         if (!sessionActive || !sessionPaused) return;
@@ -274,6 +286,12 @@ export default function Home() {
         if (!sessionActive) return;
         if (sessionPaused) {
             resumeSession();
+        }
+
+        if (Platform.OS === "web" && sessionCount === 0) {
+            const usedFullscreen = Boolean(document.fullscreenElement);
+            fullscreenPrefRef.current = usedFullscreen;
+            AsyncStorage.setItem(FULLSCREEN_PREF_KEY, String(usedFullscreen)).catch(() => {});
         }
 
         try {
@@ -341,6 +359,10 @@ export default function Home() {
         setSessionGoal(null);
         setSessionGoalInput("");
         setShowSessionGoalSheet(false);
+        if (Platform.OS === "web" && document.fullscreenElement) {
+            document.exitFullscreen?.();
+            setIsFullscreen(false);
+        }
 
         showTabBar();
         headerTranslateY.value = withTiming(0, { duration: 300 });
@@ -401,6 +423,23 @@ export default function Home() {
 
     const changeSessionImage = useCallback(() => {
         setSessionImageIndex((currentIndex) => (currentIndex + 1) % SESSION_IMAGES.length);
+    }, []);
+
+    const toggleFullscreen = useCallback(() => {
+        if (Platform.OS !== "web") return;
+        const doc = document as any;
+        if (!document.fullscreenElement) {
+            doc.documentElement?.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (Platform.OS !== "web") return;
+        const handler = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener("fullscreenchange", handler);
+        return () => document.removeEventListener("fullscreenchange", handler);
     }, []);
 
     useEffect(() => {
@@ -467,15 +506,38 @@ export default function Home() {
                 </View>
 
                 <View style={isDesktopWeb ? styles.desktopSessionContent : styles.mobileSessionContent}>
-                    {isDesktopWeb && (
+                    {isDesktopWeb && !isFullscreen && (
+                        <View style={styles.sessionTopBar}>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Return to Home"
+                                activeOpacity={0.6}
+                                onPress={endSession}
+                                style={styles.sessionBackButton}
+                            >
+                                <Ionicons name="chevron-back" size={16} color={theme.colors.text.secondary} />
+                                <Text style={styles.sessionBackText}>Back</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                accessibilityRole="button"
+                                accessibilityLabel="Enter fullscreen"
+                                activeOpacity={0.6}
+                                onPress={toggleFullscreen}
+                                style={styles.sessionBackButton}
+                            >
+                                <Ionicons name="expand" size={16} color={theme.colors.text.secondary} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    {isDesktopWeb && isFullscreen && (
                         <TouchableOpacity
                             accessibilityRole="button"
-                            accessibilityLabel="Return to Home"
-                            onPress={endSession}
-                            style={styles.sessionBackButton}
+                            accessibilityLabel="Exit fullscreen"
+                            onPress={toggleFullscreen}
+                            style={[styles.sessionBackButton, styles.fullscreenExitHint]}
                         >
-                            <Ionicons name="arrow-back" size={18} color={theme.colors.text.primary} />
-                            <Text style={styles.sessionBackText}>Back to Home</Text>
+                            <Ionicons name="contract" size={16} color="rgba(255,255,255,0.5)" />
+                            <Text style={styles.fullscreenExitText}>Esc to exit</Text>
                         </TouchableOpacity>
                     )}
 
@@ -511,6 +573,7 @@ export default function Home() {
                         <View style={styles.sessionRingContent}>
                             <Text
                                 style={styles.sessionCount}
+                                selectable={false}
                                 numberOfLines={1}
                                 adjustsFontSizeToFit
                                 minimumFontScale={0.55}
@@ -1012,20 +1075,26 @@ const styles = StyleSheet.create({
     mobileSessionContent: {
         flex: 1,
     },
-    sessionBackButton: {
-        alignSelf: "flex-start",
-        minHeight: 44,
+    sessionTopBar: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
-        paddingHorizontal: 12,
-        borderRadius: 10,
-        backgroundColor: "rgba(255,255,255,0.08)",
+        gap: 6,
+        alignSelf: "flex-start",
+    },
+    sessionBackButton: {
+        minHeight: 36,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        backgroundColor: "rgba(255,255,255,0.05)",
     },
     sessionBackText: {
-        color: theme.colors.text.primary,
-        fontSize: 14,
-        fontWeight: "600",
+        color: theme.colors.text.secondary,
+        fontSize: 13,
+        fontWeight: "500",
     },
     sessionImageArea: {
         marginHorizontal: -24,
@@ -1066,6 +1135,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        userSelect: "none",
     },
     sessionRing: {
         position: "relative",
@@ -1126,6 +1196,18 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "600",
         color: theme.colors.text.secondary,
+    },
+    fullscreenExitHint: {
+        position: "absolute",
+        top: 16,
+        right: 16,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        opacity: 0.6,
+    },
+    fullscreenExitText: {
+        color: "rgba(255,255,255,0.5)",
+        fontSize: 13,
+        fontWeight: "500",
     },
 
     signInOverlay: {
