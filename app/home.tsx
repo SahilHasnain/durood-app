@@ -36,13 +36,15 @@ const TASBEEH_PROGRESS_COLOR = "#10b981";
 const DEFAULT_SESSION_GOAL = 50;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
+const SESSION_RECOVERY_KEY = "tasbeeh_session_recovery";
+const SESSION_IMAGE_KEY = "tasbeeh_session_image";
 const SIGN_IN_MILESTONE = 20000;
 const SIGN_IN_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const LAST_PROMPT_MILESTONE_KEY = "sign_in_last_prompt_milestone";
 const LAST_PROMPT_TIME_KEY = "sign_in_last_prompt_time";
 const SESSION_IMAGES = [
-    require("@/assets/images/jalian-mubarak.jpg"),
     require("@/assets/images/gumbad.png"),
+    require("@/assets/images/jalian-mubarak.jpg"),
 ];
 
 function formatNumber(value: number): string {
@@ -144,10 +146,48 @@ export default function Home() {
             })
             .catch(() => {});
 
+        AsyncStorage.getItem(SESSION_IMAGE_KEY)
+            .then((savedImageIndex) => {
+                const parsedIndex = savedImageIndex ? parseInt(savedImageIndex, 10) : 0;
+                if (mounted && parsedIndex >= 0 && parsedIndex < SESSION_IMAGES.length) {
+                    setSessionImageIndex(parsedIndex);
+                }
+            })
+            .catch(() => {});
+
         return () => {
             mounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        AsyncStorage.getItem(SESSION_RECOVERY_KEY)
+            .then((savedSession) => {
+                if (!savedSession) return;
+
+                const recovery = JSON.parse(savedSession) as {
+                    count?: number;
+                    startedAt?: number;
+                    goal?: number;
+                };
+
+                if (!recovery.count || !recovery.startedAt) return;
+
+                setSessionActive(true);
+                setSessionPaused(false);
+                setSessionCount(recovery.count);
+                setSessionStartedAt(recovery.startedAt);
+                setSessionPausedAt(null);
+                setSessionElapsedSeconds(Math.max(0, Math.floor((Date.now() - recovery.startedAt) / 1000)));
+                setSessionGoal(recovery.goal && recovery.goal > 0 ? recovery.goal : null);
+                setSessionGoalInput("");
+                tabBarTranslateY.value = withTiming(tabBarHeight + 50, { duration: 300 });
+                headerTranslateY.value = withTiming(-(HEADER_HEIGHT + insets.top + 20), { duration: 300 });
+            })
+            .catch(() => {
+                void AsyncStorage.removeItem(SESSION_RECOVERY_KEY);
+            });
+    }, [headerTranslateY, insets.top, tabBarHeight, tabBarTranslateY]);
 
     const lastPromptedMilestone = useRef(0);
 
@@ -288,10 +328,12 @@ export default function Home() {
             resumeSession();
         }
 
-        if (Platform.OS === "web" && sessionCount === 0) {
+        if (Platform.OS === "web") {
             const usedFullscreen = Boolean(document.fullscreenElement);
-            fullscreenPrefRef.current = usedFullscreen;
-            AsyncStorage.setItem(FULLSCREEN_PREF_KEY, String(usedFullscreen)).catch(() => {});
+            if (usedFullscreen !== fullscreenPrefRef.current) {
+                fullscreenPrefRef.current = usedFullscreen;
+                AsyncStorage.setItem(FULLSCREEN_PREF_KEY, String(usedFullscreen)).catch(() => {});
+            }
         }
 
         try {
@@ -302,6 +344,16 @@ export default function Home() {
 
         const newSessionCount = sessionCount + 1;
         setSessionCount(newSessionCount);
+
+        const recoveryStartedAt = sessionStartedAt ?? Date.now();
+        void AsyncStorage.setItem(
+            SESSION_RECOVERY_KEY,
+            JSON.stringify({
+                count: newSessionCount,
+                startedAt: recoveryStartedAt,
+                goal: effectiveSessionGoal,
+            }),
+        );
 
         const projectedTotal = count + newSessionCount;
 
@@ -328,7 +380,16 @@ export default function Home() {
                 console.error("Haptics failed", error);
             }
         }
-    }, [sessionActive, sessionPaused, resumeSession, sessionCount, effectiveSessionGoal, count, target]);
+    }, [
+        sessionActive,
+        sessionPaused,
+        resumeSession,
+        sessionCount,
+        sessionStartedAt,
+        effectiveSessionGoal,
+        count,
+        target,
+    ]);
 
     const endSession = useCallback(async () => {
         if (!sessionActive) return;
@@ -369,7 +430,11 @@ export default function Home() {
         tabBarTranslateY.value = withTiming(0, { duration: 300 });
 
         if (finalCount > 0) {
-            void applyIncrement(finalCount, sessionRecord);
+            void applyIncrement(finalCount, sessionRecord).then(() =>
+                AsyncStorage.removeItem(SESSION_RECOVERY_KEY),
+            );
+        } else {
+            void AsyncStorage.removeItem(SESSION_RECOVERY_KEY);
         }
     }, [
         sessionActive,
@@ -421,8 +486,12 @@ export default function Home() {
         Keyboard.dismiss();
     };
 
-    const changeSessionImage = useCallback(() => {
-        setSessionImageIndex((currentIndex) => (currentIndex + 1) % SESSION_IMAGES.length);
+    const changeSessionImage = useCallback((direction: 1 | -1 = 1) => {
+        setSessionImageIndex((currentIndex) => {
+            const nextIndex = (currentIndex + direction + SESSION_IMAGES.length) % SESSION_IMAGES.length;
+            void AsyncStorage.setItem(SESSION_IMAGE_KEY, String(nextIndex)).catch(() => {});
+            return nextIndex;
+        });
     }, []);
 
     const toggleFullscreen = useCallback(() => {
@@ -441,6 +510,49 @@ export default function Home() {
         document.addEventListener("fullscreenchange", handler);
         return () => document.removeEventListener("fullscreenchange", handler);
     }, []);
+
+    useEffect(() => {
+        if (Platform.OS !== "web") return;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            const tagName = target?.tagName?.toLowerCase();
+            if (tagName === "input" || tagName === "textarea" || tagName === "select" || target?.isContentEditable) {
+                return;
+            }
+
+            const key = event.key.toLowerCase();
+
+            if (!sessionActive && (key === "s" || key === "f")) {
+                event.preventDefault();
+                beginSession();
+                return;
+            }
+
+            if (!sessionActive) return;
+
+            if (key === "arrowleft" || key === "j") {
+                event.preventDefault();
+                changeSessionImage(-1);
+            } else if (key === "arrowright" || key === "l") {
+                event.preventDefault();
+                changeSessionImage(1);
+            } else if (key === "escape") {
+                event.preventDefault();
+                if (isFullscreen || document.fullscreenElement) {
+                    document.exitFullscreen?.();
+                } else {
+                    void endSession();
+                }
+            } else if (key === "f") {
+                event.preventDefault();
+                toggleFullscreen();
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [beginSession, changeSessionImage, endSession, isFullscreen, sessionActive, toggleFullscreen]);
 
     useEffect(() => {
         const subscription = AppState.addEventListener("change", (nextAppState) => {
@@ -487,6 +599,7 @@ export default function Home() {
                         styles.sessionImageArea,
                         { height: sessionImageHeight },
                         isDesktopWeb && styles.desktopSessionImageArea,
+                        isDesktopWeb && isFullscreen && styles.desktopFullscreenSessionImageArea,
                     ]}
                 >
                     <Image
@@ -1060,9 +1173,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 0,
     },
     desktopSessionImageArea: {
-        width: "48%",
+        width: "50%",
         height: "100%",
         marginHorizontal: 0,
+    },
+    desktopFullscreenSessionImageArea: {
+        width: "60%",
     },
     desktopSessionContent: {
         flex: 1,
