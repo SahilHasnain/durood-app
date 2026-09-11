@@ -1,0 +1,8 @@
+{
+  "name": "tasbeeh-sync",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^23.1.0"
+  }
+}
