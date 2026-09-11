@@ -522,10 +522,14 @@ export default function Home() {
             }
 
             const key = event.key.toLowerCase();
+            const clearKeyboardFocus = () => {
+                (document.activeElement as HTMLElement | null)?.blur();
+            };
 
             if (!sessionActive && (key === "s" || key === "f")) {
                 event.preventDefault();
                 beginSession();
+                clearKeyboardFocus();
                 return;
             }
 
@@ -534,9 +538,11 @@ export default function Home() {
             if (key === "arrowleft" || key === "j") {
                 event.preventDefault();
                 changeSessionImage(-1);
+                clearKeyboardFocus();
             } else if (key === "arrowright" || key === "l") {
                 event.preventDefault();
                 changeSessionImage(1);
+                clearKeyboardFocus();
             } else if (key === "escape") {
                 event.preventDefault();
                 if (isFullscreen || document.fullscreenElement) {
@@ -544,9 +550,11 @@ export default function Home() {
                 } else {
                     void endSession();
                 }
+                clearKeyboardFocus();
             } else if (key === "f") {
                 event.preventDefault();
                 toggleFullscreen();
+                clearKeyboardFocus();
             }
         };
 
@@ -576,7 +584,7 @@ export default function Home() {
         return () => backHandler.remove();
     }, [sessionActive, endSession]);
 
-    if (loading) {
+    if (loading && !sessionActive) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
                 <SimpleHeader translateY={headerTranslateY} />
