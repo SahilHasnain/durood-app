@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
     },
     desktopSessionToast: {
         position: "absolute",
-        top: 196,
+        top: 96,
         right: 32,
         bottom: "auto",
         left: "auto",
