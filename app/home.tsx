@@ -83,6 +83,7 @@ export default function Home() {
     const [sessionGoalInput, setSessionGoalInput] = useState("");
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
     const [sessionImageIndex, setSessionImageIndex] = useState(0);
+    const [sessionToastCount, setSessionToastCount] = useState<number | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const fullscreenPrefRef = useRef(false);
 
@@ -420,6 +421,10 @@ export default function Home() {
         setSessionGoal(null);
         setSessionGoalInput("");
         setShowSessionGoalSheet(false);
+        if (finalCount > 0) {
+            setSessionToastCount(finalCount);
+            setTimeout(() => setSessionToastCount(null), 3000);
+        }
         if (Platform.OS === "web" && document.fullscreenElement) {
             document.exitFullscreen?.();
             setIsFullscreen(false);
@@ -584,7 +589,7 @@ export default function Home() {
         return () => backHandler.remove();
     }, [sessionActive, endSession]);
 
-    if (loading && !sessionActive) {
+    if (loading) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
                 <SimpleHeader translateY={headerTranslateY} />
@@ -913,6 +918,15 @@ export default function Home() {
                 <KeyboardSpacer />
             </Animated.View>
 
+            {sessionToastCount !== null && (
+                <View pointerEvents="none" style={styles.sessionToast}>
+                    <Ionicons name="checkmark-circle" size={20} color={TASBEEH_PROGRESS_COLOR} />
+                    <Text style={styles.sessionToastText}>
+                        Session complete: {formatNumber(sessionToastCount)} recitations
+                    </Text>
+                </View>
+            )}
+
             <Modal
                 visible={showSignInSheet}
                 transparent
@@ -964,6 +978,28 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: theme.colors.text.secondary,
+    },
+    sessionToast: {
+        position: "absolute",
+        left: 20,
+        right: 20,
+        bottom: 28,
+        minHeight: 52,
+        paddingHorizontal: 16,
+        borderRadius: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        backgroundColor: theme.colors.surface.elevated,
+        borderWidth: 1,
+        borderColor: "rgba(16,185,129,0.35)",
+        zIndex: 100,
+    },
+    sessionToastText: {
+        color: theme.colors.text.primary,
+        fontSize: 14,
+        fontWeight: "600",
     },
     backgroundLayer: {
         position: "absolute",
