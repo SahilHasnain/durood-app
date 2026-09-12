@@ -68,7 +68,7 @@ export function AnimatedTabBar({
                             paddingBottom: insets.bottom + 4,
                             ...Platform.select({
                                 ios: {
-                                    shadowColor: "#000",
+                                    shadowColor: theme.colors.background.primary,
                                     shadowOffset: { width: 0, height: -1 },
                                     shadowOpacity: 0.3,
                                     shadowRadius: 2,
@@ -198,7 +198,7 @@ const styles = {
         marginBottom: 6,
     },
     desktopRouteActive: {
-        backgroundColor: "rgba(16,185,129,0.14)",
+        backgroundColor: theme.colors.accentActive,
     },
     desktopRouteContent: {
         flexDirection: "row" as const,

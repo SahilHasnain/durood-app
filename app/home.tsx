@@ -32,7 +32,7 @@ import { useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 
-const TASBEEH_PROGRESS_COLOR = "#10b981";
+const TASBEEH_PROGRESS_COLOR = theme.colors.primary.main;
 const DEFAULT_SESSION_GOAL = 50;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
@@ -627,7 +627,7 @@ export default function Home() {
                         onPress={changeSessionImage}
                         style={styles.sessionImageButton}
                     >
-                        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.82)" />
+                            <Ionicons name="chevron-forward" size={18} color={theme.colors.text.primary} />
                     </TouchableOpacity>
                 </View>
 
@@ -662,7 +662,7 @@ export default function Home() {
                             onPress={toggleFullscreen}
                             style={[styles.sessionBackButton, styles.fullscreenExitHint]}
                         >
-                            <Ionicons name="contract" size={16} color="rgba(255,255,255,0.5)" />
+                            <Ionicons name="contract" size={16} color={theme.colors.whiteMuted} />
                             <Text style={styles.fullscreenExitText}>Esc to exit</Text>
                         </TouchableOpacity>
                     )}
@@ -919,7 +919,10 @@ export default function Home() {
             </Animated.View>
 
             {sessionToastCount !== null && (
-                <View pointerEvents="none" style={styles.sessionToast}>
+                <View
+                    pointerEvents="none"
+                    style={[styles.sessionToast, isDesktopWeb && styles.desktopSessionToast]}
+                >
                     <Ionicons name="checkmark-circle" size={20} color={TASBEEH_PROGRESS_COLOR} />
                     <Text style={styles.sessionToastText}>
                         Session complete: {formatNumber(sessionToastCount)} recitations
@@ -948,7 +951,7 @@ export default function Home() {
                                 router.push("/auth/login");
                             }}
                         >
-                            <Ionicons name="logo-google" size={20} color="#FFFFFF" />
+                            <Ionicons name="logo-google" size={20} color={theme.colors.text.primary} />
                             <Text style={styles.signInSheetButtonText}>Sign in with Google</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -993,8 +996,19 @@ const styles = StyleSheet.create({
         gap: 8,
         backgroundColor: theme.colors.surface.elevated,
         borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.35)",
+        borderColor: theme.colors.accentBorder,
         zIndex: 100,
+    },
+    desktopSessionToast: {
+        position: "absolute",
+        top: 196,
+        right: 32,
+        bottom: "auto",
+        left: "auto",
+        width: 320,
+        minHeight: 44,
+        paddingVertical: 12,
+        justifyContent: "flex-start",
     },
     sessionToastText: {
         color: theme.colors.text.primary,
@@ -1043,9 +1057,9 @@ const styles = StyleSheet.create({
         marginBottom: 22,
         padding: 4,
         borderRadius: 22,
-        backgroundColor: "rgba(255,255,255,0.035)",
+                    backgroundColor: theme.colors.surface.subtle,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+                    borderColor: theme.colors.border.subtle,
         gap: 8,
     },
     desktopSummaryCard: {
@@ -1074,7 +1088,7 @@ const styles = StyleSheet.create({
         borderRadius: 17,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(16,185,129,0.12)",
+        backgroundColor: theme.colors.accentSurface,
     },
     summaryTextWrap: {
         flex: 1,
@@ -1151,7 +1165,7 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
     },
     actionButtonTextPrimary: {
-        color: "#FFFFFF",
+        color: theme.colors.text.primary,
     },
     overlay: {
         position: "absolute",
@@ -1159,7 +1173,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        backgroundColor: theme.colors.scrim.dark,
     },
     bottomSheet: {
         position: "absolute",
@@ -1204,7 +1218,7 @@ const styles = StyleSheet.create({
     sheetButtonText: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#FFFFFF",
+        color: theme.colors.text.primary,
     },
     sessionContainer: {
         flex: 1,
@@ -1249,7 +1263,7 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingHorizontal: 10,
         borderRadius: 8,
-        backgroundColor: "rgba(255,255,255,0.05)",
+        backgroundColor: theme.colors.surface.soft,
     },
     sessionBackText: {
         color: theme.colors.text.secondary,
@@ -1274,9 +1288,9 @@ const styles = StyleSheet.create({
         borderRadius: 17,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(0,0,0,0.22)",
+        backgroundColor: theme.colors.scrim.light,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.16)",
+        borderColor: theme.colors.border.faint,
     },
     sessionHeader: {
         alignItems: "center",
@@ -1336,7 +1350,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.45)",
+        backgroundColor: theme.colors.scrim.medium,
     },
     sessionGoalSheet: {
         position: "absolute",
@@ -1361,11 +1375,11 @@ const styles = StyleSheet.create({
         position: "absolute",
         top: 16,
         right: 16,
-        backgroundColor: "rgba(0,0,0,0.5)",
+        backgroundColor: theme.colors.scrim.medium,
         opacity: 0.6,
     },
     fullscreenExitText: {
-        color: "rgba(255,255,255,0.5)",
+        color: theme.colors.whiteMuted,
         fontSize: 13,
         fontWeight: "500",
     },
@@ -1373,7 +1387,7 @@ const styles = StyleSheet.create({
     signInOverlay: {
         flex: 1,
         justifyContent: "flex-end",
-        backgroundColor: "rgba(0,0,0,0.6)",
+        backgroundColor: theme.colors.scrim.strong,
     },
     signInSheet: {
         backgroundColor: theme.colors.surface.primary,
@@ -1389,7 +1403,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 4,
         borderRadius: 2,
-        backgroundColor: "rgba(255,255,255,0.15)",
+        backgroundColor: theme.colors.whiteSubtle,
         marginBottom: 12,
     },
     signInSheetTitle: {
@@ -1419,7 +1433,7 @@ const styles = StyleSheet.create({
     signInSheetButtonText: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#FFFFFF",
+        color: theme.colors.text.primary,
     },
     signInSkipButton: {
         padding: 12,

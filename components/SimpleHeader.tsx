@@ -1,4 +1,4 @@
-import { colors } from "@/constants/theme";
+import { colors, theme } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     zIndex: 50,
     backgroundColor: colors.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: "#222",
+    borderBottomColor: colors.background.tertiary,
   },
   content: {
     paddingHorizontal: 16,
@@ -114,9 +114,9 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: theme.colors.surface.control,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: theme.colors.surface.control,
   },
   desktopProfileButton: {
     marginLeft: "auto",
