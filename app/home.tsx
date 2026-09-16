@@ -589,10 +589,9 @@ export default function Home() {
         return () => backHandler.remove();
     }, [sessionActive, endSession]);
 
-    if (loading) {
+if (authLoading || !initialized || loading) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
-                <SimpleHeader translateY={headerTranslateY} />
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.primary.main} />
                     <Text style={styles.loadingText}>Loading your progress...</Text>

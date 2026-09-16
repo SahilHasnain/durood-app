@@ -3,7 +3,7 @@ import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { useCallback, useEffect } from "react";
 
 export function useTasbeehData() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const count = useTasbeehStore((state) => state.count);
   const target = useTasbeehStore((state) => state.target);
   const lifetimeTotal = useTasbeehStore((state) => state.lifetimeTotal);
@@ -18,13 +18,17 @@ export function useTasbeehData() {
   const reloadStoreData = useTasbeehStore((state) => state.reload);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     const activeUserId = user?.id;
     if (initialized && initializedUserId === activeUserId) {
       return;
     }
 
     void loadData(activeUserId);
-  }, [user?.id, initialized, initializedUserId, loadData]);
+  }, [user?.id, initialized, initializedUserId, authLoading, loadData]);
 
   const saveData = useCallback(
     (
