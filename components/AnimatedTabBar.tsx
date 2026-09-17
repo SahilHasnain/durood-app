@@ -33,9 +33,10 @@ export function AnimatedTabBar({
 
     if (isDesktop && isFullscreen) return null;
 
-    const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-policy"]);
+const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-policy"]);
     const visibleRoutes = state.routes.filter((route) => {
         if (route.name === "shorts") return false;
+        if (!isDesktop && route.name === "profile") return false;
         return !hiddenRouteNames.has(route.name) && !route.name.startsWith("dalail-reader");
     });
 

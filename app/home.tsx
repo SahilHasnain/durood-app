@@ -918,9 +918,13 @@ if (authLoading || !initialized || loading) {
             </Animated.View>
 
             {sessionToastCount !== null && (
-                <View
+<View
                     pointerEvents="none"
-                    style={[styles.sessionToast, isDesktopWeb && styles.desktopSessionToast]}
+                    style={[
+                        styles.sessionToast,
+                        isDesktopWeb && styles.desktopSessionToast,
+                        !isDesktopWeb && { bottom: tabBarHeight + 40 },
+                    ]}
                 >
                     <Ionicons name="checkmark-circle" size={20} color={TASBEEH_PROGRESS_COLOR} />
                     <Text style={styles.sessionToastText}>
