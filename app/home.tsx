@@ -79,13 +79,16 @@ export default function Home() {
     const [preferredSessionGoal, setPreferredSessionGoal] = useState(DEFAULT_SESSION_GOAL);
     const [showSignInSheet, setShowSignInSheet] = useState(false);
     const { isAuthenticated, loading: authLoading } = useAuth();
-    const [sessionGoal, setSessionGoal] = useState<number | null>(null);
+const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionGoalInput, setSessionGoalInput] = useState("");
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
     const [sessionImageIndex, setSessionImageIndex] = useState(0);
     const [sessionToastCount, setSessionToastCount] = useState<number | null>(null);
-    const [isFullscreen, setIsFullscreen] = useState(false);
+const [isFullscreen, setIsFullscreen] = useState(false);
     const fullscreenPrefRef = useRef(false);
+    const [quickCountBuffer, setQuickCountBuffer] = useState(0);
+    const quickCountBufferRef = useRef(0);
+    const quickFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const progressAnim = useRef(new Animated.Value(RING_CIRCUMFERENCE)).current;
@@ -97,11 +100,12 @@ export default function Home() {
     const isDesktopWeb = Platform.OS === "web" && windowWidth >= 1200;
     const headerTranslateY = useSharedValue(0);
 
-    const progress = target > 0 ? ((count % target) / target) * 100 : 0;
-    const isComplete = count >= target;
-    const dailyGoalCompletions = target > 0 ? Math.floor(count / target) : 0;
-    const remainingToday = target > 0 ? Math.max(0, target - (count % target || (isComplete ? target : 0))) : 0;
-    const displayedDailyCount = target > 0 && isComplete && count % target === 0 ? target : target > 0 ? count % target : count;
+    const quickCount = count + quickCountBuffer;
+    const progress = target > 0 ? ((quickCount % target) / target) * 100 : 0;
+    const isComplete = quickCount >= target;
+    const dailyGoalCompletions = target > 0 ? Math.floor(quickCount / target) : 0;
+    const remainingToday = target > 0 ? Math.max(0, target - (quickCount % target || (isComplete ? target : 0))) : 0;
+    const displayedDailyCount = target > 0 && isComplete && quickCount % target === 0 ? target : target > 0 ? quickCount % target : quickCount;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
     const sessionImageHeight = windowHeight * 0.4;
 
@@ -292,7 +296,49 @@ export default function Home() {
         [count, lifetimeTotal, streak, saveData, target]
     );
 
+    const flushQuickCount = useCallback(async () => {
+        const amount = quickCountBufferRef.current;
+        if (amount <= 0) return;
+        quickCountBufferRef.current = 0;
+        setQuickCountBuffer(0);
+        await applyIncrement(amount);
+    }, [applyIncrement]);
+
+    const quickCountTap = useCallback(() => {
+        quickCountBufferRef.current += 1;
+        setQuickCountBuffer(quickCountBufferRef.current);
+
+        try {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch (error) {
+            console.error("Haptics failed", error);
+        }
+
+        if (quickFlushTimer.current) {
+            clearTimeout(quickFlushTimer.current);
+        }
+        quickFlushTimer.current = setTimeout(() => {
+            void flushQuickCount();
+        }, 800);
+    }, [flushQuickCount]);
+
+    useEffect(() => {
+        return () => {
+            if (quickFlushTimer.current) {
+                clearTimeout(quickFlushTimer.current);
+            }
+            const pending = quickCountBufferRef.current;
+            if (pending > 0) {
+                void applyIncrement(pending);
+            }
+        };
+    }, [applyIncrement]);
+
     const beginSession = useCallback(() => {
+        if (quickFlushTimer.current) {
+            clearTimeout(quickFlushTimer.current);
+        }
+        void flushQuickCount();
         tabBarTranslateY.value = withTiming(tabBarHeight + 50, { duration: 300 });
         headerTranslateY.value = withTiming(-(HEADER_HEIGHT + insets.top + 20), { duration: 300 });
         setShowManualSheet(false);
@@ -310,7 +356,7 @@ export default function Home() {
             setSessionGoalInput("");
             setShowSessionGoalSheet(false);
         }
-    }, [headerTranslateY, insets.top, sessionStartedAt, tabBarHeight, tabBarTranslateY, isDesktopWeb]);
+    }, [flushQuickCount, headerTranslateY, insets.top, sessionStartedAt, tabBarHeight, tabBarTranslateY, isDesktopWeb]);
 
     const resumeSession = useCallback(() => {
         if (!sessionActive || !sessionPaused) return;
@@ -531,9 +577,16 @@ export default function Home() {
                 (document.activeElement as HTMLElement | null)?.blur();
             };
 
-            if (!sessionActive && (key === "s" || key === "f")) {
+if (!sessionActive && (key === "s" || key === "f")) {
                 event.preventDefault();
                 beginSession();
+                clearKeyboardFocus();
+                return;
+            }
+
+            if (!sessionActive && key === " ") {
+                event.preventDefault();
+                quickCountTap();
                 clearKeyboardFocus();
                 return;
             }
@@ -563,9 +616,9 @@ export default function Home() {
             }
         };
 
-        document.addEventListener("keydown", handleKeyDown);
+document.addEventListener("keydown", handleKeyDown);
         return () => document.removeEventListener("keydown", handleKeyDown);
-    }, [beginSession, changeSessionImage, endSession, isFullscreen, sessionActive, toggleFullscreen]);
+    }, [beginSession, changeSessionImage, endSession, isFullscreen, quickCountTap, sessionActive, toggleFullscreen]);
 
     useEffect(() => {
         const subscription = AppState.addEventListener("change", (nextAppState) => {
@@ -818,10 +871,10 @@ if (authLoading || !initialized || loading) {
                     </View>
                 </View>
 
-                {/* Counter and Actions Group */}
+{/* Counter and Actions Group */}
                 <View style={[styles.bottomGroup, isDesktopWeb && styles.desktopBottomGroup]}>
                     {/* Counter Ring */}
-                    <TouchableOpacity activeOpacity={0.85} onPress={beginSession} style={styles.counterContainer}>
+                    <TouchableOpacity activeOpacity={0.85} onPress={quickCountTap} style={styles.counterContainer}>
                         <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
                             <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
                                 <Circle
@@ -865,7 +918,7 @@ if (authLoading || !initialized || loading) {
                             style={[styles.actionButton, styles.actionButtonPrimary]}
                         >
                             <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>
-                                Start Session
+                                Focus Mode
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => setShowManualSheet(true)} style={styles.actionButton}>
