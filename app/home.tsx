@@ -33,6 +33,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = theme.colors.primary.main;
+const RING_PROGRESS_COLOR = "#F59E0B";
 const DEFAULT_SESSION_GOAL = 50;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
@@ -43,8 +44,8 @@ const SIGN_IN_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const LAST_PROMPT_MILESTONE_KEY = "sign_in_last_prompt_milestone";
 const LAST_PROMPT_TIME_KEY = "sign_in_last_prompt_time";
 const SESSION_IMAGES = [
-    require("@/assets/images/gumbad.png"),
     require("@/assets/images/jalian-mubarak.jpg"),
+    require("@/assets/images/gumbad.png"),
 ];
 
 function formatNumber(value: number): string {
@@ -725,6 +726,14 @@ if (authLoading || !initialized || loading) {
 
                     <Pressable style={styles.sessionTapArea} onPress={addToSession}>
                     <View style={styles.sessionRing}>
+                        <Image
+                            source={require("@/assets/images/background-v1.png")}
+                            style={[
+                                styles.sessionBackground,
+                                { width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2 },
+                            ]}
+                            resizeMode="cover"
+                        />
                         <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
                             <Circle
                                 cx={RING_SIZE / 2}
@@ -739,7 +748,7 @@ if (authLoading || !initialized || loading) {
                                 cx={RING_SIZE / 2}
                                 cy={RING_SIZE / 2}
                                 r={RING_RADIUS}
-                                stroke={TASBEEH_PROGRESS_COLOR}
+                                stroke={RING_PROGRESS_COLOR}
                                 strokeWidth={RING_STROKE_WIDTH}
                                 strokeLinecap="round"
                                 strokeDasharray={RING_CIRCUMFERENCE}
@@ -876,6 +885,14 @@ if (authLoading || !initialized || loading) {
                     {/* Counter Ring */}
                     <TouchableOpacity activeOpacity={0.85} onPress={quickCountTap} style={styles.counterContainer}>
                         <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
+                            <Image
+                                source={require("@/assets/images/background-v1.png")}
+                                style={[
+                                    styles.counterBackground,
+                                    { width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2 },
+                                ]}
+                                resizeMode="cover"
+                            />
                             <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
                                 <Circle
                                     cx={RING_SIZE / 2}
@@ -890,7 +907,7 @@ if (authLoading || !initialized || loading) {
                                     cx={RING_SIZE / 2}
                                     cy={RING_SIZE / 2}
                                     r={RING_RADIUS}
-                                    stroke={TASBEEH_PROGRESS_COLOR}
+                                    stroke={RING_PROGRESS_COLOR}
                                     strokeWidth={RING_STROKE_WIDTH}
                                     strokeLinecap="round"
                                     strokeDasharray={RING_CIRCUMFERENCE}
@@ -1170,6 +1187,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    counterBackground: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        borderRadius: 100,
+        overflow: "hidden",
+        opacity: 0.4,
+    },
     progressRingComplete: {
         opacity: 1,
     },
@@ -1195,7 +1222,7 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
     },
     completionTextComplete: {
-        color: TASBEEH_PROGRESS_COLOR,
+        color: RING_PROGRESS_COLOR,
     },
     actionRow: {
         width: "100%",
@@ -1372,6 +1399,15 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 20,
+    },
+    sessionBackground: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: "hidden",
+        opacity: 0.4,
     },
     sessionRingContent: {
         position: "absolute",
