@@ -45,7 +45,7 @@ const LAST_PROMPT_MILESTONE_KEY = "sign_in_last_prompt_milestone";
 const LAST_PROMPT_TIME_KEY = "sign_in_last_prompt_time";
 const SESSION_IMAGES = [
     require("@/assets/images/gumbad.png"),
-    require("@/assets/images/jalian-mubarak.jpg"),
+    require("@/assets/images/jalian-mubarak-v1.png"),
 ];
 
 function formatNumber(value: number): string {
@@ -730,7 +730,7 @@ if (authLoading || !initialized || loading) {
                             source={require("@/assets/images/background-v1.png")}
                             style={[
                                 styles.sessionBackground,
-                                { width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2 },
+                                { width: RING_SIZE - 17, height: RING_SIZE - 17, borderRadius: (RING_SIZE - 17) / 2 },
                             ]}
                             resizeMode="cover"
                         />
@@ -889,7 +889,7 @@ if (authLoading || !initialized || loading) {
                                 source={require("@/assets/images/background-v1.png")}
                                 style={[
                                     styles.counterBackground,
-                                    { width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2 },
+                                    { width: RING_SIZE - 17, height: RING_SIZE - 17, borderRadius: (RING_SIZE - 17) / 2 },
                                 ]}
                                 resizeMode="cover"
                             />
@@ -1189,11 +1189,8 @@ const styles = StyleSheet.create({
     },
     counterBackground: {
         position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        borderRadius: 100,
+        top: 8.5,
+        left: 8.5,
         overflow: "hidden",
         opacity: 0.4,
     },
@@ -1402,10 +1399,8 @@ const styles = StyleSheet.create({
     },
     sessionBackground: {
         position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        top: 8.5,
+        left: 8.5,
         overflow: "hidden",
         opacity: 0.4,
     },
