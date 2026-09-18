@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTasbeehData } from "@/hooks/useTasbeehData";
 import { SessionRecord } from "@/services/tasbeehService";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
@@ -672,6 +673,11 @@ if (authLoading || !initialized || loading) {
                         source={SESSION_IMAGES[sessionImageIndex]}
                         style={styles.sessionImage}
                         resizeMode="cover"
+                    />
+                    <LinearGradient
+                        colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.4)"]}
+                        style={styles.sessionImageGradient}
+                        pointerEvents="none"
                     />
                     <TouchableOpacity
                         accessibilityLabel="Change session image"
@@ -1358,6 +1364,13 @@ const styles = StyleSheet.create({
     sessionImage: {
         width: "100%",
         height: "100%",
+    },
+    sessionImageGradient: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     sessionImageButton: {
         position: "absolute",
