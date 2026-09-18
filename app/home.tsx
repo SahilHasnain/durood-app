@@ -44,8 +44,8 @@ const SIGN_IN_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const LAST_PROMPT_MILESTONE_KEY = "sign_in_last_prompt_milestone";
 const LAST_PROMPT_TIME_KEY = "sign_in_last_prompt_time";
 const SESSION_IMAGES = [
-    require("@/assets/images/jalian-mubarak.jpg"),
     require("@/assets/images/gumbad.png"),
+    require("@/assets/images/jalian-mubarak.jpg"),
 ];
 
 function formatNumber(value: number): string {
