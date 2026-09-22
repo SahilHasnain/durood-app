@@ -1,14 +1,17 @@
 import KeyboardSpacer from "@/components/KeyboardSpacer";
+import { Confetti } from "@/components/Confetti";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasbeehData } from "@/hooks/useTasbeehData";
+import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { SessionRecord } from "@/services/tasbeehService";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
@@ -66,11 +69,12 @@ export default function Home() {
     const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
     // Use Appwrite hook
-    const { count, target, lifetimeTotal, streak, loading, initialized, saveData, refreshData } =
+    const { count, target, lifetimeTotal, streak, loading, initialized, increment, refreshData } =
         useTasbeehData();
 
     const [manualAddValue, setManualAddValue] = useState("");
     const [showManualSheet, setShowManualSheet] = useState(false);
+    const [confettiKey, setConfettiKey] = useState<number | null>(null);
     const [sessionActive, setSessionActive] = useState(false);
     const [sessionPaused, setSessionPaused] = useState(false);
     const [sessionCount, setSessionCount] = useState(0);
@@ -85,7 +89,7 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
     const [sessionImageIndex, setSessionImageIndex] = useState(0);
     const [sessionToastCount, setSessionToastCount] = useState<number | null>(null);
-const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const fullscreenPrefRef = useRef(false);
     const [quickCountBuffer, setQuickCountBuffer] = useState(0);
     const quickCountBufferRef = useRef(0);
@@ -102,11 +106,15 @@ const [isFullscreen, setIsFullscreen] = useState(false);
     const headerTranslateY = useSharedValue(0);
 
     const quickCount = count + quickCountBuffer;
-    const progress = target > 0 ? ((quickCount % target) / target) * 100 : 0;
-    const isComplete = quickCount >= target;
+    const isComplete = target > 0 && quickCount > 0 && quickCount % target === 0;
     const dailyGoalCompletions = target > 0 ? Math.floor(quickCount / target) : 0;
     const remainingToday = target > 0 ? Math.max(0, target - (quickCount % target || (isComplete ? target : 0))) : 0;
-    const displayedDailyCount = target > 0 && isComplete && quickCount % target === 0 ? target : target > 0 ? quickCount % target : quickCount;
+    const displayedDailyCount = target > 0 && isComplete && quickCount % target === 0
+        ? target
+        : target > 0
+            ? quickCount % target
+            : quickCount;
+    const progress = target > 0 ? (displayedDailyCount / target) * 100 : 0;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
     const sessionImageHeight = windowHeight * 0.4;
 
@@ -270,11 +278,12 @@ const [isFullscreen, setIsFullscreen] = useState(false);
     const applyIncrement = useCallback(
         async (amount: number, sessionRecord?: SessionRecord) => {
             if (amount <= 0) return;
-            const newCount = count + amount;
-            const newLifetimeTotal = lifetimeTotal + amount;
-            const newStreak = count === 0 && newCount > 0 ? streak + 1 : streak;
+            const current = useTasbeehStore.getState();
+            const currentCount = current.count;
+            const newCount = currentCount + amount;
+            const incrementPromise = increment(amount, sessionRecord);
 
-            const previousGoalCompletions = target > 0 ? Math.floor(count / target) : 0;
+            const previousGoalCompletions = target > 0 ? Math.floor(currentCount / target) : 0;
             const nextGoalCompletions = target > 0 ? Math.floor(newCount / target) : 0;
 
             if (nextGoalCompletions > previousGoalCompletions) {
@@ -283,26 +292,24 @@ const [isFullscreen, setIsFullscreen] = useState(false);
                 } catch (error) {
                     console.error("Haptics failed", error);
                 }
+                setConfettiKey(Date.now());
             }
 
-            await saveData(
-                {
-                    count: newCount,
-                    lifetimeTotal: newLifetimeTotal,
-                    streak: newStreak,
-                },
-                sessionRecord
-            );
+            await incrementPromise;
         },
-        [count, lifetimeTotal, streak, saveData, target]
+        [increment, target]
     );
 
     const flushQuickCount = useCallback(async () => {
         const amount = quickCountBufferRef.current;
         if (amount <= 0) return;
+
+        // increment() updates the store synchronously. Clear the visual buffer
+        // in the same turn so the batch is displayed exactly once.
+        const pendingIncrement = applyIncrement(amount);
         quickCountBufferRef.current = 0;
         setQuickCountBuffer(0);
-        await applyIncrement(amount);
+        await pendingIncrement;
     }, [applyIncrement]);
 
     const quickCountTap = useCallback(() => {
@@ -417,6 +424,7 @@ const [isFullscreen, setIsFullscreen] = useState(false);
             } catch (error) {
                 console.error("Haptics failed", error);
             }
+            setConfettiKey(Date.now());
             return;
         }
 
@@ -823,6 +831,19 @@ if (authLoading || !initialized || loading) {
                         <KeyboardSpacer />
                     </View>
                 )}
+
+                <LinearGradient
+                    pointerEvents="none"
+                    colors={["rgba(0, 0, 0, 0.12)", "rgba(0, 0, 0, 0.32)"]}
+                    style={styles.eyeComfortOverlay}
+                />
+
+                {confettiKey !== null && (
+                    <View pointerEvents="none" style={styles.confettiOverlay}>
+                        <Confetti key={confettiKey} />
+                    </View>
+                )}
+
             </SafeAreaView>
         );
     }
@@ -880,7 +901,9 @@ if (authLoading || !initialized || loading) {
                     </View>
                 </View>
 
-{/* Counter and Actions Group */}
+                <View style={styles.bottomSpacer} />
+
+                {/* Counter and Actions Group */}
                 <View style={[styles.bottomGroup, isDesktopWeb && styles.desktopBottomGroup]}>
                     {/* Counter Ring */}
                     <TouchableOpacity activeOpacity={0.85} onPress={quickCountTap} style={styles.counterContainer}>
@@ -919,7 +942,7 @@ if (authLoading || !initialized || loading) {
                             <View style={styles.progressInner}>
                                 <Text style={styles.count}>{formatNumber(displayedDailyCount)}</Text>
                                 <Text style={styles.targetText}>of {formatNumber(target)}</Text>
-                                <Text style={[styles.completionText, isComplete && styles.completionTextComplete]}>
+                                <Text style={[styles.completionText, dailyGoalCompletions > 0 && styles.completionTextComplete]}>
                                     {dailyGoalCompletions > 0
                                         ? `Daily goal completed ${dailyGoalCompletions}x`
                                         : `${formatNumber(remainingToday)} remaining today`}
@@ -928,8 +951,10 @@ if (authLoading || !initialized || loading) {
                         </View>
                     </TouchableOpacity>
 
-                    {/* Actions */}
-                    <View style={styles.actionRow}>
+                </View>
+
+                {/* Actions */}
+                <View style={[styles.actionRow, isDesktopWeb && styles.desktopBottomGroup]}>
                         <TouchableOpacity
                             onPress={beginSession}
                             style={[styles.actionButton, styles.actionButtonPrimary]}
@@ -941,8 +966,12 @@ if (authLoading || !initialized || loading) {
                         <TouchableOpacity onPress={() => setShowManualSheet(true)} style={styles.actionButton}>
                             <Text style={styles.actionButtonText}>Manual Add</Text>
                         </TouchableOpacity>
-                    </View>
                 </View>
+                <LinearGradient
+                    pointerEvents="none"
+                    colors={["rgba(0, 0, 0, 0.12)", "rgba(0, 0, 0, 0.32)"]}
+                    style={styles.eyeComfortOverlay}
+                />
             </ScrollView>
 
             {/* Manual Add Sheet */}
@@ -1036,6 +1065,11 @@ if (authLoading || !initialized || loading) {
                     </Pressable>
                 </Pressable>
             </Modal>
+            {confettiKey !== null && (
+                <View pointerEvents="none" style={styles.confettiOverlay}>
+                    <Confetti key={confettiKey} />
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -1044,6 +1078,18 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
+    },
+    eyeComfortOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 10,
+    },
+    confettiOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999,
     },
     loadingContainer: {
         flex: 1,
@@ -1109,7 +1155,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         paddingHorizontal: 16,
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
     },
     desktopScrollContent: {
         width: "100%",
@@ -1120,6 +1166,13 @@ const styles = StyleSheet.create({
     bottomGroup: {
         width: "100%",
         alignItems: "center",
+        position: "relative",
+        zIndex: 20,
+        elevation: 20,
+    },
+    bottomSpacer: {
+        flex: 1,
+        minHeight: 0,
     },
     desktopBottomGroup: {
         maxWidth: 680,
@@ -1181,6 +1234,9 @@ const styles = StyleSheet.create({
     counterContainer: {
         alignItems: "center",
         marginBottom: 24,
+        position: "relative",
+        zIndex: 20,
+        elevation: 20,
     },
     progressRing: {
         position: "relative",

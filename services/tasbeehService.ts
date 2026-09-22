@@ -56,7 +56,7 @@ function parseStoredSessions(
 }
 
 // Get user ID (authenticated or anonymous)
-async function getUserId(authenticatedUserId?: string): Promise<string> {
+export async function getUserId(authenticatedUserId?: string): Promise<string> {
   if (authenticatedUserId) {
     return authenticatedUserId;
   }
@@ -81,7 +81,7 @@ async function getUserId(authenticatedUserId?: string): Promise<string> {
 }
 
 // Get today's date key
-function getTodayKey(): string {
+export function getTodayKey(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
     now.getDate()

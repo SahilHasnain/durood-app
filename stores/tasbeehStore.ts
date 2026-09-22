@@ -1,4 +1,5 @@
 import * as TasbeehService from "@/services/tasbeehService";
+import * as TasbeehEventSync from "@/services/tasbeehEventSync";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 
@@ -57,6 +58,11 @@ interface TasbeehState {
 interface TasbeehActions {
   loadData: (userId?: string) => Promise<void>;
   refreshData: (userId?: string) => Promise<void>;
+  increment: (
+    amount: number,
+    userId?: string,
+    sessionRecord?: TasbeehService.SessionRecord
+  ) => Promise<void>;
   saveData: (
     newData: Partial<Pick<TasbeehState, "count" | "target" | "lifetimeTotal" | "streak">>,
     userId?: string,
@@ -140,6 +146,10 @@ const initialState: TasbeehState = {
   plannerInitialized: false,
 };
 
+let saveQueue = Promise.resolve();
+let lastQueueReloadAt = 0;
+const QUEUE_RELOAD_THROTTLE_MS = 10_000;
+
 export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) => ({
   ...initialState,
 
@@ -164,6 +174,15 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         return;
       }
 
+      // If increments are still queued from an offline session, don't let the fresh
+      // server read overwrite local totals; restore the local checkpoint and flush
+      // queued events instead (Model B items 7-8).
+      if (await TasbeehEventSync.hasPendingEvents()) {
+        await loadFromAsyncStorage(set);
+        void TasbeehEventSync.flushPendingEventQueue();
+        return;
+      }
+
       const [goal, todayProgress] = await Promise.all([
         TasbeehService.getUserGoal(userId),
         TasbeehService.getTodayProgress(userId),
@@ -179,9 +198,18 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
         TasbeehService.calculateStreak(userId),
       ]);
 
-      const appwriteLifetime = resolvedGoal?.lifetimeTotal ?? get().lifetimeTotal;
-      const appwriteStreak = calculatedStreak.currentStreak;
-      const appwriteCount = resolvedTodayProgress?.count ?? 0;
+      const currentState = get();
+      // A load can finish after local increments have already been applied.
+      // Never replace a newer local total with an older server snapshot.
+      const appwriteLifetime = Math.max(
+        resolvedGoal?.lifetimeTotal ?? currentState.lifetimeTotal,
+        currentState.lifetimeTotal
+      );
+      const appwriteStreak = Math.max(calculatedStreak.currentStreak, currentState.streak);
+      const appwriteCount = Math.max(
+        resolvedTodayProgress?.count ?? currentState.count,
+        currentState.count
+      );
       const appwriteTarget = resolvedGoal?.dailyTarget ?? get().target;
 
       set({
@@ -251,6 +279,13 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
     const state = get();
     if (state.loading) return;
 
+    // If increments are still queued (offline/in-flight), don't let a stale server
+    // snapshot overwrite the local totals (Model B item 8: reload only after drain).
+    if (await TasbeehEventSync.hasPendingEvents()) {
+      void TasbeehEventSync.flushPendingEventQueue();
+      return;
+    }
+
     try {
       const [goal, todayProgress] = await Promise.all([
         TasbeehService.getUserGoal(userId),
@@ -269,9 +304,16 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
 
       const hasData = resolvedGoal !== null || resolvedTodayProgress !== null || calculatedStreak.currentStreak > 0;
       if (hasData) {
-        const appwriteLifetime = resolvedGoal?.lifetimeTotal ?? state.lifetimeTotal;
-        const appwriteStreak = calculatedStreak.currentStreak;
-        const appwriteCount = resolvedTodayProgress?.count ?? state.count;
+        // Monotonic guard: never let count/lifetimeTotal/streak regress from a stale read.
+        const appwriteLifetime = Math.max(
+          resolvedGoal?.lifetimeTotal ?? state.lifetimeTotal,
+          state.lifetimeTotal
+        );
+        const appwriteStreak = Math.max(calculatedStreak.currentStreak, state.streak);
+        const appwriteCount = Math.max(
+          resolvedTodayProgress?.count ?? state.count,
+          state.count
+        );
         const appwriteTarget = resolvedGoal?.dailyTarget ?? state.target;
 
         set({
@@ -325,39 +367,85 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
     }
   },
 
-  saveData: async (newData, userId?: string, sessionRecord?: TasbeehService.SessionRecord) => {
-    try {
-      const currentState = get();
-      const todayKey = getTodayKey();
-      const lastActiveDate = await AsyncStorage.getItem(LAST_ACTIVE_DATE_KEY);
-      const isNewDay = Boolean(lastActiveDate && lastActiveDate !== todayKey);
-      const normalizedNewData = { ...newData };
+  increment: async (amount: number, userId?: string, sessionRecord?: TasbeehService.SessionRecord) => {
+    if (amount <= 0) return;
+    const current = get();
+    const nextData = {
+      count: current.count + amount,
+      target: current.target,
+      lifetimeTotal: current.lifetimeTotal + amount,
+      streak: current.count === 0 ? current.streak + 1 : current.streak,
+    };
+    const todayKey = getTodayKey();
 
-      if (isNewDay && typeof newData.count === "number") {
-        const incrementAmount = Math.max(0, newData.count - currentState.count);
-        normalizedNewData.count = incrementAmount;
-        normalizedNewData.streak = incrementAmount > 0 ? currentState.streak + 1 : currentState.streak;
+    // Update local state synchronously; the network work remains queued below.
+    set({ ...nextData, syncing: true });
+
+    const task = async () => {
+
+      // Persist a local checkpoint for crash recovery (item 7).
+      await persistLocalSnapshot(nextData, todayKey, sessionRecord);
+
+      // Append this increment batch before any network call (item 3).
+      await TasbeehEventSync.enqueueSyncEvent(amount, current.target, userId, sessionRecord?.id);
+
+      // Push queued events; events leave only on accepted:true (items 4-5).
+      const remaining = await TasbeehEventSync.flushPendingEventQueue();
+      set({ syncing: false, lastSyncTime: Date.now() });
+
+      // Once the queue drains, reload authoritative totals (item 8).
+      if (remaining === 0 && userId) {
+        const now = Date.now();
+        if (now - lastQueueReloadAt > QUEUE_RELOAD_THROTTLE_MS) {
+          lastQueueReloadAt = now;
+          await get().refreshData(userId).catch(() => {});
+        }
       }
+    };
+    const nextQueue = saveQueue.then(task, task);
+    saveQueue = nextQueue;
+    return nextQueue;
+  },
 
-      const updatedData = { ...currentState, ...normalizedNewData };
+  saveData: async (newData, userId?: string, sessionRecord?: TasbeehService.SessionRecord) => {
+    const task = async () => {
+      try {
+        const currentState = get();
+        const todayKey = getTodayKey();
+        const lastActiveDate = await AsyncStorage.getItem(LAST_ACTIVE_DATE_KEY);
+        const isNewDay = Boolean(lastActiveDate && lastActiveDate !== todayKey);
+        const normalizedNewData = { ...newData };
 
-      // Update local state immediately for responsive UI
-      set({ ...normalizedNewData, syncing: true });
+        if (isNewDay && typeof newData.count === "number") {
+          const incrementAmount = Math.max(0, newData.count - currentState.count);
+          normalizedNewData.count = incrementAmount;
+          normalizedNewData.streak = incrementAmount > 0 ? currentState.streak + 1 : currentState.streak;
+        }
 
-      await persistLocalSnapshot(updatedData, todayKey, sessionRecord);
+        const updatedData = { ...currentState, ...normalizedNewData };
 
-      const now = Date.now();
-      set({ lastSyncTime: now });
+        // Update local state immediately for responsive UI
+        set({ ...normalizedNewData, syncing: true });
 
-      const syncedState = await syncPendingState(userId, updatedData);
-      set({
-        streak: syncedState?.streak ?? updatedData.streak,
-        syncing: false,
-      });
-    } catch (error) {
-      console.error("Failed to save data to Appwrite:", error);
-      set({ syncing: false });
-    }
+        await persistLocalSnapshot(updatedData, todayKey, sessionRecord);
+
+        const now = Date.now();
+        set({ lastSyncTime: now });
+
+        const syncedState = await syncPendingState(userId, updatedData);
+        set({
+          streak: syncedState?.streak ?? updatedData.streak,
+          syncing: false,
+        });
+      } catch (error) {
+        console.error("Failed to save data to Appwrite:", error);
+        set({ syncing: false });
+      }
+    };
+
+    const nextQueue = saveQueue.then(task, task);
+    saveQueue = nextQueue;
+    return nextQueue;
   },
 
   reload: async (userId?: string) => {
@@ -366,19 +454,12 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
   },
 
   retryPendingSync: async (userId?: string) => {
-    const pendingStr = await AsyncStorage.getItem(PENDING_SYNC_KEY);
-    if (!pendingStr) return;
-
-    const state = get();
-    const result = await syncPendingState(userId, {
-      count: state.count,
-      target: state.target,
-      lifetimeTotal: state.lifetimeTotal,
-      streak: state.streak,
-    });
-    if (result) {
-      set({ streak: result.streak, syncing: false });
+    // Model B: retry queued ledger events; never snapshot-sync increments (item 9).
+    const remaining = await TasbeehEventSync.flushPendingEventQueue();
+    if (remaining === 0 && userId) {
+      await get().refreshData(userId).catch(() => {});
     }
+    set({ syncing: false });
   },
 
   reset: () => {
@@ -503,8 +584,14 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       ]);
 
       const currentState = get();
-      const lifetimeTotal = goal?.lifetimeTotal ?? currentState.progressStats?.lifetimeTotal ?? 0;
-      const currentStreak = goal?.currentStreak ?? currentState.progressStats?.currentStreak ?? 0;
+      const lifetimeTotal = Math.max(
+        goal?.lifetimeTotal ?? 0,
+        currentState.progressStats?.lifetimeTotal ?? 0
+      );
+      const currentStreak = Math.max(
+        goal?.currentStreak ?? 0,
+        currentState.progressStats?.currentStreak ?? 0
+      );
       const longestStreak = goal?.longestStreak ?? currentState.progressStats?.longestStreak ?? 0;
 
       // Offline guard — don't overwrite with empty data
@@ -626,7 +713,10 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       const goal = await TasbeehService.getUserGoal(userId);
 
       const currentState = get();
-      const plannerLifetime = goal?.lifetimeTotal ?? currentState.plannerData?.lifetimeTotal ?? 0;
+      const plannerLifetime = Math.max(
+        goal?.lifetimeTotal ?? 0,
+        currentState.plannerData?.lifetimeTotal ?? 0
+      );
       const plannerTotalGoal = goal?.totalGoal ?? currentState.plannerData?.totalGoal ?? DEFAULT_TOTAL_GOAL;
       const plannerDailyTarget = goal?.dailyTarget ?? currentState.plannerData?.dailyTarget ?? DEFAULT_PLANNER_DAILY_TARGET;
 
@@ -715,11 +805,16 @@ async function loadFromAsyncStorage(set: (state: Partial<TasbeehState>) => void)
     const todayKey = getTodayKey();
     const isToday = lastActiveDate === todayKey;
 
+    const currentState = useTasbeehStore.getState();
+    const storedCount = isToday && countStr ? parseInt(countStr, 10) : 0;
+    const storedLifetime = lifetimeStr ? parseInt(lifetimeStr, 10) : 0;
+    const storedStreak = streakStr ? parseInt(streakStr, 10) : 0;
+
     set({
-      count: isToday && countStr ? parseInt(countStr, 10) : 0,
+      count: Math.max(storedCount, isToday ? currentState.count : 0),
       target: targetStr ? parseInt(targetStr, 10) : 100,
-      lifetimeTotal: lifetimeStr ? parseInt(lifetimeStr, 10) : 0,
-      streak: streakStr ? parseInt(streakStr, 10) : 0,
+      lifetimeTotal: Math.max(storedLifetime, currentState.lifetimeTotal),
+      streak: Math.max(storedStreak, currentState.streak),
       loading: false,
       syncing: false,
       initialized: true,

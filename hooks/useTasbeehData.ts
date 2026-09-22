@@ -14,6 +14,7 @@ export function useTasbeehData() {
   const initializedUserId = useTasbeehStore((state) => state.initializedUserId);
   const loadData = useTasbeehStore((state) => state.loadData);
   const refreshStoreData = useTasbeehStore((state) => state.refreshData);
+  const incrementStoreData = useTasbeehStore((state) => state.increment);
   const saveStoreData = useTasbeehStore((state) => state.saveData);
   const reloadStoreData = useTasbeehStore((state) => state.reload);
 
@@ -29,6 +30,12 @@ export function useTasbeehData() {
 
     void loadData(activeUserId);
   }, [user?.id, initialized, initializedUserId, authLoading, loadData]);
+
+  const increment = useCallback(
+    (amount: number, sessionRecord?: Parameters<typeof saveStoreData>[2]) =>
+      incrementStoreData(amount, user?.id, sessionRecord),
+    [incrementStoreData, user?.id]
+  );
 
   const saveData = useCallback(
     (
@@ -57,6 +64,7 @@ export function useTasbeehData() {
     loading,
     syncing,
     initialized,
+    increment,
     saveData,
     reload,
     refreshData,
