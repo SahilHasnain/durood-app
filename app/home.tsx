@@ -9,6 +9,7 @@ import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { SessionRecord } from "@/services/tasbeehService";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Asset } from "expo-asset";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -172,6 +173,14 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
         return () => {
             mounted = false;
         };
+    }, []);
+
+    useEffect(() => {
+        if (Platform.OS !== "web") return;
+
+        void Promise.all(
+            SESSION_IMAGES.map((source) => Asset.fromModule(source).downloadAsync().catch(() => undefined)),
+        );
     }, []);
 
     useEffect(() => {
