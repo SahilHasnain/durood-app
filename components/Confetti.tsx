@@ -14,7 +14,7 @@ const CONFETTI_COLORS = ["#F59E0B", "#FBBF24", "#FCD34D", "#FDE68A", "#FFFFFF", 
 const PARTICLE_COUNT = 48;
 const BURST_DURATION = 260;
 const FALL_DURATION = 950;
-const TEXT_LABEL = "MashAllah!";
+const TEXT_LABEL = "ماشاءاللہ";
 const TEXT_HOLD_DURATION = 900;
 
 const randomIn = (min: number, max: number) => min + Math.random() * (max - min);
