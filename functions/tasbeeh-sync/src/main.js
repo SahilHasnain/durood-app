@@ -4,6 +4,8 @@ const databaseId = process.env.APPWRITE_DATABASE_ID;
 const progressCollectionId = process.env.APPWRITE_PROGRESS_COLLECTION_ID || "tasbeeh_progress";
 const goalsCollectionId = process.env.APPWRITE_GOALS_COLLECTION_ID || "tasbeeh_progress_goals";
 const eventsCollectionId = process.env.APPWRITE_EVENTS_COLLECTION_ID;
+const globalStatsCollectionId = process.env.APPWRITE_GLOBAL_STATS_COLLECTION_ID || "global_stats";
+const globalStatsDocumentId = "authenticated_total";
 
 function response(res, statusCode, body) {
   return res.json(body, statusCode);
@@ -116,6 +118,17 @@ export default async ({ req, res, log, error }) => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
+    }
+
+    // Anonymous local progress is deliberately excluded from the community total.
+    if (!userId.startsWith("anon_")) {
+      await databases.incrementDocumentAttribute(
+        databaseId,
+        globalStatsCollectionId,
+        globalStatsDocumentId,
+        "totalRecitations",
+        amount,
+      );
     }
 
     log(`Applied tasbeeh event ${eventId} for ${userId}: +${amount}`);

@@ -72,6 +72,7 @@ export default function Home() {
     // Use Appwrite hook
     const { count, target, lifetimeTotal, streak, loading, initialized, increment, refreshData } =
         useTasbeehData();
+    const globalRecitations = useTasbeehStore((state) => state.globalRecitations);
 
     const [manualAddValue, setManualAddValue] = useState("");
     const [showManualSheet, setShowManualSheet] = useState(false);
@@ -889,6 +890,26 @@ if (authLoading || !initialized || loading) {
                             </View>
                         </View>
                     </View>
+                    {globalRecitations !== null && (
+                        <View style={styles.summaryRow}>
+                            <View style={styles.summaryItem}>
+                                <View style={styles.summaryIconWrap}>
+                                    <Ionicons name="globe-outline" size={18} color={TASBEEH_PROGRESS_COLOR} />
+                                </View>
+                                <View style={styles.summaryTextWrap}>
+                                    <Text style={styles.summaryLabel}>Community</Text>
+                                    <Text
+                                        style={styles.summaryValue}
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                        minimumFontScale={0.7}
+                                    >
+                                        {formatNumber(globalRecitations)}
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    )}
                     <View style={styles.summaryRow}>
                         <View style={styles.summaryItem}>
                             <View style={styles.summaryIconWrap}>

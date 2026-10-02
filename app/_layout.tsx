@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { recordTasbeehDebug } from "@/services/tasbeehDebug";
+import { subscribeToGlobalRecitations } from "@/services/globalCounter";
 import NetInfo from "@react-native-community/netinfo";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
@@ -199,12 +200,48 @@ function RootLayoutContent() {
   );
 }
 
+function GlobalCounterSync() {
+  useEffect(() => {
+    const setGlobalRecitations = useTasbeehStore.getState().setGlobalRecitations;
+    let active = true;
+    let unsubscribe: (() => Promise<void>) | undefined;
+
+    void subscribeToGlobalRecitations((total) => {
+      if (active) setGlobalRecitations(total);
+    })
+      .then((cleanup) => {
+        if (active) {
+          unsubscribe = cleanup;
+        } else {
+          void cleanup();
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setGlobalRecitations(null);
+          void recordTasbeehDebug("global-counter:error", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+      setGlobalRecitations(null);
+      if (unsubscribe) void unsubscribe();
+    };
+  }, []);
+
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
           <AutoSyncOnReconnect />
+          <GlobalCounterSync />
           <TabBarVisibilityProvider tabBarHeight={68}>
             <StatusBar style="light" />
             <RootLayoutContent />

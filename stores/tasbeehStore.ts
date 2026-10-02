@@ -55,6 +55,10 @@ interface TasbeehState {
   plannerData: PlannerData | null;
   plannerLoading: boolean;
   plannerInitialized: boolean;
+
+  // Authenticated community total
+  globalRecitations: number | null;
+  globalRecitationsLoading: boolean;
 }
 
 interface TasbeehActions {
@@ -83,6 +87,7 @@ interface TasbeehActions {
   refreshPlannerData: (userId?: string) => Promise<void>;
   updateDailyTarget: (newTarget: number, userId?: string) => Promise<void>;
   updateTotalGoal: (newGoal: number, userId?: string) => Promise<void>;
+  setGlobalRecitations: (total: number | null) => void;
 }
 
 const LAST_ACTIVE_DATE_KEY = "tasbeeh_last_active_date";
@@ -146,6 +151,8 @@ const initialState: TasbeehState = {
   plannerData: null,
   plannerLoading: false,
   plannerInitialized: false,
+  globalRecitations: null,
+  globalRecitationsLoading: false,
 };
 
 let saveQueue = Promise.resolve();
@@ -515,8 +522,12 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
     set({ syncing: false });
   },
 
+  setGlobalRecitations: (total: number | null) => {
+    set({ globalRecitations: total, globalRecitationsLoading: false });
+  },
+
   reset: () => {
-    set(initialState);
+    set({ ...initialState, globalRecitations: get().globalRecitations });
   },
 
   loadProgressData: async (userId?: string) => {

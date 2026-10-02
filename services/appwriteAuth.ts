@@ -4,7 +4,7 @@ import { GoogleSignin, isSuccessResponse } from "@react-native-google-signin/goo
 import { Platform } from "react-native";
 import { account, config } from "@/config/appwrite";
 
-const nativeClient = new NativeClient()
+export const nativeClient = new NativeClient()
   .setEndpoint(config.endpoint)
   .setProject(config.projectId);
 const nativeAccount = new NativeAccount(nativeClient);
