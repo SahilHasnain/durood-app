@@ -1,525 +1,194 @@
-import { DalailZoomableImage } from "@/components/DalailZoomableImage";
+import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
-import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
-import {
-    DALAIL_ASSET_MANIFEST,
-    DALAIL_TITLE,
-    clampDalailPage,
-    getDalailSectionForPage,
-} from "@/data/dalail";
+import { getDalailSectionForPage, DALAIL_TITLE } from "@/data/dalail";
 import { useDalailBookmarks } from "@/hooks/useDalailBookmarks";
 import { useDalailProgress } from "@/hooks/useDalailProgress";
-import { useResolvedDalailPage } from "@/hooks/useResolvedDalailPage";
-import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    BackHandler,
-    Dimensions,
-    FlatList,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-    Platform,
-    useWindowDimensions,
-    type ViewToken,
-} from "react-native";
-import { withTiming } from "react-native-reanimated";
+    getDalailDuaLines,
+    getDalailDuas,
+    getDalailPartLines,
+    type DalailTextLine,
+} from "@/services/dalailDatabase";
+import { Ionicons } from "@expo/vector-icons";
+import { useSQLiteContext } from "expo-sqlite";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const OPENING_PAGE_END = 86;
 
-function DalailReaderPage({
-    page,
-    onZoomChange,
-    headerOffset,
-    viewportWidth,
-}: {
-    page: number;
-    onZoomChange: (isZoomed: boolean) => void;
-    headerOffset: number;
-    viewportWidth: number;
-}) {
-    const { asset, isLoading } = useResolvedDalailPage(page);
-    const [hasLoadError, setHasLoadError] = useState(false);
+type ReaderContent = {
+    title: string;
+    subtitle: string;
+    lines: DalailTextLine[];
+    partNumber?: number;
+};
 
-    useEffect(() => {
-        setHasLoadError(false);
-    }, [asset?.uri, page]);
-
-    if (asset?.source && !hasLoadError) {
-        return (
-            <View style={[styles.pageSurface, { paddingTop: headerOffset }]}> 
-                <DalailZoomableImage
-                    source={asset.source}
-                    width={Math.min(viewportWidth, 760)}
-                    height={Math.min(viewportWidth, 760) / 0.68}
-                    onZoomChange={onZoomChange}
-                    onError={() => setHasLoadError(true)}
-                />
-            </View>
-        );
-    }
-
+function TextLine({ line }: { line: DalailTextLine }) {
     return (
-        <View style={[styles.pageFallback, { paddingTop: headerOffset }]}> 
-            {isLoading ? <ActivityIndicator color={theme.colors.semantic.success} size="large" /> : null}
-            <Text style={styles.fallbackTitle}>{isLoading ? "Opening Dalail page..." : `Page ${page} not ready yet`}</Text>
-            <Text style={styles.fallbackText}>
-                {isLoading
-                    ? "The reader is fetching the page image."
-                    : "The reader is ready; this page will appear after the Dalail image assets finish uploading."}
-            </Text>
+        <View style={styles.lineCard}>
+            <Text style={styles.arabicText}>{line.arabic}</Text>
+            <Text style={styles.englishText}>{line.english}</Text>
         </View>
     );
 }
 
-export default function DalailReaderScreen() {
+export default function DalailTextReaderScreen() {
+    const db = useSQLiteContext();
     const router = useRouter();
-    const params = useLocalSearchParams<{ page?: string }>();
     const insets = useSafeAreaInsets();
-    const { width: viewportWidth } = useWindowDimensions();
-    const isDesktopWeb = Platform.OS === "web" && viewportWidth >= 1200;
-    const { translateY: tabBarTranslateY, tabBarHeight } = useTabBarVisibility();
-    const initialPage = clampDalailPage(Number(params.page ?? 1) || 1);
-    const pages = useRef(Array.from({ length: DALAIL_ASSET_MANIFEST.totalPages }, (_, index) => index + 1)).current;
-    const flatListRef = useRef<FlatList<number>>(null);
-    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+    const headerTranslateY = useSharedValue(0);
+    const params = useLocalSearchParams<{ page?: string }>();
+    const page = Math.max(1, Number(params.page ?? 1) || 1);
+    const section = getDalailSectionForPage(page);
     const { saveProgress, markWirdComplete, isWirdCompleteToday } = useDalailProgress();
     const { isBookmarked, getBookmarkForPage, addBookmark, removeBookmark } = useDalailBookmarks();
+    const [content, setContent] = useState<ReaderContent | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const [currentPage, setCurrentPage] = useState(initialPage);
-    const [isZoomed, setIsZoomed] = useState(false);
-    const [isJumpVisible, setIsJumpVisible] = useState(false);
-    const [pageInput, setPageInput] = useState(String(initialPage));
-    const [completeMessage, setCompleteMessage] = useState<string | null>(null);
-
-    const currentSection = getDalailSectionForPage(currentPage);
-    const pageInSection = currentPage - currentSection.startPage + 1;
-    const sectionPages = currentSection.endPage - currentSection.startPage + 1;
-    const currentBookmarked = isBookmarked(currentPage);
-    const currentWirdComplete = isWirdCompleteToday(currentSection.id);
-    const bookProgress = (currentPage / DALAIL_ASSET_MANIFEST.totalPages) * 100;
-    const headerOffset = (isDesktopWeb ? 0 : insets.top) + 60;
-
-    const closeReader = useCallback(() => {
-        router.replace("/dalail" as never);
-    }, [router]);
-
-    useFocusEffect(
-        useCallback(() => {
-            tabBarTranslateY.value = withTiming(tabBarHeight + 50, { duration: 200 });
-            const backSubscription = BackHandler.addEventListener("hardwareBackPress", () => {
-                closeReader();
-                return true;
-            });
-
-            return () => {
-                backSubscription.remove();
-                tabBarTranslateY.value = withTiming(0, { duration: 200 });
-            };
-        }, [closeReader, tabBarHeight, tabBarTranslateY])
-    );
+    const isOpening = page <= OPENING_PAGE_END;
+    const currentBookmarked = isBookmarked(page);
+    const isComplete = isWirdCompleteToday(section.id);
+    const pageLabel = isOpening ? "Opening" : `${section.title} · Part ${section.cycleDay}`;
 
     useEffect(() => {
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = setTimeout(() => {
-            void saveProgress(currentPage);
-        }, 250);
+        let cancelled = false;
+        setIsLoading(true);
+        setError(null);
 
-        return () => {
-            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-        };
-    }, [currentPage, saveProgress]);
-
-    const moveToPage = useCallback((page: number, animated = true) => {
-        const safePage = clampDalailPage(page);
-        setCurrentPage(safePage);
-        setPageInput(String(safePage));
-        flatListRef.current?.scrollToIndex({ index: safePage - 1, animated });
-    }, []);
-
-    const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-        const page = viewableItems[0]?.item;
-        if (typeof page === "number") {
-            setCurrentPage(page);
-            setPageInput(String(page));
+        async function load() {
+            try {
+                if (isOpening) {
+                    const duas = await getDalailDuas(db);
+                    const opening = duas.find((dua) => dua.name === "opening") ?? duas[0];
+                    if (!opening) throw new Error("Opening text is unavailable");
+                    const lines = await getDalailDuaLines(db, opening.id);
+                    if (!cancelled) setContent({ title: opening.title, subtitle: opening.titleArabic, lines });
+                } else {
+                    const partNumber = section.cycleDay ?? 1;
+                    const lines = await getDalailPartLines(db, partNumber);
+                    if (!cancelled) {
+                        setContent({
+                            title: section.title,
+                            subtitle: `Part ${partNumber} · Arabic and English`,
+                            lines,
+                            partNumber,
+                        });
+                    }
+                }
+            } catch (loadError) {
+                if (!cancelled) setError(loadError instanceof Error ? loadError.message : "Unable to open Dalail text");
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
         }
-    }).current;
+
+        void load();
+        void saveProgress(page);
+        return () => {
+            cancelled = true;
+        };
+    }, [db, isOpening, page, saveProgress, section.cycleDay, section.title]);
+
+    const progressLabel = useMemo(() => {
+        if (!content) return "";
+        return `${content.lines.length} lines`;
+    }, [content]);
 
     const toggleBookmark = async () => {
         if (currentBookmarked) {
-            const bookmark = getBookmarkForPage(currentPage);
+            const bookmark = getBookmarkForPage(page);
             if (bookmark) await removeBookmark(bookmark.id);
         } else {
-            await addBookmark(currentPage, currentSection.title);
+            await addBookmark(page, pageLabel);
         }
     };
 
-    const submitJump = () => {
-        moveToPage(Number(pageInput) || currentPage);
-        setIsJumpVisible(false);
-    };
-
-    const completeCurrentWird = async () => {
-        await markWirdComplete(currentSection.id);
-        setCompleteMessage(`${currentSection.title} marked complete`);
-        setTimeout(() => setCompleteMessage(null), 2500);
-    };
+    const closeReader = () => router.replace("/dalail" as never);
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
-            <FlatList
-                ref={flatListRef}
-                data={pages}
-                keyExtractor={(page) => String(page)}
-                renderItem={({ item }) => (
-                    <DalailReaderPage
-                        page={item}
-                        onZoomChange={setIsZoomed}
-                         headerOffset={headerOffset}
-                         viewportWidth={viewportWidth}
-                    />
-                )}
-                horizontal
-                pagingEnabled
-                initialScrollIndex={initialPage - 1}
-                getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
-                showsHorizontalScrollIndicator={false}
-                scrollEnabled={!isZoomed}
-                onViewableItemsChanged={onViewableItemsChanged}
-                viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
-                onScrollToIndexFailed={({ index }) => {
-                    setTimeout(() => flatListRef.current?.scrollToIndex({ index, animated: false }), 100);
-                }}
-            />
-
-            <View
-                style={[
-                    styles.topBar,
-                    isDesktopWeb && styles.desktopReaderBar,
-                    { paddingTop: isDesktopWeb ? 12 : insets.top + 8 },
-                ]}
-            >
-                <Pressable style={styles.iconButton} onPress={closeReader}>
+            <SimpleHeader translateY={headerTranslateY} />
+            <View style={[styles.toolbar, { paddingTop: insets.top ? 8 : 16 }]}>
+                <Pressable style={styles.iconButton} onPress={closeReader} accessibilityLabel="Close reader">
                     <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
                 </Pressable>
-                <View style={styles.titleWrap}>
+                <View style={styles.toolbarTitle}>
                     <Text style={styles.readerTitle}>{DALAIL_TITLE}</Text>
-                    <Text style={styles.readerMeta} numberOfLines={1}>
-                        {currentSection.title} • Page {pageInSection} of {sectionPages}
-                    </Text>
+                    <Text style={styles.readerMeta} numberOfLines={1}>{pageLabel}</Text>
                 </View>
-                <Pressable style={styles.iconButton} onPress={toggleBookmark}>
-                    <Ionicons name={currentBookmarked ? "bookmark" : "bookmark-outline"} size={21} color={currentBookmarked ? theme.colors.semantic.success : theme.colors.text.primary} />
+                <Pressable style={styles.iconButton} onPress={toggleBookmark} accessibilityLabel="Bookmark this reading">
+                    <Ionicons name={currentBookmarked ? "bookmark" : "bookmark-outline"} size={21} color={theme.colors.primary.main} />
                 </Pressable>
             </View>
 
-            <View
-                style={[
-                    styles.bottomBar,
-                    isDesktopWeb && styles.desktopBottomBar,
-                    { paddingBottom: insets.bottom + 16 },
-                ]}
-            >
-                <View style={styles.footerMetaRow}>
-                    <View style={styles.footerTextWrap}>
-                        <Text style={styles.footerMeta} numberOfLines={1}>
-                            Page {currentPage} / {DALAIL_ASSET_MANIFEST.totalPages}
-                        </Text>
-                        <View style={styles.progressTrack}>
-                            <View style={[styles.progressFill, { width: `${bookProgress}%` }]} />
-                        </View>
+            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                <View style={styles.modeRow}>
+                    <View>
+                        <Text style={styles.eyebrow}>Text reader</Text>
+                        <Text style={styles.title}>{content?.title ?? pageLabel}</Text>
+                        <Text style={styles.subtitle}>{content?.subtitle ?? "Arabic with English translation"}</Text>
                     </View>
-                    <Pressable style={styles.jumpButton} onPress={() => setIsJumpVisible(true)}>
-                        <Ionicons name="search-outline" size={17} color={theme.colors.semantic.onSuccess} />
-                        <Text style={styles.jumpButtonText}>Jump</Text>
+                    <Pressable style={styles.imageButton} onPress={() => router.push(`/dalail-image/${page}` as never)}>
+                        <Ionicons name="image-outline" size={17} color={theme.colors.primary.main} />
+                        <Text style={styles.imageButtonText}>Images</Text>
                     </Pressable>
                 </View>
-                {currentPage >= currentSection.endPage - 1 && typeof currentSection.weekday === "number" && (
-                    <Pressable
-                        style={[styles.completeButton, currentWirdComplete && styles.completeButtonDone]}
-                        onPress={completeCurrentWird}
-                    >
-                        <Ionicons name={currentWirdComplete ? "checkmark-circle" : "checkmark-circle-outline"} size={18} color={currentWirdComplete ? theme.colors.semantic.success : theme.colors.semantic.onSuccess} />
-                        <Text style={[styles.completeButtonText, currentWirdComplete && styles.completeButtonDoneText]}>
-                            {currentWirdComplete ? "Wird Complete" : "Mark Wird Complete"}
-                        </Text>
-                    </Pressable>
+
+                {isLoading && (
+                    <View style={styles.stateCard}>
+                        <ActivityIndicator color={theme.colors.primary.main} size="large" />
+                        <Text style={styles.stateText}>Preparing the text reader...</Text>
+                    </View>
                 )}
-            </View>
+                {error && <Text style={styles.errorText}>{error}</Text>}
+                {!isLoading && !error && content?.lines.map((line) => <TextLine key={`${content.partNumber ?? "dua"}-${line.lineNumber}`} line={line} />)}
 
-            {completeMessage && (
-                <View style={styles.toast}>
-                    <Text style={styles.toastText}>{completeMessage}</Text>
-                </View>
-            )}
-
-            <Modal visible={isJumpVisible} transparent animationType="fade" onRequestClose={() => setIsJumpVisible(false)}>
-                <Pressable style={styles.modalBackdrop} onPress={() => setIsJumpVisible(false)}>
-                    <Pressable style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>Jump to Page</Text>
-                        <TextInput
-                            value={pageInput}
-                            onChangeText={setPageInput}
-                            keyboardType="number-pad"
-                            placeholder="Page number"
-                            placeholderTextColor={theme.colors.text.tertiary}
-                            style={styles.pageInput}
-                            autoFocus
-                        />
-                        <View style={styles.modalActions}>
-                            <Pressable style={styles.modalSecondaryButton} onPress={() => setIsJumpVisible(false)}>
-                                <Text style={styles.modalSecondaryText}>Cancel</Text>
+                {!isLoading && !error && content && (
+                    <View style={styles.footerCard}>
+                        <Text style={styles.footerText}>{progressLabel}</Text>
+                        {!isOpening && (
+                            <Pressable style={[styles.completeButton, isComplete && styles.completeButtonDone]} onPress={() => markWirdComplete(section.id)}>
+                                <Ionicons name={isComplete ? "checkmark-circle" : "checkmark-circle-outline"} size={18} color={isComplete ? theme.colors.primary.main : theme.colors.semantic.onSuccess} />
+                                <Text style={[styles.completeButtonText, isComplete && styles.completeButtonDoneText]}>
+                                    {isComplete ? "Wird Complete" : "Mark Wird Complete"}
+                                </Text>
                             </Pressable>
-                            <Pressable style={styles.modalPrimaryButton} onPress={submitJump}>
-                                <Text style={styles.modalPrimaryText}>Open</Text>
-                            </Pressable>
-                        </View>
-                    </Pressable>
-                </Pressable>
-            </Modal>
+                        )}
+                    </View>
+                )}
+            </ScrollView>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.colors.semantic.nearBlack,
-    },
-    pageSurface: {
-        width: SCREEN_WIDTH,
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "flex-start",
-        backgroundColor: theme.colors.semantic.nearBlack,
-    },
-    pageFallback: {
-        width: SCREEN_WIDTH,
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 34,
-        gap: 12,
-        backgroundColor: theme.colors.semantic.nearBlack,
-    },
-    fallbackTitle: {
-        fontSize: 18,
-        fontWeight: "900",
-        color: theme.colors.text.primary,
-        textAlign: "center",
-    },
-    fallbackText: {
-        fontSize: 14,
-        lineHeight: 20,
-        color: theme.colors.text.secondary,
-        textAlign: "center",
-    },
-    topBar: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        paddingHorizontal: 14,
-        paddingBottom: 12,
-        backgroundColor: theme.colors.semantic.scrim84,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.semantic.whiteControl,
-    },
-    desktopReaderBar: {
-        maxWidth: 820,
-        alignSelf: "center",
-        width: "100%",
-        backgroundColor: theme.colors.semantic.scrim92,
-    },
-    iconButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme.colors.semantic.whiteControl,
-    },
-    titleWrap: {
-        flex: 1,
-    },
-    readerTitle: {
-        fontSize: 16,
-        fontWeight: "900",
-        color: theme.colors.text.primary,
-    },
-    readerMeta: {
-        marginTop: 2,
-        fontSize: 12,
-        color: theme.colors.text.secondary,
-    },
-    bottomBar: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingHorizontal: 14,
-        paddingTop: 12,
-        gap: 10,
-        backgroundColor: theme.colors.semantic.scrim86,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.semantic.whiteControl,
-    },
-    desktopBottomBar: {
-        maxWidth: 820,
-        alignSelf: "center",
-        width: "100%",
-        backgroundColor: theme.colors.semantic.scrim92,
-    },
-    footerMetaRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-    },
-    footerTextWrap: {
-        flex: 1,
-        minWidth: 0,
-    },
-    progressTrack: {
-        marginTop: 8,
-        height: 4,
-        borderRadius: 999,
-        overflow: "hidden",
-        backgroundColor: theme.colors.semantic.whiteStrong,
-    },
-    progressFill: {
-        height: "100%",
-        borderRadius: 999,
-        backgroundColor: theme.colors.semantic.success,
-    },
-    footerMeta: {
-        marginTop: 3,
-        fontSize: 14,
-        fontWeight: "800",
-        color: theme.colors.text.primary,
-    },
-    jumpButton: {
-        minHeight: 42,
-        paddingHorizontal: 16,
-        borderRadius: 14,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 7,
-        backgroundColor: theme.colors.semantic.success,
-    },
-    jumpButtonText: {
-        fontSize: 14,
-        fontWeight: "900",
-        color: theme.colors.semantic.onSuccess,
-    },
-    completeButton: {
-        minHeight: 46,
-        borderRadius: 16,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        gap: 8,
-        backgroundColor: theme.colors.semantic.success,
-    },
-    completeButtonDone: {
-        backgroundColor: theme.colors.semantic.successSurfaceActive,
-        borderWidth: 1,
-        borderColor: theme.colors.semantic.successBorderActive,
-    },
-    completeButtonText: {
-        fontSize: 14,
-        fontWeight: "900",
-        color: theme.colors.semantic.onSuccess,
-    },
-    completeButtonDoneText: {
-        color: theme.colors.semantic.success,
-    },
-    toast: {
-        position: "absolute",
-        left: 18,
-        right: 18,
-        bottom: 126,
-        borderRadius: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-        alignItems: "center",
-        backgroundColor: theme.colors.semantic.successSolid,
-    },
-    toastText: {
-        fontSize: 13,
-        fontWeight: "900",
-        color: theme.colors.semantic.onSuccess,
-    },
-    modalBackdrop: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        backgroundColor: theme.colors.semantic.scrim72,
-    },
-    modalCard: {
-        width: "100%",
-        maxWidth: 360,
-        borderRadius: 24,
-        padding: 20,
-        backgroundColor: theme.colors.surface.primary,
-        borderWidth: 1,
-        borderColor: theme.colors.border.primary,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: "900",
-        color: theme.colors.text.primary,
-        marginBottom: 14,
-    },
-    pageInput: {
-        minHeight: 52,
-        borderRadius: 16,
-        paddingHorizontal: 14,
-        backgroundColor: theme.colors.semantic.whiteLight,
-        borderWidth: 1,
-        borderColor: theme.colors.semantic.whiteControl,
-        color: theme.colors.text.primary,
-        fontSize: 18,
-        fontWeight: "800",
-    },
-    modalActions: {
-        flexDirection: "row",
-        gap: 10,
-        marginTop: 16,
-    },
-    modalSecondaryButton: {
-        flex: 1,
-        minHeight: 46,
-        borderRadius: 16,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme.colors.semantic.whiteControl,
-    },
-    modalSecondaryText: {
-        fontWeight: "900",
-        color: theme.colors.text.primary,
-    },
-    modalPrimaryButton: {
-        flex: 1,
-        minHeight: 46,
-        borderRadius: 16,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme.colors.semantic.success,
-    },
-    modalPrimaryText: {
-        fontWeight: "900",
-        color: theme.colors.semantic.onSuccess,
-    },
+    container: { flex: 1, backgroundColor: theme.colors.background.primary },
+    toolbar: { minHeight: 64, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+    iconButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: theme.colors.semantic.whiteControl },
+    toolbarTitle: { flex: 1 },
+    readerTitle: { color: theme.colors.text.primary, fontSize: 16, fontWeight: "900" },
+    readerMeta: { color: theme.colors.text.secondary, fontSize: 12, marginTop: 2 },
+    content: { padding: 16, paddingBottom: 48, gap: 12 },
+    modeRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: 20, borderRadius: 24, backgroundColor: theme.colors.semantic.successSurface, borderWidth: 1, borderColor: theme.colors.semantic.successBorderStrong },
+    eyebrow: { color: theme.colors.text.secondary, fontSize: 12, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
+    title: { color: theme.colors.text.primary, fontSize: 26, fontWeight: "900", marginTop: 8 },
+    subtitle: { color: theme.colors.text.secondary, fontSize: 13, marginTop: 5 },
+    imageButton: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: theme.colors.semantic.whiteControl },
+    imageButtonText: { color: theme.colors.primary.main, fontSize: 13, fontWeight: "800" },
+    lineCard: { padding: 18, borderRadius: 20, backgroundColor: theme.colors.background.secondary, borderWidth: 1, borderColor: theme.colors.border.subtle, gap: 14 },
+    arabicText: { color: theme.colors.text.primary, fontSize: 24, lineHeight: 43, textAlign: "right", writingDirection: "rtl" },
+    englishText: { color: theme.colors.text.secondary, fontSize: 16, lineHeight: 25 },
+    stateCard: { paddingVertical: 60, alignItems: "center", gap: 14 },
+    stateText: { color: theme.colors.text.secondary, fontSize: 14 },
+    errorText: { color: theme.colors.semantic.error, padding: 20, textAlign: "center" },
+    footerCard: { alignItems: "center", gap: 12, padding: 20 },
+    footerText: { color: theme.colors.text.secondary, fontSize: 13 },
+    completeButton: { minHeight: 46, paddingHorizontal: 16, borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: theme.colors.primary.main },
+    completeButtonDone: { backgroundColor: theme.colors.semantic.successSurface, borderWidth: 1, borderColor: theme.colors.semantic.successBorderStrong },
+    completeButtonText: { color: theme.colors.semantic.onSuccess, fontSize: 14, fontWeight: "900" },
+    completeButtonDoneText: { color: theme.colors.primary.main },
 });

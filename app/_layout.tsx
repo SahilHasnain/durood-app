@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect, useRef, useState } from "react";
 import { Platform, useWindowDimensions, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SQLiteProvider } from "expo-sqlite";
 import "../global.css";
 
 function AutoSyncOnReconnect() {
@@ -239,13 +240,18 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <AutoSyncOnReconnect />
-          <GlobalCounterSync />
-          <TabBarVisibilityProvider tabBarHeight={68}>
-            <StatusBar style="light" />
-            <RootLayoutContent />
-          </TabBarVisibilityProvider>
+          <AuthProvider>
+          <SQLiteProvider
+            databaseName="dalail_al_khayrat.sqlite"
+            assetSource={{ assetId: require("../assets/db/dalail_al_khayrat.sqlite") }}
+          >
+            <AutoSyncOnReconnect />
+            <GlobalCounterSync />
+            <TabBarVisibilityProvider tabBarHeight={68}>
+              <StatusBar style="light" />
+              <RootLayoutContent />
+            </TabBarVisibilityProvider>
+          </SQLiteProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
