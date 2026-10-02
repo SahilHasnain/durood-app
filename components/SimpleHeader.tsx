@@ -1,4 +1,5 @@
 import { colors, theme } from "@/constants/theme";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -15,8 +16,7 @@ interface SimpleHeaderProps {
   translateY: SharedValue<number>;
 }
 
-function formatGlobalCount(value: number | null): string {
-  if (value === null) return "...";
+function formatGlobalCount(value: number): string {
   return new Intl.NumberFormat("en-IN").format(value);
 }
 
@@ -57,7 +57,11 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
                 style={styles.globalCounter}
               >
                 <Ionicons name="globe-outline" size={16} color={theme.colors.primary.main} />
-                <Text style={styles.globalCounterValue}>{formatGlobalCount(globalRecitations)}</Text>
+                <AnimatedNumber
+                  value={globalRecitations}
+                  formatValue={formatGlobalCount}
+                  style={styles.globalCounterValue}
+                />
                 <Text style={styles.globalCounterLabel}>global</Text>
                 </View>
             )}
@@ -68,7 +72,11 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
               style={[styles.globalCounter, styles.desktopGlobalCounter]}
             >
               <Ionicons name="globe-outline" size={16} color={theme.colors.primary.main} />
-              <Text style={styles.globalCounterValue}>{formatGlobalCount(globalRecitations)}</Text>
+              <AnimatedNumber
+                value={globalRecitations}
+                formatValue={formatGlobalCount}
+                style={styles.globalCounterValue}
+              />
               <Text style={styles.globalCounterLabel}>global</Text>
             </View>
           )}

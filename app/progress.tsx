@@ -1,4 +1,5 @@
 import { CustomBarChart } from "@/components/CustomBarChart";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -148,14 +149,14 @@ export default function Progress() {
                     <View style={styles.summaryNumbersCard}>
                         <View style={styles.summaryNumberItem}>
                             <Text style={styles.summaryNumberLabel}>Completed</Text>
-                            <Text
+                            <AnimatedNumber
+                                value={progressStats.lifetimeTotal}
+                                formatValue={formatNumber}
                                 style={styles.summaryNumberValue}
                                 numberOfLines={1}
                                 adjustsFontSizeToFit
                                 minimumFontScale={0.7}
-                            >
-                                {formatNumber(progressStats.lifetimeTotal)}
-                            </Text>
+                            />
                         </View>
                         <View style={styles.summaryNumberDivider} />
                         <View style={styles.summaryNumberItem}>

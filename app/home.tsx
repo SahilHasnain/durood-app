@@ -1,4 +1,5 @@
 import KeyboardSpacer from "@/components/KeyboardSpacer";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Confetti } from "@/components/Confetti";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
@@ -878,14 +879,14 @@ if (authLoading || !initialized || loading) {
                             </View>
                             <View style={styles.summaryTextWrap}>
                                 <Text style={styles.summaryLabel}>Lifetime</Text>
-                                <Text
+                                <AnimatedNumber
+                                    value={lifetimeTotal}
+                                    formatValue={formatNumber}
                                     style={styles.summaryValue}
                                     numberOfLines={1}
                                     adjustsFontSizeToFit
                                     minimumFontScale={0.7}
-                                >
-                                    {formatNumber(lifetimeTotal)}
-                                </Text>
+                                />
                             </View>
                         </View>
                     </View>
@@ -948,7 +949,11 @@ if (authLoading || !initialized || loading) {
                                 />
                             </Svg>
                             <View style={styles.progressInner}>
-                                <Text style={styles.count}>{formatNumber(displayedDailyCount)}</Text>
+                                <AnimatedNumber
+                                    value={displayedDailyCount}
+                                    formatValue={formatNumber}
+                                    style={styles.count}
+                                />
                                 <Text style={styles.targetText}>of {formatNumber(target)}</Text>
                                 <Text style={[styles.completionText, dailyGoalCompletions > 0 && styles.completionTextComplete]}>
                                     {dailyGoalCompletions > 0
