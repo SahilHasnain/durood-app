@@ -1,13 +1,16 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { clearTasbeehDebugLog, getTasbeehDebugLog, TasbeehDebugEntry } from "@/services/tasbeehDebug";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Profile() {
     const { user, isAuthenticated, logout, signInWithGoogle } = useAuth();
     const [submitting, setSubmitting] = useState(false);
+    const [debugVisible, setDebugVisible] = useState(false);
+    const [debugEntries, setDebugEntries] = useState<TasbeehDebugEntry[]>([]);
     const { width } = useWindowDimensions();
     const isDesktopWeb = Platform.OS === "web" && width >= 1200;
 
@@ -52,11 +55,56 @@ export default function Profile() {
         ]);
     };
 
+    const openDebugLog = async () => {
+        setDebugEntries(await getTasbeehDebugLog());
+        setDebugVisible(true);
+    };
+
+    const refreshDebugLog = async () => {
+        setDebugEntries(await getTasbeehDebugLog());
+    };
+
+    const diagnosticModal = (
+        <Modal visible={debugVisible} animationType="slide" onRequestClose={() => setDebugVisible(false)}>
+            <SafeAreaView style={styles.debugContainer}>
+                <View style={styles.debugHeader}>
+                    <Text style={styles.debugTitle}>Tasbeeh Diagnostics</Text>
+                    <TouchableOpacity onPress={() => setDebugVisible(false)}>
+                        <Text style={styles.debugClose}>Close</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.debugActions}>
+                    <TouchableOpacity style={styles.debugButton} onPress={refreshDebugLog}>
+                        <Text style={styles.debugButtonText}>Refresh</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.debugButton}
+                        onPress={async () => {
+                            await clearTasbeehDebugLog();
+                            setDebugEntries([]);
+                        }}
+                    >
+                        <Text style={styles.debugButtonText}>Clear</Text>
+                    </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.debugLog} contentContainerStyle={styles.debugLogContent}>
+                    <Text selectable style={styles.debugText}>
+                        {debugEntries.length > 0
+                            ? debugEntries.map((entry) => `${entry.timestamp} ${entry.event}\n${JSON.stringify(entry.details)}\n`).join("\n")
+                            : "No diagnostic entries recorded."}
+                    </Text>
+                </ScrollView>
+            </SafeAreaView>
+        </Modal>
+    );
+
     if (!isAuthenticated) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
                 <View style={[styles.notAuthContainer, isDesktopWeb && styles.desktopProfileContent]}>
-                    <Ionicons name="person-circle-outline" size={80} color={theme.colors.text.tertiary} />
+                        <TouchableOpacity onLongPress={openDebugLog} delayLongPress={1200}>
+                            <Ionicons name="person-circle-outline" size={80} color={theme.colors.text.tertiary} />
+                        </TouchableOpacity>
                     <Text style={styles.notAuthTitle}>Not Signed In</Text>
                     <Text style={styles.notAuthText}>
                         Sign in to sync your progress across devices
@@ -76,6 +124,7 @@ export default function Profile() {
                         )}
                     </TouchableOpacity>
                 </View>
+                {diagnosticModal}
             </SafeAreaView>
         );
     }
@@ -85,7 +134,9 @@ export default function Profile() {
             <View style={[styles.content, isDesktopWeb && styles.desktopProfileContent]}>
                 <View style={styles.header}>
                     <View style={styles.avatarContainer}>
-                        <Ionicons name="person-circle" size={80} color={theme.colors.primary.main} />
+                        <TouchableOpacity onLongPress={openDebugLog} delayLongPress={1200}>
+                            <Ionicons name="person-circle" size={80} color={theme.colors.primary.main} />
+                        </TouchableOpacity>
                     </View>
                     <Text style={styles.name}>{user?.name}</Text>
                     <Text style={styles.email}>{user?.email}</Text>
@@ -96,6 +147,7 @@ export default function Profile() {
                     <Text style={styles.logoutButtonText}>Sign Out</Text>
                 </TouchableOpacity>
             </View>
+            {diagnosticModal}
         </SafeAreaView>
     );
 }
@@ -104,6 +156,57 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
+    },
+    debugContainer: {
+        flex: 1,
+        backgroundColor: theme.colors.background.primary,
+    },
+    debugHeader: {
+        padding: 20,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border.primary,
+    },
+    debugTitle: {
+        color: theme.colors.text.primary,
+        fontSize: 20,
+        fontWeight: "800",
+    },
+    debugClose: {
+        color: theme.colors.primary.main,
+        fontWeight: "700",
+    },
+    debugActions: {
+        flexDirection: "row",
+        gap: 12,
+        padding: 16,
+    },
+    debugButton: {
+        backgroundColor: theme.colors.surface.primary,
+        borderRadius: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
+    debugButtonText: {
+        color: theme.colors.text.primary,
+        fontWeight: "700",
+    },
+    debugLog: {
+        flex: 1,
+        marginHorizontal: 16,
+        backgroundColor: "#111827",
+        borderRadius: 8,
+    },
+    debugLogContent: {
+        padding: 12,
+    },
+    debugText: {
+        color: "#D1FAE5",
+        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+        fontSize: 11,
+        lineHeight: 16,
     },
     content: {
         flex: 1,

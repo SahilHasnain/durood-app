@@ -528,6 +528,11 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     }, [sessionActive, sessionPaused, sessionStartedAt]);
 
     const handleManualAdd = async () => {
+        if (!isAuthenticated) {
+            setShowSignInSheet(true);
+            return;
+        }
+
         const amount = parseInt(manualAddValue.replace(/,/g, ""), 10);
         if (!amount || amount <= 0) return;
         await applyIncrement(amount);
@@ -972,7 +977,16 @@ if (authLoading || !initialized || loading) {
                                 Focus Mode
                             </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setShowManualSheet(true)} style={styles.actionButton}>
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (isAuthenticated) {
+                                    setShowManualSheet(true);
+                                } else {
+                                    setShowSignInSheet(true);
+                                }
+                            }}
+                            style={styles.actionButton}
+                        >
                             <Text style={styles.actionButtonText}>Manual Add</Text>
                         </TouchableOpacity>
                 </View>

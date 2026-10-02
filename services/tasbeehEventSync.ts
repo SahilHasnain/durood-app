@@ -2,6 +2,7 @@ import client from "@/config/appwrite";
 import { getTodayKey, getUserId } from "@/services/tasbeehService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Functions } from "appwrite";
+import { recordTasbeehDebug } from "@/services/tasbeehDebug";
 
 const SYNC_EVENTS_KEY = "tasbeeh_sync_events";
 const SYNC_FUNCTION_ID = "tasbeeh-sync";
@@ -71,6 +72,11 @@ export async function enqueueSyncEvent(
     attempts: 0,
   });
   await writeEvents(events);
+  void recordTasbeehDebug("queue:enqueued", {
+    eventId: events[events.length - 1]?.eventId,
+    amount,
+    pendingCount: events.length,
+  });
 }
 
 async function applyEvent(event: SyncEvent): Promise<boolean> {
@@ -101,6 +107,7 @@ async function applyEvent(event: SyncEvent): Promise<boolean> {
 async function flushOnce(): Promise<number> {
   const events = await readEvents();
   if (events.length === 0) return 0;
+  void recordTasbeehDebug("queue:flush-start", { pendingCount: events.length });
 
   const remaining: SyncEvent[] = [];
 
@@ -116,6 +123,10 @@ async function flushOnce(): Promise<number> {
   }
 
   await writeEvents(remaining);
+  void recordTasbeehDebug("queue:flush-complete", {
+    attempted: events.length,
+    remaining: remaining.length,
+  });
   return remaining.length;
 }
 

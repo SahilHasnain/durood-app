@@ -3,6 +3,7 @@ import { theme } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
+import { recordTasbeehDebug } from "@/services/tasbeehDebug";
 import NetInfo from "@react-native-community/netinfo";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
@@ -20,6 +21,11 @@ function AutoSyncOnReconnect() {
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const connected = state.isConnected ?? true;
+      void recordTasbeehDebug("network:change", {
+        connected,
+        isInternetReachable: state.isInternetReachable,
+        type: state.type,
+      });
       if (!connected) {
         wasOfflineRef.current = true;
       } else if (wasOfflineRef.current) {
