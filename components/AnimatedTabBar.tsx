@@ -96,7 +96,19 @@ const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-p
                     </View>
                 </View>
             )}
-            {visibleRoutes.map((route) => {
+            {(isDesktop
+                ? [
+                    { label: "Practice", routes: visibleRoutes.filter((route) => ["home", "progress", "planner"].includes(route.name)) },
+                    { label: "Learn", routes: visibleRoutes.filter((route) => ["dalail", "fazilat"].includes(route.name)) },
+                    { label: "Account", routes: visibleRoutes.filter((route) => route.name === "profile") },
+                ]
+                : [{ label: "", routes: visibleRoutes }]
+            ).map((group) => (
+                <React.Fragment key={group.label || "mobile-navigation"}>
+                    {isDesktop && group.routes.length > 0 && (
+                        <Text style={styles.desktopSectionLabel}>{group.label}</Text>
+                    )}
+                    {group.routes.map((route) => {
                 const index = state.routes.indexOf(route);
                 const { options } = descriptors[route.key];
                 const label =
@@ -159,7 +171,9 @@ const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-p
                         </View>
                     </Pressable>
                 );
-            })}
+                    })}
+                </React.Fragment>
+            ))}
             {isDesktop && <Text style={styles.desktopFooter}>Take a moment for salawat.</Text>}
         </Animated.View>
     );
@@ -197,6 +211,16 @@ const styles = {
         paddingHorizontal: 12,
         borderRadius: 12,
         marginBottom: 6,
+    },
+    desktopSectionLabel: {
+        marginTop: 14,
+        marginBottom: 8,
+        paddingHorizontal: 12,
+        color: theme.colors.text.tertiary,
+        fontSize: 11,
+        fontWeight: "800" as const,
+        letterSpacing: 1,
+        textTransform: "uppercase" as const,
     },
     desktopRouteActive: {
         backgroundColor: theme.colors.accentActive,
