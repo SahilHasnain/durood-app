@@ -1,4 +1,5 @@
 import { colors, theme } from "@/constants/theme";
+import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -14,11 +15,17 @@ interface SimpleHeaderProps {
   translateY: SharedValue<number>;
 }
 
+function formatGlobalCount(value: number | null): string {
+  if (value === null) return "...";
+  return new Intl.NumberFormat("en-IN").format(value);
+}
+
 export function SimpleHeader({ translateY }: SimpleHeaderProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === "web" && width >= 1200;
+  const globalRecitations = useTasbeehStore((state) => state.globalRecitations);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -44,7 +51,16 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
                 contentFit="cover"
               />
             </View>
-            <Text style={styles.title}>Durood Moments</Text>
+            {!isDesktop && (
+              <View
+                accessibilityLabel={`Global recitations: ${globalRecitations ?? "loading"}`}
+                style={styles.globalCounter}
+              >
+                <Ionicons name="globe-outline" size={16} color={theme.colors.primary.main} />
+                <Text style={styles.globalCounterValue}>{formatGlobalCount(globalRecitations)}</Text>
+                <Text style={styles.globalCounterLabel}>global</Text>
+              </View>
+            )}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -107,6 +123,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: colors.text.primary,
+  },
+  globalCounter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: theme.colors.accentSurface,
+    borderWidth: 1,
+    borderColor: theme.colors.accentBorder,
+  },
+  globalCounterValue: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  globalCounterLabel: {
+    color: colors.text.secondary,
+    fontSize: 10,
+    fontWeight: "600",
   },
   profileButton: {
     width: 38,

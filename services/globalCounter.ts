@@ -1,12 +1,13 @@
 import client, { config } from "@/config/appwrite";
 import { nativeClient } from "@/services/appwriteAuth";
 import { Databases as WebDatabases, Realtime as WebRealtime } from "appwrite";
-import { Databases as NativeDatabases, Realtime as NativeRealtime } from "react-native-appwrite";
+import { Databases as NativeDatabases } from "react-native-appwrite";
 import { Platform } from "react-native";
 
 const GLOBAL_STATS_COLLECTION_ID = "global_stats";
 const GLOBAL_STATS_DOCUMENT_ID = "authenticated_total";
 const GLOBAL_STATS_CHANNEL = `databases.${config.databaseId}.collections.${GLOBAL_STATS_COLLECTION_ID}.documents.${GLOBAL_STATS_DOCUMENT_ID}`;
+const NATIVE_POLL_INTERVAL_MS = 30_000;
 
 function readTotal(document: Record<string, unknown>): number {
   const value = document.totalRecitations ?? (document.data as Record<string, unknown> | undefined)?.totalRecitations;
@@ -36,9 +37,15 @@ export async function subscribeToGlobalRecitations(
     ? await new WebRealtime(client).subscribe(GLOBAL_STATS_CHANNEL, (event) => {
         onChange(readTotal(event.payload as Record<string, unknown>));
       })
-    : await new NativeRealtime(nativeClient).subscribe(GLOBAL_STATS_CHANNEL, (event) => {
-        onChange(readTotal(event.payload as Record<string, unknown>));
-      });
+    : undefined;
 
-  return () => subscription.close();
+  if (Platform.OS !== "web") {
+    const poller = setInterval(() => {
+      void getGlobalRecitations().then(onChange).catch(() => undefined);
+    }, NATIVE_POLL_INTERVAL_MS);
+
+    return async () => clearInterval(poller);
+  }
+
+  return async () => subscription?.close();
 }
