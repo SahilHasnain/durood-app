@@ -1,4 +1,4 @@
-import { colors, theme } from "@/constants/theme";
+import { theme } from "@/constants/theme";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -86,7 +86,7 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
             onPress={() => router.push("/profile")}
             style={[styles.profileButton, isDesktop && styles.desktopProfileButton]}
           >
-            <Ionicons name="person-outline" size={20} color={colors.text.primary} />
+            <Ionicons name="person-outline" size={20} color={theme.colors.text.primary} />
           </Pressable>
         </View>
       </View>
@@ -101,9 +101,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 50,
-    backgroundColor: colors.background.primary,
+    backgroundColor: theme.colors.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: colors.background.tertiary,
+    borderBottomColor: theme.colors.background.tertiary,
   },
   content: {
     paddingHorizontal: 16,
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "600",
-    color: colors.text.primary,
+    color: theme.colors.text.primary,
   },
   globalCounter: {
     flexDirection: "row",
@@ -158,12 +158,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   globalCounterValue: {
-    color: colors.text.primary,
+    color: theme.colors.text.primary,
     fontSize: 14,
     fontWeight: "800",
   },
   globalCounterLabel: {
-    color: colors.text.secondary,
+    color: theme.colors.text.secondary,
     fontSize: 10,
     fontWeight: "600",
   },

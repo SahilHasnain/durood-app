@@ -115,10 +115,10 @@ export default function Profile() {
                         disabled={submitting}
                     >
                         {submitting ? (
-                            <ActivityIndicator color="#FFFFFF" />
+                            <ActivityIndicator color={theme.colors.semantic.white} />
                         ) : (
                             <>
-                                <Ionicons name="logo-google" size={22} color="#FFFFFF" />
+                                <Ionicons name="logo-google" size={22} color={theme.colors.semantic.white} />
                                 <Text style={styles.googleButtonText}>Sign in with Google</Text>
                             </>
                         )}
@@ -143,7 +143,7 @@ export default function Profile() {
                 </View>
 
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+                    <Ionicons name="log-out-outline" size={20} color={theme.colors.semantic.white} />
                     <Text style={styles.logoutButtonText}>Sign Out</Text>
                 </TouchableOpacity>
             </View>
@@ -196,14 +196,14 @@ const styles = StyleSheet.create({
     debugLog: {
         flex: 1,
         marginHorizontal: 16,
-        backgroundColor: "#111827",
+        backgroundColor: theme.colors.semantic.profileSurface,
         borderRadius: 8,
     },
     debugLogContent: {
         padding: 12,
     },
     debugText: {
-        color: "#D1FAE5",
+        color: theme.colors.semantic.profileAccent,
         fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
         fontSize: 11,
         lineHeight: 16,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     googleButtonText: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#FFFFFF",
+        color: theme.colors.semantic.white,
     },
     header: {
         alignItems: "center",
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        backgroundColor: "#dc2626",
+        backgroundColor: theme.colors.semantic.danger,
         borderRadius: 12,
         paddingVertical: 14,
         paddingHorizontal: 24,
@@ -287,6 +287,6 @@ const styles = StyleSheet.create({
     logoutButtonText: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#FFFFFF",
+        color: theme.colors.semantic.white,
     },
 });

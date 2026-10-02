@@ -67,7 +67,7 @@ function DalailReaderPage({
 
     return (
         <View style={[styles.pageFallback, { paddingTop: headerOffset }]}> 
-            {isLoading ? <ActivityIndicator color="#10b981" size="large" /> : null}
+            {isLoading ? <ActivityIndicator color={theme.colors.semantic.success} size="large" /> : null}
             <Text style={styles.fallbackTitle}>{isLoading ? "Opening Dalail page..." : `Page ${page} not ready yet`}</Text>
             <Text style={styles.fallbackText}>
                 {isLoading
@@ -216,7 +216,7 @@ export default function DalailReaderScreen() {
                     </Text>
                 </View>
                 <Pressable style={styles.iconButton} onPress={toggleBookmark}>
-                    <Ionicons name={currentBookmarked ? "bookmark" : "bookmark-outline"} size={21} color={currentBookmarked ? "#10b981" : theme.colors.text.primary} />
+                    <Ionicons name={currentBookmarked ? "bookmark" : "bookmark-outline"} size={21} color={currentBookmarked ? theme.colors.semantic.success : theme.colors.text.primary} />
                 </Pressable>
             </View>
 
@@ -237,7 +237,7 @@ export default function DalailReaderScreen() {
                         </View>
                     </View>
                     <Pressable style={styles.jumpButton} onPress={() => setIsJumpVisible(true)}>
-                        <Ionicons name="search-outline" size={17} color="#03140d" />
+                        <Ionicons name="search-outline" size={17} color={theme.colors.semantic.onSuccess} />
                         <Text style={styles.jumpButtonText}>Jump</Text>
                     </Pressable>
                 </View>
@@ -246,7 +246,7 @@ export default function DalailReaderScreen() {
                         style={[styles.completeButton, currentWirdComplete && styles.completeButtonDone]}
                         onPress={completeCurrentWird}
                     >
-                        <Ionicons name={currentWirdComplete ? "checkmark-circle" : "checkmark-circle-outline"} size={18} color={currentWirdComplete ? "#10b981" : "#03140d"} />
+                        <Ionicons name={currentWirdComplete ? "checkmark-circle" : "checkmark-circle-outline"} size={18} color={currentWirdComplete ? theme.colors.semantic.success : theme.colors.semantic.onSuccess} />
                         <Text style={[styles.completeButtonText, currentWirdComplete && styles.completeButtonDoneText]}>
                             {currentWirdComplete ? "Wird Complete" : "Mark Wird Complete"}
                         </Text>
@@ -291,14 +291,14 @@ export default function DalailReaderScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#050505",
+        backgroundColor: theme.colors.semantic.nearBlack,
     },
     pageSurface: {
         width: SCREEN_WIDTH,
         flex: 1,
         alignItems: "center",
         justifyContent: "flex-start",
-        backgroundColor: "#050505",
+        backgroundColor: theme.colors.semantic.nearBlack,
     },
     pageFallback: {
         width: SCREEN_WIDTH,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         paddingHorizontal: 34,
         gap: 12,
-        backgroundColor: "#050505",
+        backgroundColor: theme.colors.semantic.nearBlack,
     },
     fallbackTitle: {
         fontSize: 18,
@@ -331,15 +331,15 @@ const styles = StyleSheet.create({
         gap: 12,
         paddingHorizontal: 14,
         paddingBottom: 12,
-        backgroundColor: "rgba(0,0,0,0.84)",
+        backgroundColor: theme.colors.semantic.scrim84,
         borderBottomWidth: 1,
-        borderBottomColor: "rgba(255,255,255,0.08)",
+        borderBottomColor: theme.colors.semantic.whiteControl,
     },
     desktopReaderBar: {
         maxWidth: 820,
         alignSelf: "center",
         width: "100%",
-        backgroundColor: "rgba(0,0,0,0.92)",
+        backgroundColor: theme.colors.semantic.scrim92,
     },
     iconButton: {
         width: 40,
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: theme.colors.semantic.whiteControl,
     },
     titleWrap: {
         flex: 1,
@@ -370,15 +370,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingTop: 12,
         gap: 10,
-        backgroundColor: "rgba(0,0,0,0.86)",
+        backgroundColor: theme.colors.semantic.scrim86,
         borderTopWidth: 1,
-        borderTopColor: "rgba(255,255,255,0.08)",
+        borderTopColor: theme.colors.semantic.whiteControl,
     },
     desktopBottomBar: {
         maxWidth: 820,
         alignSelf: "center",
         width: "100%",
-        backgroundColor: "rgba(0,0,0,0.92)",
+        backgroundColor: theme.colors.semantic.scrim92,
     },
     footerMetaRow: {
         flexDirection: "row",
@@ -394,12 +394,12 @@ const styles = StyleSheet.create({
         height: 4,
         borderRadius: 999,
         overflow: "hidden",
-        backgroundColor: "rgba(255,255,255,0.1)",
+        backgroundColor: theme.colors.semantic.whiteStrong,
     },
     progressFill: {
         height: "100%",
         borderRadius: 999,
-        backgroundColor: "#10b981",
+        backgroundColor: theme.colors.semantic.success,
     },
     footerMeta: {
         marginTop: 3,
@@ -415,12 +415,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         gap: 7,
-        backgroundColor: "#10b981",
+        backgroundColor: theme.colors.semantic.success,
     },
     jumpButtonText: {
         fontSize: 14,
         fontWeight: "900",
-        color: "#03140d",
+        color: theme.colors.semantic.onSuccess,
     },
     completeButton: {
         minHeight: 46,
@@ -429,20 +429,20 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         flexDirection: "row",
         gap: 8,
-        backgroundColor: "#10b981",
+        backgroundColor: theme.colors.semantic.success,
     },
     completeButtonDone: {
-        backgroundColor: "rgba(16,185,129,0.14)",
+        backgroundColor: theme.colors.semantic.successSurfaceActive,
         borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.24)",
+        borderColor: theme.colors.semantic.successBorderActive,
     },
     completeButtonText: {
         fontSize: 14,
         fontWeight: "900",
-        color: "#03140d",
+        color: theme.colors.semantic.onSuccess,
     },
     completeButtonDoneText: {
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     toast: {
         position: "absolute",
@@ -453,19 +453,19 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 14,
         alignItems: "center",
-        backgroundColor: "rgba(16,185,129,0.96)",
+        backgroundColor: theme.colors.semantic.successSolid,
     },
     toastText: {
         fontSize: 13,
         fontWeight: "900",
-        color: "#03140d",
+        color: theme.colors.semantic.onSuccess,
     },
     modalBackdrop: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
-        backgroundColor: "rgba(0,0,0,0.72)",
+        backgroundColor: theme.colors.semantic.scrim72,
     },
     modalCard: {
         width: "100%",
@@ -486,9 +486,9 @@ const styles = StyleSheet.create({
         minHeight: 52,
         borderRadius: 16,
         paddingHorizontal: 14,
-        backgroundColor: "rgba(255,255,255,0.06)",
+        backgroundColor: theme.colors.semantic.whiteLight,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.colors.semantic.whiteControl,
         color: theme.colors.text.primary,
         fontSize: 18,
         fontWeight: "800",
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: theme.colors.semantic.whiteControl,
     },
     modalSecondaryText: {
         fontWeight: "900",
@@ -516,10 +516,10 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#10b981",
+        backgroundColor: theme.colors.semantic.success,
     },
     modalPrimaryText: {
         fontWeight: "900",
-        color: "#03140d",
+        color: theme.colors.semantic.onSuccess,
     },
 });

@@ -70,8 +70,8 @@ export function CustomBarChart({ data }: CustomBarChartProps) {
                                             {
                                                 height: barHeight,
                                                 backgroundColor: metTarget
-                                                    ? "#10b981"
-                                                    : "rgba(255,255,255,0.18)",
+                                                    ? theme.colors.semantic.success
+                                                    : theme.colors.semantic.chartUnderTarget,
                                                 borderColor: isSelected ? theme.colors.text.primary : "transparent",
                                             },
                                         ]}
@@ -121,11 +121,11 @@ export function CustomBarChart({ data }: CustomBarChartProps) {
             {/* Legend */}
             <View style={styles.legend}>
                 <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: "#10b981" }]} />
+                    <View style={[styles.legendDot, { backgroundColor: theme.colors.semantic.success }]} />
                     <Text style={styles.legendLabel}>Target met</Text>
                 </View>
                 <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: "rgba(255,255,255,0.18)" }]} />
+                    <View style={[styles.legendDot, { backgroundColor: theme.colors.semantic.chartUnderTarget }]} />
                     <Text style={styles.legendLabel}>Under target</Text>
                 </View>
             </View>
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         width: "100%",
         height: 1,
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: theme.colors.semantic.whiteControl,
     },
     bars: {
         flex: 1,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
         marginTop: 1,
         fontSize: 10,
         fontWeight: "700",
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     xAxis: {
         flexDirection: "row",

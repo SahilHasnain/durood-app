@@ -38,7 +38,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = theme.colors.primary.main;
-const RING_PROGRESS_COLOR = "#F59E0B";
+const RING_PROGRESS_COLOR = theme.colors.primary.main;
 const DEFAULT_SESSION_GOAL = 100;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
@@ -991,7 +991,7 @@ if (authLoading || !initialized || loading) {
                 </View>
                 <LinearGradient
                     pointerEvents="none"
-                    colors={["rgba(0, 0, 0, 0.12)", "rgba(0, 0, 0, 0.32)"]}
+                    colors={[theme.colors.semantic.scrim12, theme.colors.scrim.medium]}
                     style={styles.eyeComfortOverlay}
                 />
             </ScrollView>

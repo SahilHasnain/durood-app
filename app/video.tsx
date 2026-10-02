@@ -1,5 +1,5 @@
 import { CustomVideoPlayer } from "@/components/CustomVideoPlayer";
-import { colors } from "@/constants/theme";
+import { theme } from "@/constants/theme";
 import { config } from "@/config/appwrite";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { getProgress, markVideoWatched, saveProgress } from "@/services/progressTracking";
@@ -184,7 +184,7 @@ export default function VideoScreen() {
         <>
             <StatusBar
                 barStyle="light-content"
-                backgroundColor={colors.background.primary}
+                backgroundColor={theme.colors.background.primary}
                 translucent
             />
 
@@ -192,10 +192,10 @@ export default function VideoScreen() {
                 <LinearGradient
                     pointerEvents="none"
                     colors={[
-                        "rgba(0, 0, 0, 0.46)",
-                        "rgba(6, 10, 20, 0.24)",
-                        "rgba(0, 0, 0, 0.12)",
-                        "rgba(0, 0, 0, 0.36)",
+                        theme.colors.semantic.scrim46,
+                        theme.colors.semantic.scrim24,
+                        theme.colors.semantic.scrim12,
+                        theme.colors.semantic.scrim36,
                     ]}
                     locations={[0, 0.18, 0.58, 1]}
                     start={{ x: 0.5, y: 0 }}

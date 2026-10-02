@@ -1,7 +1,7 @@
 import EmptyState from "@/components/EmptyState";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { VideoCard } from "@/components/VideoCard";
-import { colors } from "@/constants/theme";
+import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useDuroodVideos } from "@/hooks/useDuroodVideos";
 import { getProgress, getRecentlyWatchedVideoIds } from "@/services/progressTracking";
@@ -166,7 +166,7 @@ export default function HomeScreen() {
         if (!loading || videos.length === 0) return null;
         return (
             <View style={styles.footer}>
-                <ActivityIndicator size="small" color={colors.accent.secondary} />
+                <ActivityIndicator size="small" color={theme.colors.accent.secondary} />
             </View>
         );
     };
@@ -175,7 +175,7 @@ export default function HomeScreen() {
         if (loading && videos.length === 0) {
             return (
                 <View style={styles.emptyContainer}>
-                    <ActivityIndicator size="large" color={colors.accent.secondary} />
+                    <ActivityIndicator size="large" color={theme.colors.accent.secondary} />
                     <Text style={styles.emptyText}>Loading videos...</Text>
                 </View>
             );
@@ -220,8 +220,8 @@ export default function HomeScreen() {
                     <RefreshControl
                         refreshing={loading && videos.length > 0}
                         onRefresh={refresh}
-                        colors={[colors.accent.secondary]}
-                        tintColor={colors.accent.secondary}
+                        colors={[theme.colors.accent.secondary]}
+                        tintColor={theme.colors.accent.secondary}
                     />
                 }
                 removeClippedSubviews
@@ -236,7 +236,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#000",
+        backgroundColor: theme.colors.semantic.black,
     },
     contentContainer: {
         flexGrow: 1,
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     emptyText: {
         marginTop: 16,
         fontSize: 16,
-        color: colors.text.secondary,
+        color: theme.colors.text.secondary,
     },
     footer: {
         paddingVertical: 20,

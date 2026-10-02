@@ -1,6 +1,6 @@
 import { CustomVideoPlayer } from "@/components/CustomVideoPlayer";
 import EmptyState from "@/components/EmptyState";
-import { colors } from "@/constants/theme";
+import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useDuroodShorts } from "@/hooks/useDuroodShorts";
 import { useSeenShorts } from "@/hooks/useSeenShorts";
@@ -204,7 +204,7 @@ export default function Index() {
     if (!loading || shorts.length === 0) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color={colors.accent.secondary} />
+        <ActivityIndicator size="small" color={theme.colors.accent.secondary} />
       </View>
     );
   };
@@ -213,7 +213,7 @@ export default function Index() {
     if ((loading || seenLoading) && shorts.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color={colors.accent.secondary} />
+          <ActivityIndicator size="large" color={theme.colors.accent.secondary} />
           <Text style={styles.emptyText}>Loading shorts...</Text>
         </View>
       );
@@ -272,8 +272,8 @@ export default function Index() {
           <RefreshControl
             refreshing={false}
             onRefresh={refresh}
-            colors={[colors.accent.secondary]}
-            tintColor={colors.accent.secondary}
+            colors={[theme.colors.accent.secondary]}
+            tintColor={theme.colors.accent.secondary}
           />
         }
         removeClippedSubviews
@@ -293,11 +293,11 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: theme.colors.background.primary,
   },
   shortContainer: {
     width: "100%",
-    backgroundColor: "#000",
+    backgroundColor: theme.colors.background.primary,
   },
   emptyContainer: {
     height: SCREEN_HEIGHT,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     fontSize: 16,
-    color: colors.text.secondary,
+    color: theme.colors.text.secondary,
   },
   caughtUpEmoji: {
     fontSize: 64,
@@ -317,12 +317,12 @@ const styles = StyleSheet.create({
   caughtUpText: {
     fontSize: 24,
     fontWeight: "700",
-    color: colors.text.primary,
+    color: theme.colors.text.primary,
     marginBottom: 8,
   },
   caughtUpSubtext: {
     fontSize: 16,
-    color: colors.text.secondary,
+    color: theme.colors.text.secondary,
     textAlign: "center",
     marginTop: 4,
   },

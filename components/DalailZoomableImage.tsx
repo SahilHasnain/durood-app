@@ -1,4 +1,5 @@
 import { Image, type ImageSource } from "expo-image";
+import { theme } from "@/constants/theme";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -124,6 +125,6 @@ export function DalailZoomableImage({
 
 const styles = StyleSheet.create({
     imageWrap: {
-        backgroundColor: "#050505",
+        backgroundColor: theme.colors.semantic.nearBlack,
     },
 });

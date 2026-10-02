@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { theme } from "@/constants/theme";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
     Easing,
@@ -10,7 +11,7 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 
-const CONFETTI_COLORS = ["#F59E0B", "#FBBF24", "#FCD34D", "#FDE68A", "#FFFFFF", "#FB923C"];
+const CONFETTI_COLORS = [theme.colors.semantic.warning, theme.colors.semantic.warningBright, theme.colors.semantic.warningLight, theme.colors.semantic.warningPale, theme.colors.semantic.white, theme.colors.semantic.orange];
 const PARTICLE_COUNT = 48;
 const BURST_DURATION = 260;
 const FALL_DURATION = 950;
@@ -200,8 +201,8 @@ const styles = StyleSheet.create({
         textAlign: "center",
         fontSize: 44,
         fontWeight: "900",
-        color: "#FDE68A",
-        textShadowColor: "rgba(245, 158, 11, 0.85)",
+        color: theme.colors.semantic.warningPale,
+        textShadowColor: theme.colors.accentBorder,
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 8,
     },

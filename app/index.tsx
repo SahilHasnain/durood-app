@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { theme } from "@/constants/theme";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { cacheAllDalailAssets } from "@/services/dalailAssetCache";
 import NetInfo from "@react-native-community/netinfo";
@@ -38,7 +39,7 @@ export default function Index() {
       <View style={styles.container}>
         <Text style={styles.arabicMain}>صَلُّوا عَلَى الْحَبِيب</Text>
         <Text style={styles.arabicSub}>صَلَّى اللَّهُ عَلَى مُحَمَّد</Text>
-        <ActivityIndicator size="large" color="#10B981" style={styles.spinner} />
+        <ActivityIndicator size="large" color={theme.colors.semantic.success} style={styles.spinner} />
       </View>
     );
   }
@@ -51,18 +52,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#000",
+    backgroundColor: theme.colors.semantic.black,
   },
   arabicMain: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#10B981",
+    color: theme.colors.semantic.success,
     textAlign: "center",
     marginBottom: 12,
   },
   arabicSub: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.45)",
+    color: theme.colors.semantic.whiteMuted,
     textAlign: "center",
     marginBottom: 40,
   },

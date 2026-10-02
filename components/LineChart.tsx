@@ -183,8 +183,8 @@ export function LineChart({ data }: LineChartProps) {
                     <Svg width={chartWidth} height={chartHeight}>
                         <Defs>
                             <LinearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-                                <Stop offset="0" stopColor="#10b981" stopOpacity="0.8" />
-                                <Stop offset="1" stopColor="#10b981" stopOpacity="0.2" />
+                                <Stop offset="0" stopColor={theme.colors.semantic.success} stopOpacity="0.8" />
+                                <Stop offset="1" stopColor={theme.colors.semantic.success} stopOpacity="0.2" />
                             </LinearGradient>
                         </Defs>
 
@@ -195,7 +195,7 @@ export function LineChart({ data }: LineChartProps) {
                                 <Path
                                     key={ratio}
                                     d={`M ${padding.left} ${y} L ${chartWidth - padding.right} ${y}`}
-                                    stroke="rgba(255,255,255,0.05)"
+                                    stroke={theme.colors.semantic.chartGrid}
                                     strokeWidth="1"
                                     strokeDasharray="4 4"
                                 />
@@ -212,7 +212,7 @@ export function LineChart({ data }: LineChartProps) {
                         {/* Line */}
                         <AnimatedPath
                             d={linePath}
-                            stroke="#10b981"
+                            stroke={theme.colors.semantic.success}
                             strokeWidth="3"
                             fill="none"
                             strokeLinecap="round"
@@ -227,8 +227,8 @@ export function LineChart({ data }: LineChartProps) {
                                 cx={point.x}
                                 cy={point.y}
                                 r={selectedPoint?.date === point.date ? 6 : point.count >= point.target ? 5 : 4}
-                                fill={point.count >= point.target ? "#10b981" : theme.colors.surface.primary}
-                                stroke="#10b981"
+                                fill={point.count >= point.target ? theme.colors.semantic.success : theme.colors.surface.primary}
+                                stroke={theme.colors.semantic.success}
                                 strokeWidth={selectedPoint?.date === point.date ? 3 : 2}
                             />
                         ))}
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.border.primary,
         width: 120,
-        shadowColor: "#000",
+        shadowColor: theme.colors.semantic.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 4,

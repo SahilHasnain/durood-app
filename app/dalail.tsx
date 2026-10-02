@@ -39,7 +39,7 @@ function SectionCard({
             <View style={styles.sectionTextWrap}>
                 <View style={styles.sectionTitleRow}>
                     <Text style={[styles.sectionTitle, isToday && styles.todaySectionTitle]}>{section.title}</Text>
-                    {isComplete && <Ionicons name="checkmark-circle" size={16} color="#10b981" />}
+                    {isComplete && <Ionicons name="checkmark-circle" size={16} color={theme.colors.semantic.success} />}
                 </View>
                 {isToday && <Text style={styles.todayBadge}>Today</Text>}
                 <Text style={styles.sectionPageMeta}>Pages {section.startPage}-{section.endPage}</Text>
@@ -77,7 +77,7 @@ export default function DalailScreen() {
             <SafeAreaView style={styles.container} edges={["top"]}>
                 <SimpleHeader translateY={headerTranslateY} />
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator color="#10b981" size="large" />
+                    <ActivityIndicator color={theme.colors.semantic.success} size="large" />
                     <Text style={styles.mutedText}>Preparing Dalail...</Text>
                 </View>
             </SafeAreaView>
@@ -101,7 +101,7 @@ export default function DalailScreen() {
                     <Text style={styles.heroTitle}>{DALAIL_TITLE}</Text>
                     <View style={styles.heroActions}>
                         <Pressable style={styles.primaryButton} onPress={() => openPage(todaySection.startPage)}>
-                            <Ionicons name="book" size={18} color="#03140d" />
+                            <Ionicons name="book" size={18} color={theme.colors.semantic.onSuccess} />
                             <Text style={styles.primaryButtonText}>{todayComplete ? "Read Again" : "Today"}</Text>
                         </Pressable>
                         <Pressable style={styles.secondaryButton} onPress={() => openPage(progress.lastPage)}>
@@ -114,7 +114,7 @@ export default function DalailScreen() {
                     <View style={styles.todayTextWrap}>
                         <View style={styles.todayHeaderRow}>
                             <View style={styles.todayLabelRow}>
-                                <Ionicons name="calendar-outline" size={14} color="#10b981" />
+                                <Ionicons name="calendar-outline" size={14} color={theme.colors.semantic.success} />
                                 <Text style={styles.cardLabel}>{todaySections.length > 1 ? "Today’s Portions" : "Today’s Portion"}</Text>
                             </View>
                             <View style={[styles.statusPill, todayComplete && styles.completePill]}>
@@ -138,7 +138,7 @@ export default function DalailScreen() {
                     </View>
                     <View style={styles.todayOpenAction}>
                         <Text style={styles.todayOpenText}>Open</Text>
-                        <Ionicons name="chevron-forward" size={18} color="#10b981" />
+                        <Ionicons name="chevron-forward" size={18} color={theme.colors.semantic.success} />
                     </View>
                 </Pressable>
 
@@ -208,9 +208,9 @@ const styles = StyleSheet.create({
     heroCard: {
         borderRadius: 28,
         padding: 24,
-        backgroundColor: "rgba(16,185,129,0.1)",
+        backgroundColor: theme.colors.semantic.successSurface,
         borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.22)",
+        borderColor: theme.colors.semantic.successBorderStrong,
     },
     eyebrow: {
         fontSize: 12,
@@ -239,12 +239,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         gap: 8,
         paddingHorizontal: 12,
-        backgroundColor: "#10b981",
+        backgroundColor: theme.colors.semantic.success,
     },
     primaryButtonText: {
         fontSize: 14,
         fontWeight: "900",
-        color: "#03140d",
+        color: theme.colors.semantic.onSuccess,
     },
     secondaryButton: {
         flex: 1.5,
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: theme.colors.semantic.whiteControl,
     },
     secondaryButtonText: {
         fontSize: 14,
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingVertical: 6,
         paddingHorizontal: 10,
-        backgroundColor: "rgba(16,185,129,0.12)",
+        backgroundColor: theme.colors.semantic.successSurfaceStrong,
     },
     pageChipRow: {
         flexDirection: "row",
@@ -324,16 +324,16 @@ const styles = StyleSheet.create({
     pageChipText: {
         fontSize: 12,
         fontWeight: "900",
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     statusPill: {
         borderRadius: 999,
         paddingVertical: 6,
         paddingHorizontal: 10,
-        backgroundColor: "rgba(255,255,255,0.07)",
+        backgroundColor: theme.colors.semantic.whiteMedium,
     },
     completePill: {
-        backgroundColor: "rgba(16,185,129,0.16)",
+        backgroundColor: theme.colors.semantic.successSurfaceBold,
     },
     statusPillText: {
         fontSize: 11,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
     completePillText: {
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     todayOpenAction: {
         flexDirection: "row",
@@ -351,14 +351,14 @@ const styles = StyleSheet.create({
     todayOpenText: {
         fontSize: 12,
         fontWeight: "900",
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     card: {
         borderRadius: 24,
         padding: 18,
         backgroundColor: theme.colors.surface.primary,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
+        borderColor: theme.colors.semantic.whiteLight,
     },
     sectionHeader: {
         gap: 4,
@@ -378,13 +378,13 @@ const styles = StyleSheet.create({
         minHeight: 92,
         borderRadius: 18,
         padding: 12,
-        backgroundColor: "rgba(255,255,255,0.04)",
+        backgroundColor: theme.colors.semantic.whiteSubtle,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.05)",
+        borderColor: theme.colors.semantic.whiteFaint,
     },
     todaySectionCard: {
-        backgroundColor: "rgba(16,185,129,0.1)",
-        borderColor: "rgba(16,185,129,0.2)",
+        backgroundColor: theme.colors.semantic.successSurface,
+        borderColor: theme.colors.semantic.successBorder,
     },
     sectionTextWrap: {
         flex: 1,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
     },
     todaySectionTitle: {
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     todayBadge: {
         alignSelf: "flex-start",
@@ -410,8 +410,8 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingHorizontal: 8,
         paddingVertical: 2,
-        backgroundColor: "rgba(16,185,129,0.16)",
-        color: "#10b981",
+        backgroundColor: theme.colors.semantic.successSurfaceBold,
+        color: theme.colors.semantic.success,
         fontSize: 10,
         fontWeight: "900",
     },
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingVertical: 8,
         paddingHorizontal: 12,
-        backgroundColor: "rgba(255,255,255,0.06)",
+        backgroundColor: theme.colors.semantic.whiteLight,
     },
     bookmarkText: {
         fontSize: 12,

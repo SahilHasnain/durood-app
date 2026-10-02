@@ -1,4 +1,4 @@
-import { colors } from "@/constants/theme";
+import { theme } from "@/constants/theme";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { VideoPlayer, VideoSource, VideoView, useVideoPlayer } from "expo-video";
@@ -238,7 +238,7 @@ export const CustomVideoPlayer = React.forwardRef<
                                             accessibilityRole="button"
                                             accessibilityLabel="Seek back 10 seconds"
                                         >
-                                            <MaterialIcons name="replay-10" size={32} color={colors.text.primary} />
+                                            <MaterialIcons name="replay-10" size={32} color={theme.colors.text.primary} />
                                         </Pressable>
                                     )}
 
@@ -251,7 +251,7 @@ export const CustomVideoPlayer = React.forwardRef<
                                         <Ionicons
                                             name={isPlaying ? "pause" : "play"}
                                             size={30}
-                                            color={colors.text.primary}
+                                            color={theme.colors.text.primary}
                                         />
                                     </Pressable>
 
@@ -262,7 +262,7 @@ export const CustomVideoPlayer = React.forwardRef<
                                             accessibilityRole="button"
                                             accessibilityLabel="Seek forward 10 seconds"
                                         >
-                                            <MaterialIcons name="forward-10" size={32} color={colors.text.primary} />
+                                            <MaterialIcons name="forward-10" size={32} color={theme.colors.text.primary} />
                                         </Pressable>
                                     )}
                                 </View>
@@ -287,9 +287,9 @@ export const CustomVideoPlayer = React.forwardRef<
                                     value={Math.min(position, duration || position)}
                                     onSlidingStart={clearHideTimer}
                                     onSlidingComplete={seekTo}
-                                    minimumTrackTintColor={colors.accent.secondary}
-                                    maximumTrackTintColor="rgba(255,255,255,0.35)"
-                                    thumbTintColor={colors.accent.secondary}
+                                    minimumTrackTintColor={theme.colors.accent.secondary}
+                                    maximumTrackTintColor={theme.colors.semantic.whiteTrack}
+                                    thumbTintColor={theme.colors.accent.secondary}
                                 />
                                 <View style={styles.timeRow}>
                                     <Text style={styles.timeText}>{formatTime(position)}</Text>
@@ -302,7 +302,7 @@ export const CustomVideoPlayer = React.forwardRef<
 
                 {isLoading && !hasError ? (
                     <View style={styles.loadingContainer} pointerEvents="none">
-                        <ActivityIndicator size="large" color={colors.text.primary} />
+                        <ActivityIndicator size="large" color={theme.colors.text.primary} />
                         <Text style={styles.loadingText}>Loading video...</Text>
                     </View>
                 ) : null}
@@ -324,11 +324,11 @@ CustomVideoPlayer.displayName = "CustomVideoPlayer";
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#000",
+        backgroundColor: theme.colors.semantic.black,
     },
     video: {
         flex: 1,
-        backgroundColor: "#000",
+        backgroundColor: theme.colors.semantic.black,
     },
     overlay: {
         ...StyleSheet.absoluteFillObject,
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
         borderRadius: 34,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.58)",
+        backgroundColor: theme.colors.semantic.scrim58,
     },
     secondaryButton: {
         width: 52,
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
         borderRadius: 26,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.42)",
+        backgroundColor: theme.colors.semantic.scrim42,
     },
     bottomOverlay: {
         position: "absolute",
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         paddingHorizontal: 12,
         paddingTop: 28,
-        backgroundColor: "rgba(0, 0, 0, 0.48)",
+        backgroundColor: theme.colors.semantic.scrim48,
     },
     slider: {
         width: "100%",
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
         marginTop: -2,
     },
     timeText: {
-        color: colors.text.primary,
+        color: theme.colors.text.primary,
         fontSize: 12,
         fontWeight: "500",
     },
@@ -389,23 +389,23 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#000",
+        backgroundColor: theme.colors.semantic.black,
     },
     loadingText: {
         marginTop: 12,
         fontSize: 14,
-        color: colors.text.secondary,
+        color: theme.colors.text.secondary,
     },
     errorContainer: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#000",
+        backgroundColor: theme.colors.semantic.black,
         padding: 20,
     },
     errorText: {
         fontSize: 14,
-        color: colors.text.secondary,
+        color: theme.colors.text.secondary,
         textAlign: "center",
     },
 });

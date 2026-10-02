@@ -72,10 +72,10 @@ export default function Login() {
                         disabled={submitting}
                     >
                         {submitting ? (
-                            <ActivityIndicator color="#FFFFFF" />
+                            <ActivityIndicator color={theme.colors.semantic.white} />
                         ) : (
                             <>
-                                <Ionicons name="logo-google" size={24} color="#FFFFFF" />
+                                <Ionicons name="logo-google" size={24} color={theme.colors.semantic.white} />
                                 <Text style={styles.googleButtonText}>Continue with Google</Text>
                             </>
                         )}
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     googleButtonText: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#FFFFFF",
+        color: theme.colors.semantic.white,
     },
     divider: {
         flexDirection: "row",

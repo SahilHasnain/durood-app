@@ -30,5 +30,5 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background.primary },
     content: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16 },
     title: { color: theme.colors.text.primary, fontSize: 18, fontWeight: "700" },
-    error: { color: "#f87171", textAlign: "center" },
+    error: { color: theme.colors.semantic.error, textAlign: "center" },
 });

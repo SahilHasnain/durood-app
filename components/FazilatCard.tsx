@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: theme.colors.semantic.whiteLight,
     overflow: "hidden",
   },
   gridCard: {

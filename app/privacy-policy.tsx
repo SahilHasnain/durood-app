@@ -1,4 +1,5 @@
 import React from "react";
+import { theme } from "@/constants/theme";
 
 export default function PrivacyPolicy() {
     return (
@@ -6,7 +7,7 @@ export default function PrivacyPolicy() {
             minHeight: "100vh",
             height: "100%",
             overflowY: "auto",
-            backgroundColor: "#ffffff",
+            backgroundColor: theme.colors.semantic.privacyBackground,
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
         }}>
             <div style={{
@@ -17,14 +18,14 @@ export default function PrivacyPolicy() {
                 <h1 style={{
                     fontSize: "36px",
                     fontWeight: "bold",
-                    color: "#111827",
+                    color: theme.colors.semantic.privacyHeading,
                     marginBottom: "16px"
                 }}>
                     Privacy Policy
                 </h1>
                 <p style={{
                     fontSize: "14px",
-                    color: "#6B7280",
+                    color: theme.colors.semantic.privacyMuted,
                     marginBottom: "32px"
                 }}>
                     Last updated: {new Date().toLocaleDateString()}
@@ -35,14 +36,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                    color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             1. Introduction
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             Welcome to Durood Moments. We respect your privacy and are committed to
@@ -55,14 +56,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             2. Information We Collect
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75",
                             marginBottom: "8px"
                         }}>
@@ -72,7 +73,7 @@ export default function PrivacyPolicy() {
                         <ul style={{
                             marginLeft: "24px",
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             <li>App usage data (which features you use)</li>
@@ -87,14 +88,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             3. How We Use Your Information
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75",
                             marginBottom: "8px"
                         }}>
@@ -103,7 +104,7 @@ export default function PrivacyPolicy() {
                         <ul style={{
                             marginLeft: "24px",
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             <li>Provide and maintain our service</li>
@@ -118,14 +119,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             4. Data Storage
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             Your personal data, including counter progress and preferences, are
@@ -139,14 +140,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             5. Third-Party Services
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75",
                             marginBottom: "8px"
                         }}>
@@ -155,7 +156,7 @@ export default function PrivacyPolicy() {
                         <ul style={{
                             marginLeft: "24px",
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             <li>Authentication services (if you create an account)</li>
@@ -168,14 +169,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             6. Data Security
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             We implement appropriate security measures to protect your
@@ -188,14 +189,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             7. Children's Privacy
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             Our app is suitable for all ages. We do not knowingly collect
@@ -207,14 +208,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             8. Your Rights
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75",
                             marginBottom: "8px"
                         }}>
@@ -223,7 +224,7 @@ export default function PrivacyPolicy() {
                         <ul style={{
                             marginLeft: "24px",
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             <li>Access your data</li>
@@ -237,14 +238,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             9. Changes to This Policy
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             We may update this privacy policy from time to time. We will notify
@@ -257,14 +258,14 @@ export default function PrivacyPolicy() {
                         <h2 style={{
                             fontSize: "24px",
                             fontWeight: "600",
-                            color: "#111827",
+                            color: theme.colors.semantic.privacyHeading,
                             marginBottom: "12px"
                         }}>
                             10. Contact Us
                         </h2>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
                             If you have any questions about this privacy policy, please contact
@@ -272,11 +273,11 @@ export default function PrivacyPolicy() {
                         </p>
                         <p style={{
                             fontSize: "16px",
-                            color: "#374151",
+                            color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75",
                             marginTop: "8px"
                         }}>
-                            Email: <a href="mailto:mdsahil1631@gmail.com" style={{ color: "#10b981", textDecoration: "none" }}>mdsahil1631@gmail.com</a>
+                            Email: <a href="mailto:mdsahil1631@gmail.com" style={{ color: theme.colors.semantic.success, textDecoration: "none" }}>mdsahil1631@gmail.com</a>
                         </p>
                     </section>
                 </div>
@@ -284,12 +285,12 @@ export default function PrivacyPolicy() {
                 <div style={{
                     marginTop: "48px",
                     paddingTop: "24px",
-                    borderTop: "1px solid #E5E7EB",
+                    borderTop: `1px solid ${theme.colors.semantic.privacyBorder}`,
                     textAlign: "center"
                 }}>
                     <p style={{
                         fontSize: "14px",
-                        color: "#6B7280"
+                        color: theme.colors.semantic.privacyMuted
                     }}>
                         © {new Date().getFullYear()} Durood Moments. All rights reserved.
                     </p>

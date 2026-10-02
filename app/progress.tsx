@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         padding: 24,
-        backgroundColor: "rgba(0,0,0,0.72)",
+        backgroundColor: theme.colors.semantic.scrim72,
     },
     authPromptCard: {
         padding: 24,
@@ -326,9 +326,9 @@ const styles = StyleSheet.create({
     summaryCard: {
         borderRadius: 28,
         padding: 24,
-        backgroundColor: "rgba(16,185,129,0.09)",
+        backgroundColor: theme.colors.semantic.successMuted,
         borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.2)",
+        borderColor: theme.colors.semantic.successBorder,
     },
     eyebrow: {
         fontSize: 12,
@@ -353,14 +353,14 @@ const styles = StyleSheet.create({
     progressTrack: {
         height: 8,
         borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: theme.colors.semantic.whiteControl,
         overflow: "hidden",
         marginTop: 22,
     },
     progressFill: {
         height: "100%",
         borderRadius: 999,
-        backgroundColor: "#10b981",
+        backgroundColor: theme.colors.semantic.success,
     },
     summaryNumbersCard: {
         marginTop: 16,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.06)",
+        backgroundColor: theme.colors.semantic.whiteLight,
     },
     summaryNumberItem: {
         flex: 1,
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
         width: 1,
         height: 34,
         marginHorizontal: 12,
-        backgroundColor: "rgba(255,255,255,0.1)",
+        backgroundColor: theme.colors.semantic.whiteStrong,
     },
     statRow: {
         flexDirection: "row",
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
         padding: 16,
         backgroundColor: theme.colors.surface.primary,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
+        borderColor: theme.colors.semantic.whiteLight,
     },
     statValue: {
         fontSize: 22,
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
         padding: 18,
         backgroundColor: theme.colors.surface.primary,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
+        borderColor: theme.colors.semantic.whiteLight,
     },
     sectionTitle: {
         fontSize: 18,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 12,
         alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.05)",
+        backgroundColor: theme.colors.semantic.whiteFaint,
     },
     sessionPillValue: {
         fontSize: 18,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingVertical: 7,
         paddingHorizontal: 10,
-        backgroundColor: "rgba(255,255,255,0.05)",
+        backgroundColor: theme.colors.semantic.whiteFaint,
         color: theme.colors.text.secondary,
         fontSize: 12,
         fontWeight: "700",
@@ -486,9 +486,9 @@ const styles = StyleSheet.create({
     finishCard: {
         borderRadius: 24,
         padding: 22,
-        backgroundColor: "rgba(16,185,129,0.08)",
+        backgroundColor: theme.colors.semantic.successSoft,
         borderWidth: 1,
-        borderColor: "rgba(16,185,129,0.16)",
+        borderColor: theme.colors.semantic.successBorderBold,
     },
     finishLabel: {
         fontSize: 13,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     finishValue: {
         fontSize: 32,
         fontWeight: "800",
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     finishSub: {
         marginTop: 8,

@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
         padding: 18,
         backgroundColor: theme.colors.surface.primary,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
+        borderColor: theme.colors.semantic.whiteLight,
     },
     sectionTitle: {
         fontSize: 18,
@@ -400,11 +400,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: theme.colors.background.secondary,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.colors.semantic.whiteControl,
     },
     presetButtonActive: {
-        backgroundColor: "rgba(16,185,129,0.16)",
-        borderColor: "#10b981",
+        backgroundColor: theme.colors.semantic.successSurfaceBold,
+        borderColor: theme.colors.semantic.success,
     },
     presetText: {
         fontSize: 14,
@@ -412,14 +412,14 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
     },
     presetTextActive: {
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     input: {
         borderRadius: 16,
         padding: 16,
         backgroundColor: theme.colors.background.secondary,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.colors.semantic.whiteControl,
         color: theme.colors.text.primary,
         fontSize: 16,
     },
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     modeButtonActive: {
-        backgroundColor: "#10b981",
+        backgroundColor: theme.colors.semantic.success,
     },
     modeText: {
         fontSize: 14,
@@ -445,14 +445,14 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
     modeTextActive: {
-        color: "#ffffff",
+        color: theme.colors.semantic.white,
     },
     previewCard: {
         borderRadius: 24,
         padding: 18,
-        backgroundColor: "rgba(255,255,255,0.04)",
+        backgroundColor: theme.colors.semantic.whiteSubtle,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.07)",
+        borderColor: theme.colors.semantic.whiteMedium,
     },
     previewHeader: {
         flexDirection: "row",
@@ -471,9 +471,9 @@ const styles = StyleSheet.create({
         borderRadius: 13,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.07)",
+        backgroundColor: theme.colors.semantic.whiteMedium,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.colors.semantic.whiteControl,
     },
     hintButtonText: {
         fontSize: 13,
@@ -496,21 +496,21 @@ const styles = StyleSheet.create({
     },
     divider: {
         height: 1,
-        backgroundColor: "rgba(255,255,255,0.07)",
+        backgroundColor: theme.colors.semantic.whiteMedium,
         marginVertical: 14,
     },
     goodText: {
-        color: "#10b981",
+        color: theme.colors.semantic.success,
     },
     warningText: {
-        color: "#f59e0b",
+        color: theme.colors.semantic.warning,
     },
     primaryButton: {
         minHeight: 56,
         borderRadius: 18,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#10b981",
+        backgroundColor: theme.colors.semantic.success,
         marginTop: 4,
     },
     primaryButtonDisabled: {
@@ -519,6 +519,6 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         fontSize: 17,
         fontWeight: "800",
-        color: "#ffffff",
+        color: theme.colors.semantic.white,
     },
 });

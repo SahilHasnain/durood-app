@@ -1,4 +1,4 @@
-import { colors } from "@/constants/theme";
+import { theme } from "@/constants/theme";
 import { Durood } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -67,7 +67,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                             />
                             {imageLoading && (
                                 <View style={styles.loadingContainer}>
-                                    <Ionicons name="hourglass" size={32} color="#717171" />
+                                    <Ionicons name="hourglass" size={32} color={theme.colors.semantic.mutedIcon} />
                                 </View>
                             )}
                             {!imageLoading && (
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     thumbnailContainer: {
         width: "100%",
         height: 200,
-        backgroundColor: colors.background.tertiary || "#1a1a1a",
+        backgroundColor: theme.colors.background.tertiary,
         position: "relative",
     },
     thumbnail: {
@@ -127,18 +127,18 @@ const styles = StyleSheet.create({
         height: "100%",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: colors.background.tertiary || "#1a1a1a",
+        backgroundColor: theme.colors.background.tertiary,
     },
     placeholderIconWrapper: {
         padding: 12,
         borderRadius: 9999,
-        backgroundColor: (colors.accent.secondary || "#10b981") + "20",
+        backgroundColor: theme.colors.accentActive,
     },
     placeholderText: {
         marginTop: 8,
         fontSize: 14,
         fontWeight: "500",
-        color: colors.text.tertiary || "#666",
+        color: theme.colors.text.tertiary,
     },
     loadingContainer: {
         position: "absolute",
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: colors.background.tertiary || "#1a1a1a",
+        backgroundColor: theme.colors.background.tertiary,
     },
     durationBadge: {
         position: "absolute",
@@ -157,13 +157,13 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 6,
-        backgroundColor: colors.overlay?.dark || "rgba(0, 0, 0, 0.8)",
+        backgroundColor: theme.colors.overlay,
     },
     durationText: {
         fontSize: 12,
         fontWeight: "700",
         letterSpacing: 0.5,
-        color: colors.text.primary,
+        color: theme.colors.text.primary,
     },
     progressBarContainer: {
         position: "absolute",
@@ -171,11 +171,11 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: 4,
-        backgroundColor: "rgba(255, 255, 255, 0.3)",
+        backgroundColor: theme.colors.semantic.whiteOverlay,
     },
     progressBar: {
         height: "100%",
-        backgroundColor: colors.accent.secondary,
+        backgroundColor: theme.colors.accent.secondary,
     },
     infoContainer: {
         paddingHorizontal: 8,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "500",
         lineHeight: 18,
-        color: colors.text.primary,
+        color: theme.colors.text.primary,
     },
 });
 

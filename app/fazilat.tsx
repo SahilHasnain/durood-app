@@ -361,7 +361,7 @@ export default function FazilatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: theme.colors.semantic.black,
   },
   contentContainer: {
     flexGrow: 1,
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   segmentActive: {
     backgroundColor: theme.colors.surface.elevated,
-    shadowColor: "#000",
+    shadowColor: theme.colors.semantic.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
