@@ -848,7 +848,7 @@ if (authLoading || !initialized || loading) {
 
                 {confettiKey !== null && (
                     <View pointerEvents="none" style={styles.confettiOverlay}>
-                        <Confetti key={confettiKey} />
+                        <Confetti key={confettiKey} onDone={() => setConfettiKey(null)} />
                     </View>
                 )}
 
@@ -1084,7 +1084,7 @@ if (authLoading || !initialized || loading) {
             </Modal>
             {confettiKey !== null && (
                 <View pointerEvents="none" style={styles.confettiOverlay}>
-                    <Confetti key={confettiKey} />
+                    <Confetti key={confettiKey} onDone={() => setConfettiKey(null)} />
                 </View>
             )}
         </SafeAreaView>

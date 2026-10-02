@@ -4,9 +4,10 @@ import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
-import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -32,6 +33,9 @@ function formatCompactNumber(value: number): string {
     return value.toString();
 }
 
+const PROGRESS_VISIT_COUNT_KEY = "tasbeeh_progress_visit_count";
+const PROGRESS_VISIT_LIMIT = 10;
+
 export default function Progress() {
     const HEADER_HEIGHT = 60;
     const { tabBarHeight, showTabBar } = useTabBarVisibility();
@@ -39,6 +43,8 @@ export default function Progress() {
     const headerTranslateY = useSharedValue(0);
     const { width } = useWindowDimensions();
     const isDesktopWeb = Platform.OS === "web" && width >= 1200;
+    const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+    const authPromptedThisSession = useRef(false);
 
     const progressStats = useTasbeehStore((state) => state.progressStats);
     const progressLoading = useTasbeehStore((state) => state.progressLoading);
@@ -49,6 +55,18 @@ export default function Progress() {
             showTabBar();
 
             const activeUserId = user?.id;
+            if (!activeUserId && !authPromptedThisSession.current) {
+                void AsyncStorage.getItem(PROGRESS_VISIT_COUNT_KEY).then(async (value) => {
+                    const visits = value ? parseInt(value, 10) : 0;
+                    if (visits >= PROGRESS_VISIT_LIMIT) {
+                        authPromptedThisSession.current = true;
+                        setShowAuthPrompt(true);
+                    } else {
+                        await AsyncStorage.setItem(PROGRESS_VISIT_COUNT_KEY, String(visits + 1));
+                    }
+                });
+            }
+
             const state = useTasbeehStore.getState();
             if (!state.progressInitialized || state.initializedUserId !== activeUserId) {
                 void state.loadProgressData(activeUserId);
@@ -63,6 +81,31 @@ export default function Progress() {
         }, [user?.id, showTabBar])
     );
 
+    const authPrompt = (
+        <Modal visible={showAuthPrompt} transparent animationType="fade" onRequestClose={() => setShowAuthPrompt(false)}>
+            <Pressable style={styles.authPromptOverlay} onPress={() => setShowAuthPrompt(false)}>
+                <Pressable style={styles.authPromptCard} onPress={() => {}}>
+                    <Text style={styles.authPromptTitle}>Save Your Progress</Text>
+                    <Text style={styles.authPromptText}>
+                        Sign in to keep your progress synced across devices and protect your journey.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.authPromptPrimary}
+                        onPress={() => {
+                            setShowAuthPrompt(false);
+                            router.push("/auth/login");
+                        }}
+                    >
+                        <Text style={styles.authPromptPrimaryText}>Sign In</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.authPromptSecondary} onPress={() => setShowAuthPrompt(false)}>
+                        <Text style={styles.authPromptSecondaryText}>Continue Viewing</Text>
+                    </TouchableOpacity>
+                </Pressable>
+            </Pressable>
+        </Modal>
+    );
+
     if (progressLoading || !progressStats) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
@@ -71,6 +114,7 @@ export default function Progress() {
                     <ActivityIndicator size="large" color={theme.colors.primary.main} />
                     <Text style={styles.loadingText}>Loading progress...</Text>
                 </View>
+                {authPrompt}
             </SafeAreaView>
         );
     }
@@ -187,6 +231,7 @@ export default function Progress() {
                     <Text style={styles.finishSub}>Estimated completion: {progressStats.estimatedFinishDate}</Text>
                 </View>
             </ScrollView>
+            {authPrompt}
         </SafeAreaView>
     );
 }
@@ -204,6 +249,51 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 16,
         fontSize: 16,
+        color: theme.colors.text.secondary,
+    },
+    authPromptOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        padding: 24,
+        backgroundColor: "rgba(0,0,0,0.72)",
+    },
+    authPromptCard: {
+        padding: 24,
+        borderRadius: 22,
+        backgroundColor: theme.colors.surface.elevated,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+    },
+    authPromptTitle: {
+        fontSize: 22,
+        fontWeight: "800",
+        color: theme.colors.text.primary,
+        marginBottom: 10,
+    },
+    authPromptText: {
+        fontSize: 15,
+        lineHeight: 22,
+        color: theme.colors.text.secondary,
+        marginBottom: 20,
+    },
+    authPromptPrimary: {
+        padding: 14,
+        borderRadius: 12,
+        alignItems: "center",
+        backgroundColor: theme.colors.primary.main,
+    },
+    authPromptPrimaryText: {
+        fontSize: 15,
+        fontWeight: "800",
+        color: theme.colors.text.primary,
+    },
+    authPromptSecondary: {
+        padding: 14,
+        alignItems: "center",
+    },
+    authPromptSecondaryText: {
+        fontSize: 14,
+        fontWeight: "700",
         color: theme.colors.text.secondary,
     },
     scrollView: {
