@@ -43,7 +43,7 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
         ]}
       >
         <View style={styles.headerRow}>
-          <View style={[styles.logoContainer, isDesktop && styles.desktopLogoContainer]}>
+            <View style={[styles.logoContainer, isDesktop && styles.desktopLogoContainer]}>
             <View style={styles.logoWrapper}>
               <Image
                 source={require("@/assets/images/icon.png")}
@@ -59,9 +59,19 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
                 <Ionicons name="globe-outline" size={16} color={theme.colors.primary.main} />
                 <Text style={styles.globalCounterValue}>{formatGlobalCount(globalRecitations)}</Text>
                 <Text style={styles.globalCounterLabel}>global</Text>
-              </View>
+                </View>
             )}
           </View>
+          {isDesktop && (
+            <View
+              accessibilityLabel={`Global recitations: ${globalRecitations ?? "loading"}`}
+              style={[styles.globalCounter, styles.desktopGlobalCounter]}
+            >
+              <Ionicons name="globe-outline" size={16} color={theme.colors.primary.main} />
+              <Text style={styles.globalCounterValue}>{formatGlobalCount(globalRecitations)}</Text>
+              <Text style={styles.globalCounterLabel}>global</Text>
+            </View>
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Open profile"
@@ -134,6 +144,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accentSurface,
     borderWidth: 1,
     borderColor: theme.colors.accentBorder,
+  },
+  desktopGlobalCounter: {
+    marginLeft: "auto",
+    marginRight: 12,
   },
   globalCounterValue: {
     color: colors.text.primary,

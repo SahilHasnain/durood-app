@@ -1,7 +1,5 @@
 import { theme } from "@/constants/theme";
-import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
@@ -15,11 +13,6 @@ interface AnimatedTabBarProps extends BottomTabBarProps {
 const DESKTOP_BREAKPOINT = 1200;
 const DESKTOP_NAV_WIDTH = 232;
 
-function formatGlobalCount(value: number | null): string {
-    if (value === null) return "...";
-    return new Intl.NumberFormat("en-IN").format(value);
-}
-
 export function AnimatedTabBar({
     state,
     descriptors,
@@ -30,7 +23,6 @@ export function AnimatedTabBar({
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
     const isDesktop = Platform.OS === "web" && width >= DESKTOP_BREAKPOINT;
-    const globalRecitations = useTasbeehStore((state) => state.globalRecitations);
     const TAB_BAR_HEIGHT = 56;
 
     const animatedStyle = useAnimatedStyle(() => ({
@@ -100,13 +92,7 @@ const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-p
                     />
                     <View>
                         <Text style={styles.desktopBrandTitle}>Durood Moments</Text>
-                        <View style={styles.desktopGlobalCounter}>
-                            <Ionicons name="globe-outline" size={13} color={theme.colors.primary.main} />
-                            <Text style={styles.desktopGlobalCounterValue}>
-                                {formatGlobalCount(globalRecitations)}
-                            </Text>
-                            <Text style={styles.desktopGlobalCounterLabel}>global</Text>
-                        </View>
+                        <Text style={styles.desktopBrandSubtitle}>Your daily salawat</Text>
                     </View>
                 </View>
             )}
@@ -212,21 +198,10 @@ const styles = {
         fontSize: 16,
         fontWeight: "700" as const,
     },
-    desktopGlobalCounter: {
-        flexDirection: "row" as const,
-        alignItems: "center" as const,
-        gap: 4,
-        marginTop: 3,
-    },
-    desktopGlobalCounterValue: {
-        color: theme.colors.text.primary,
-        fontSize: 12,
-        fontWeight: "800" as const,
-    },
-    desktopGlobalCounterLabel: {
+    desktopBrandSubtitle: {
         color: theme.colors.text.tertiary,
         fontSize: 10,
-        fontWeight: "600" as const,
+        marginTop: 2,
     },
     desktopRoute: {
         minHeight: 44,
