@@ -38,7 +38,7 @@ import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = theme.colors.primary.main;
 const RING_PROGRESS_COLOR = "#F59E0B";
-const DEFAULT_SESSION_GOAL = 50;
+const DEFAULT_SESSION_GOAL = 100;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
 const SESSION_RECOVERY_KEY = "tasbeeh_session_recovery";

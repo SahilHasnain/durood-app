@@ -119,7 +119,7 @@ export default function Progress() {
         );
     }
 
-    const totalGoal = plannerData?.totalGoal ?? Math.max(progressStats.lifetimeTotal, 100000);
+    const totalGoal = plannerData?.totalGoal ?? 10_000_000;
     const remaining = Math.max(0, totalGoal - progressStats.lifetimeTotal);
     const completionPercent = totalGoal > 0
         ? Math.min((progressStats.lifetimeTotal / totalGoal) * 100, 100)

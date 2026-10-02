@@ -111,7 +111,7 @@ function getMonthStartKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
-const DEFAULT_TOTAL_GOAL = 100000; // 1 Lakh
+const DEFAULT_TOTAL_GOAL = 10_000_000;
 const DEFAULT_PLANNER_DAILY_TARGET = 1000;
 
 function formatTimeFromNow(totalDays: number): string {
@@ -977,7 +977,9 @@ async function persistLocalSnapshot(
     .slice(0, 365);
 
   const state = useTasbeehStore.getState();
-  const totalGoal = state.plannerData?.totalGoal ?? DEFAULT_TOTAL_GOAL;
+  const storedTotalGoal = await AsyncStorage.getItem(TOTAL_GOAL_KEY);
+  const totalGoal = state.plannerData?.totalGoal
+    ?? ((storedTotalGoal ? parseInt(storedTotalGoal, 10) : 0) || DEFAULT_TOTAL_GOAL);
 
   await Promise.all([
     AsyncStorage.setItem("tasbeeh_count", data.count.toString()),
