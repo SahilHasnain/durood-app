@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSQLiteContext } from "expo-sqlite";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -26,11 +26,11 @@ type ReaderContent = {
     partNumber?: number;
 };
 
-function TextLine({ line }: { line: DalailTextLine }) {
+function TextLine({ line, isDesktop }: { line: DalailTextLine; isDesktop: boolean }) {
     return (
-        <View style={styles.lineCard}>
-            <Text style={styles.arabicText}>{line.arabic}</Text>
-            <Text style={styles.englishText}>{line.english}</Text>
+        <View style={[styles.lineCard, isDesktop && styles.desktopLineCard]}>
+            <Text style={[styles.arabicText, isDesktop && styles.desktopArabicText]}>{line.arabic}</Text>
+            <Text style={[styles.englishText, isDesktop && styles.desktopEnglishText]}>{line.english}</Text>
         </View>
     );
 }
@@ -39,6 +39,8 @@ export default function DalailTextReaderScreen() {
     const db = useSQLiteContext();
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { width } = useWindowDimensions();
+    const isDesktop = Platform.OS === "web" && width >= 1200;
     const headerTranslateY = useSharedValue(0);
     const params = useLocalSearchParams<{ page?: string }>();
     const page = Math.max(1, Number(params.page ?? 1) || 1);
@@ -112,7 +114,7 @@ export default function DalailTextReaderScreen() {
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
             <SimpleHeader translateY={headerTranslateY} />
-            <View style={[styles.toolbar, { paddingTop: insets.top ? 8 : 16 }]}>
+            <View style={[styles.toolbar, isDesktop && styles.desktopToolbar, { paddingTop: insets.top ? 8 : 16 }]}>
                 <Pressable style={styles.iconButton} onPress={closeReader} accessibilityLabel="Close reader">
                     <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
                 </Pressable>
@@ -125,7 +127,7 @@ export default function DalailTextReaderScreen() {
                 </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[styles.content, isDesktop && styles.desktopContent]} showsVerticalScrollIndicator={false}>
                 <View style={styles.modeRow}>
                     <View>
                         <Text style={styles.eyebrow}>Text reader</Text>
@@ -145,7 +147,7 @@ export default function DalailTextReaderScreen() {
                     </View>
                 )}
                 {error && <Text style={styles.errorText}>{error}</Text>}
-                {!isLoading && !error && content?.lines.map((line) => <TextLine key={`${content.partNumber ?? "dua"}-${line.lineNumber}`} line={line} />)}
+                {!isLoading && !error && content?.lines.map((line) => <TextLine key={`${content.partNumber ?? "dua"}-${line.lineNumber}`} line={line} isDesktop={isDesktop} />)}
 
                 {!isLoading && !error && content && (
                     <View style={styles.footerCard}>
@@ -168,11 +170,13 @@ export default function DalailTextReaderScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background.primary },
     toolbar: { minHeight: 64, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12 },
+    desktopToolbar: { width: "100%", maxWidth: 1120, alignSelf: "center", paddingHorizontal: 32 },
     iconButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: theme.colors.semantic.whiteControl },
     toolbarTitle: { flex: 1 },
     readerTitle: { color: theme.colors.text.primary, fontSize: 16, fontWeight: "900" },
     readerMeta: { color: theme.colors.text.secondary, fontSize: 12, marginTop: 2 },
     content: { padding: 16, paddingBottom: 48, gap: 12 },
+    desktopContent: { width: "100%", maxWidth: 1120, alignSelf: "center", paddingHorizontal: 32, paddingBottom: 64, gap: 16 },
     modeRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: 20, borderRadius: 24, backgroundColor: theme.colors.semantic.successSurface, borderWidth: 1, borderColor: theme.colors.semantic.successBorderStrong },
     eyebrow: { color: theme.colors.text.secondary, fontSize: 12, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
     title: { color: theme.colors.text.primary, fontSize: 26, fontWeight: "900", marginTop: 8 },
@@ -180,8 +184,11 @@ const styles = StyleSheet.create({
     imageButton: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: theme.colors.semantic.whiteControl },
     imageButtonText: { color: theme.colors.primary.main, fontSize: 13, fontWeight: "800" },
     lineCard: { padding: 18, borderRadius: 20, backgroundColor: theme.colors.background.secondary, borderWidth: 1, borderColor: theme.colors.border.subtle, gap: 14 },
+    desktopLineCard: { flexDirection: "row-reverse", alignItems: "stretch", padding: 0, gap: 0, overflow: "hidden" },
     arabicText: { color: theme.colors.text.primary, fontSize: 24, lineHeight: 43, textAlign: "right", writingDirection: "rtl" },
+    desktopArabicText: { flex: 1, padding: 24, maxWidth: "50%", borderLeftWidth: 1, borderLeftColor: theme.colors.border.subtle },
     englishText: { color: theme.colors.text.secondary, fontSize: 16, lineHeight: 25 },
+    desktopEnglishText: { flex: 1, padding: 24, alignSelf: "center", maxWidth: "50%" },
     stateCard: { paddingVertical: 60, alignItems: "center", gap: 14 },
     stateText: { color: theme.colors.text.secondary, fontSize: 14 },
     errorText: { color: theme.colors.semantic.error, padding: 20, textAlign: "center" },
