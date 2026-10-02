@@ -749,7 +749,7 @@ if (authLoading || !initialized || loading) {
                     <Pressable style={styles.sessionTapArea} onPress={addToSession}>
                     <View style={styles.sessionRing}>
                         <Image
-                            source={require("@/assets/images/background-v1.png")}
+                            source={require("@/assets/images/background-v1.webp")}
                             style={[
                                 styles.sessionBackground,
                                 { width: RING_SIZE - 17, height: RING_SIZE - 17, borderRadius: (RING_SIZE - 17) / 2 },
@@ -917,7 +917,7 @@ if (authLoading || !initialized || loading) {
                     <TouchableOpacity activeOpacity={0.85} onPress={quickCountTap} style={styles.counterContainer}>
                         <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
                             <Image
-                                source={require("@/assets/images/background-v1.png")}
+                                source={require("@/assets/images/background-v1.webp")}
                                 style={[
                                     styles.counterBackground,
                                     { width: RING_SIZE - 17, height: RING_SIZE - 17, borderRadius: (RING_SIZE - 17) / 2 },
