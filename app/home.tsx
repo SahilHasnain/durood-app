@@ -846,12 +846,6 @@ if (authLoading || !initialized || loading) {
                     </View>
                 )}
 
-                <LinearGradient
-                    pointerEvents="none"
-                    colors={["rgba(0, 0, 0, 0.12)", "rgba(0, 0, 0, 0.32)"]}
-                    style={styles.eyeComfortOverlay}
-                />
-
                 {confettiKey !== null && (
                     <View pointerEvents="none" style={styles.confettiOverlay}>
                         <Confetti key={confettiKey} />

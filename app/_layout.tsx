@@ -17,10 +17,14 @@ import "../global.css";
 function AutoSyncOnReconnect() {
   const { user } = useAuth();
   const wasOfflineRef = useRef(false);
+  const lastNetworkSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const connected = state.isConnected ?? true;
+      const signature = `${connected}:${state.isInternetReachable ?? "unknown"}:${state.type}`;
+      if (lastNetworkSignatureRef.current === signature) return;
+      lastNetworkSignatureRef.current = signature;
       void recordTasbeehDebug("network:change", {
         connected,
         isInternetReachable: state.isInternetReachable,
