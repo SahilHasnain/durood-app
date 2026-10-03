@@ -1,6 +1,7 @@
 import { theme } from "@/constants/theme";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import React from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
 import { Image, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +21,7 @@ export function AnimatedTabBar({
     translateY,
     isFullscreen,
 }: AnimatedTabBarProps) {
+    const [learnOpen, setLearnOpen] = useState(false);
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
     const isDesktop = Platform.OS === "web" && width >= DESKTOP_BREAKPOINT;
@@ -31,14 +33,23 @@ export function AnimatedTabBar({
             : [{ translateY: translateY.value }],
     }));
 
-    if (isDesktop && isFullscreen) return null;
-
-const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-policy"]);
+ const hiddenRouteNames = new Set(["index", "video", "auth", "privacy-policy"]);
     const visibleRoutes = state.routes.filter((route) => {
         if (route.name === "shorts") return false;
         if (!isDesktop && route.name === "profile") return false;
-        return !hiddenRouteNames.has(route.name) && !route.name.startsWith("dalail-reader");
+        return !hiddenRouteNames.has(route.name)
+            && !route.name.startsWith("dalail-reader")
+            && !route.name.startsWith("dalail-image");
     });
+    const mobileRoutes = visibleRoutes.filter((route) => !["fazilat", "videos"].includes(route.name));
+    const activeRouteName = state.routes[state.index]?.name;
+    const isLearnActive = activeRouteName === "fazilat" || activeRouteName === "videos";
+
+    useEffect(() => {
+        if (isLearnActive) setLearnOpen(false);
+    }, [isLearnActive]);
+
+    if (isDesktop && isFullscreen) return null;
 
     return (
         <Animated.View
@@ -99,10 +110,10 @@ const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-p
             {(isDesktop
                 ? [
                     { label: "Practice", routes: visibleRoutes.filter((route) => ["home", "progress", "planner"].includes(route.name)) },
-                    { label: "Learn", routes: visibleRoutes.filter((route) => ["dalail", "fazilat"].includes(route.name)) },
+                     { label: "Learn", routes: visibleRoutes.filter((route) => ["dalail", "fazilat", "videos"].includes(route.name)) },
                     { label: "Account", routes: visibleRoutes.filter((route) => route.name === "profile") },
                 ]
-                : [{ label: "", routes: visibleRoutes }]
+                : [{ label: "", routes: mobileRoutes }]
             ).map((group) => (
                 <React.Fragment key={group.label || "mobile-navigation"}>
                     {isDesktop && group.routes.length > 0 && (
@@ -174,6 +185,48 @@ const hiddenRouteNames = new Set(["index", "video", "videos", "auth", "privacy-p
                     })}
                 </React.Fragment>
             ))}
+            {!isDesktop && (
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: learnOpen, selected: isLearnActive }}
+                    accessibilityLabel="Learn menu"
+                    onPress={() => setLearnOpen((open) => !open)}
+                    style={[styles.mobileRoute, isLearnActive && styles.mobileRouteActive]}
+                >
+                    <View style={styles.mobileRouteContent}>
+                        <Ionicons name={isLearnActive ? "school" : "school-outline"} size={24} color={isLearnActive ? theme.colors.primary.main : theme.colors.text.secondary} />
+                        <Text style={[styles.mobileRouteLabel, isLearnActive && styles.mobileRouteLabelActive]}>Learn</Text>
+                    </View>
+                </Pressable>
+            )}
+            {!isDesktop && learnOpen && (
+                <>
+                    <Pressable style={styles.learnDismiss} onPress={() => setLearnOpen(false)} />
+                    <View style={styles.learnPopover}>
+                        <Text style={styles.learnPopoverTitle}>Learn</Text>
+                        <Pressable
+                            style={styles.learnPopoverItem}
+                            onPress={() => {
+                                setLearnOpen(false);
+                                navigation.navigate("fazilat");
+                            }}
+                        >
+                            <Ionicons name="book-outline" size={18} color={theme.colors.primary.main} />
+                            <Text style={styles.learnPopoverLabel}>Durood</Text>
+                        </Pressable>
+                        <Pressable
+                            style={styles.learnPopoverItem}
+                            onPress={() => {
+                                setLearnOpen(false);
+                                navigation.navigate("videos");
+                            }}
+                        >
+                            <Ionicons name="videocam-outline" size={18} color={theme.colors.primary.main} />
+                            <Text style={styles.learnPopoverLabel}>Videos</Text>
+                        </Pressable>
+                    </View>
+                </>
+            )}
             {isDesktop && <Text style={styles.desktopFooter}>Take a moment for salawat.</Text>}
         </Animated.View>
     );
@@ -254,6 +307,11 @@ const styles = {
         justifyContent: "center" as const,
         paddingTop: 8,
     },
+    mobileRouteActive: {
+        backgroundColor: theme.colors.accentActive,
+        borderRadius: 12,
+        marginVertical: 4,
+    },
     mobileRouteContent: {
         alignItems: "center" as const,
     },
@@ -262,5 +320,55 @@ const styles = {
         fontSize: 10,
         fontWeight: "500" as const,
         marginTop: 4,
+    },
+    mobileRouteLabelActive: {
+        color: theme.colors.primary.main,
+        fontWeight: "700" as const,
+    },
+    learnDismiss: {
+        position: "absolute" as const,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 520,
+    },
+    learnPopover: {
+        position: "absolute" as const,
+        right: 12,
+        bottom: 64,
+        width: 172,
+        padding: 8,
+        borderRadius: 16,
+        backgroundColor: theme.colors.background.secondary,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+        shadowColor: theme.colors.semantic.black,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 8,
+        zIndex: 3,
+    },
+    learnPopoverTitle: {
+        color: theme.colors.text.tertiary,
+        fontSize: 11,
+        fontWeight: "800" as const,
+        letterSpacing: 0.8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        textTransform: "uppercase" as const,
+    },
+    learnPopoverItem: {
+        minHeight: 42,
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        gap: 10,
+        paddingHorizontal: 10,
+        borderRadius: 10,
+    },
+    learnPopoverLabel: {
+        color: theme.colors.text.primary,
+        fontSize: 14,
+        fontWeight: "700" as const,
     },
 };
