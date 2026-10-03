@@ -139,7 +139,6 @@ export default function DalailTextReaderScreen() {
                         <Text style={styles.imageButtonText}>Images</Text>
                     </Pressable>
                 </View>
-
                 {isLoading && (
                     <View style={styles.stateCard}>
                         <ActivityIndicator color={theme.colors.primary.main} size="large" />
@@ -188,7 +187,7 @@ const styles = StyleSheet.create({
     arabicText: { color: theme.colors.text.primary, fontSize: 24, lineHeight: 43, textAlign: "right", writingDirection: "rtl" },
     desktopArabicText: { flex: 1, padding: 24, maxWidth: "50%", borderLeftWidth: 1, borderLeftColor: theme.colors.border.subtle },
     englishText: { color: theme.colors.text.secondary, fontSize: 16, lineHeight: 25 },
-    desktopEnglishText: { flex: 1, padding: 24, alignSelf: "center", maxWidth: "50%" },
+    desktopEnglishText: { flex: 1, padding: 24, alignSelf: "flex-start", maxWidth: "50%" },
     stateCard: { paddingVertical: 60, alignItems: "center", gap: 14 },
     stateText: { color: theme.colors.text.secondary, fontSize: 14 },
     errorText: { color: theme.colors.semantic.error, padding: 20, textAlign: "center" },

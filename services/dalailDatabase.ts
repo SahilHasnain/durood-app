@@ -4,6 +4,7 @@ export type DalailTextLine = {
     lineNumber: number;
     arabic: string;
     english: string;
+    urdu: string;
 };
 
 export type DalailPart = {
@@ -31,6 +32,7 @@ type LineRow = {
     line_number: number;
     arabic: string | null;
     english: string | null;
+    urdu: string | null;
 };
 
 type DuaRow = {
@@ -44,6 +46,7 @@ type DuaLineRow = {
     line_number: number;
     arabic: string | null;
     english: string | null;
+    urdu: string | null;
 };
 
 function stripMarkup(value: string | null): string {
@@ -71,7 +74,8 @@ export async function getDalailPartLines(db: SQLiteDatabase, partNumber: number)
     const rows = await db.getAllAsync<LineRow>(
         `SELECT line_number,
                 MAX(CASE WHEN classes = 'arabicText' THEN txt END) AS arabic,
-                MAX(CASE WHEN classes = 'trans' THEN txt END) AS english
+                MAX(CASE WHEN classes = 'trans' THEN txt END) AS english,
+                MAX(CASE WHEN classes = 'transUR' THEN txt END) AS urdu
          FROM parts_text
          WHERE part_number = ? AND is_deleted = 0
          GROUP BY line_number
@@ -83,6 +87,7 @@ export async function getDalailPartLines(db: SQLiteDatabase, partNumber: number)
             lineNumber: row.line_number,
             arabic: stripMarkup(row.arabic),
             english: stripMarkup(row.english),
+            urdu: stripMarkup(row.urdu),
         }))
         .filter((line) => line.arabic || line.english);
 }
@@ -103,7 +108,8 @@ export async function getDalailDuaLines(db: SQLiteDatabase, duaId: number): Prom
     const rows = await db.getAllAsync<DuaLineRow>(
         `SELECT line_number,
                 MAX(CASE WHEN classes = 'arabicText' THEN txt END) AS arabic,
-                MAX(CASE WHEN classes = 'trans' THEN txt END) AS english
+                MAX(CASE WHEN classes = 'trans' THEN txt END) AS english,
+                MAX(CASE WHEN classes = 'transUR' THEN txt END) AS urdu
          FROM duas_text
          WHERE dua_id = ? AND is_deleted = 0
          GROUP BY line_number
@@ -115,6 +121,7 @@ export async function getDalailDuaLines(db: SQLiteDatabase, duaId: number): Prom
             lineNumber: row.line_number,
             arabic: stripMarkup(row.arabic),
             english: stripMarkup(row.english),
+            urdu: stripMarkup(row.urdu),
         }))
         .filter((line) => line.arabic || line.english);
 }
