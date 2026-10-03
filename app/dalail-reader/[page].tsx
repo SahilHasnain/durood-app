@@ -10,6 +10,7 @@ import {
     type DalailTextLine,
 } from "@/services/dalailDatabase";
 import { Ionicons } from "@expo/vector-icons";
+import { useFonts } from "expo-font";
 import { useSQLiteContext } from "expo-sqlite";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -24,12 +25,13 @@ type ReaderContent = {
     subtitle: string;
     lines: DalailTextLine[];
     partNumber?: number;
+    isArabicSubtitle?: boolean;
 };
 
-function TextLine({ line, isDesktop }: { line: DalailTextLine; isDesktop: boolean }) {
+function TextLine({ line, isDesktop, fontsLoaded }: { line: DalailTextLine; isDesktop: boolean; fontsLoaded: boolean }) {
     return (
         <View style={[styles.lineCard, isDesktop && styles.desktopLineCard]}>
-            <Text style={[styles.arabicText, isDesktop && styles.desktopArabicText]}>{line.arabic}</Text>
+            <Text style={[styles.arabicText, fontsLoaded && styles.arabicFont, isDesktop && styles.desktopArabicText]}>{line.arabic}</Text>
             <Text style={[styles.englishText, isDesktop && styles.desktopEnglishText]}>{line.english}</Text>
         </View>
     );
@@ -42,6 +44,10 @@ export default function DalailTextReaderScreen() {
     const { width } = useWindowDimensions();
     const isDesktop = Platform.OS === "web" && width >= 1200;
     const headerTranslateY = useSharedValue(0);
+    const [fontsLoaded] = useFonts({
+        NotoNaskhArabic: require("../../assets/fonts/NotoNaskhArabic.ttf"),
+        Amiri: require("../../assets/fonts/Amiri-Regular.ttf"),
+    });
     const params = useLocalSearchParams<{ page?: string }>();
     const page = Math.max(1, Number(params.page ?? 1) || 1);
     const section = getDalailSectionForPage(page);
@@ -68,7 +74,7 @@ export default function DalailTextReaderScreen() {
                     const opening = duas.find((dua) => dua.name === "opening") ?? duas[0];
                     if (!opening) throw new Error("Opening text is unavailable");
                     const lines = await getDalailDuaLines(db, opening.id);
-                    if (!cancelled) setContent({ title: opening.title, subtitle: opening.titleArabic, lines });
+                    if (!cancelled) setContent({ title: opening.title, subtitle: opening.titleArabic, lines, isArabicSubtitle: true });
                 } else {
                     const partNumber = section.cycleDay ?? 1;
                     const lines = await getDalailPartLines(db, partNumber);
@@ -132,7 +138,7 @@ export default function DalailTextReaderScreen() {
                     <View>
                         <Text style={styles.eyebrow}>Text reader</Text>
                         <Text style={styles.title}>{content?.title ?? pageLabel}</Text>
-                        <Text style={styles.subtitle}>{content?.subtitle ?? "Arabic with English translation"}</Text>
+                        <Text style={[styles.subtitle, fontsLoaded && content?.isArabicSubtitle && styles.arabicHeading]}>{content?.subtitle ?? "Arabic with English translation"}</Text>
                     </View>
                     <Pressable style={styles.imageButton} onPress={() => router.push(`/dalail-image/${page}` as never)}>
                         <Ionicons name="image-outline" size={17} color={theme.colors.primary.main} />
@@ -146,7 +152,7 @@ export default function DalailTextReaderScreen() {
                     </View>
                 )}
                 {error && <Text style={styles.errorText}>{error}</Text>}
-                {!isLoading && !error && content?.lines.map((line) => <TextLine key={`${content.partNumber ?? "dua"}-${line.lineNumber}`} line={line} isDesktop={isDesktop} />)}
+                {!isLoading && !error && content?.lines.map((line) => <TextLine key={`${content.partNumber ?? "dua"}-${line.lineNumber}`} line={line} isDesktop={isDesktop} fontsLoaded={fontsLoaded} />)}
 
                 {!isLoading && !error && content && (
                     <View style={styles.footerCard}>
@@ -180,11 +186,13 @@ const styles = StyleSheet.create({
     eyebrow: { color: theme.colors.text.secondary, fontSize: 12, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
     title: { color: theme.colors.text.primary, fontSize: 26, fontWeight: "900", marginTop: 8 },
     subtitle: { color: theme.colors.text.secondary, fontSize: 13, marginTop: 5 },
+    arabicHeading: { fontFamily: "Amiri", fontSize: 20, lineHeight: 28, textAlign: "right", writingDirection: "rtl" },
     imageButton: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: theme.colors.semantic.whiteControl },
     imageButtonText: { color: theme.colors.primary.main, fontSize: 13, fontWeight: "800" },
     lineCard: { padding: 18, borderRadius: 20, backgroundColor: theme.colors.background.secondary, borderWidth: 1, borderColor: theme.colors.border.subtle, gap: 14 },
     desktopLineCard: { flexDirection: "row-reverse", alignItems: "stretch", padding: 0, gap: 0, overflow: "hidden" },
     arabicText: { color: theme.colors.text.primary, fontSize: 24, lineHeight: 43, textAlign: "right", writingDirection: "rtl" },
+    arabicFont: { fontFamily: "NotoNaskhArabic" },
     desktopArabicText: { flex: 1, padding: 24, maxWidth: "50%", borderLeftWidth: 1, borderLeftColor: theme.colors.border.subtle },
     englishText: { color: theme.colors.text.secondary, fontSize: 16, lineHeight: 25 },
     desktopEnglishText: { flex: 1, padding: 24, alignSelf: "flex-start", maxWidth: "50%" },
