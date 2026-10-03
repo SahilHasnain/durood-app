@@ -1,4 +1,5 @@
 import KeyboardSpacer from "@/components/KeyboardSpacer";
+import { AutomatedAuthSheet } from "@/components/AutomatedAuthSheet";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Confetti } from "@/components/Confetti";
 import { SimpleHeader } from "@/components/SimpleHeader";
@@ -44,10 +45,8 @@ const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
 const SESSION_RECOVERY_KEY = "tasbeeh_session_recovery";
 const SESSION_IMAGE_KEY = "tasbeeh_session_image";
-const SIGN_IN_MILESTONE = 20000;
-const SIGN_IN_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+const SIGN_IN_MILESTONE = 5000;
 const LAST_PROMPT_MILESTONE_KEY = "sign_in_last_prompt_milestone";
-const LAST_PROMPT_TIME_KEY = "sign_in_last_prompt_time";
 const SESSION_IMAGES = [
     require("@/assets/images/gumbad.png"),
     require("@/assets/images/jalian-mubarak-v1.png"),
@@ -85,6 +84,7 @@ export default function Home() {
     const [sessionElapsedSeconds, setSessionElapsedSeconds] = useState(0);
     const [preferredSessionGoal, setPreferredSessionGoal] = useState(DEFAULT_SESSION_GOAL);
     const [showSignInSheet, setShowSignInSheet] = useState(false);
+    const [showAutomatedAuthSheet, setShowAutomatedAuthSheet] = useState(false);
     const { isAuthenticated, loading: authLoading } = useAuth();
 const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionGoalInput, setSessionGoalInput] = useState("");
@@ -226,7 +226,7 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
                 AsyncStorage.setItem(LAST_PROMPT_MILESTONE_KEY, String(current));
             }
         });
-    }, [initialized]);
+    }, [initialized, lifetimeTotal]);
 
     useEffect(() => {
         if (authLoading || isAuthenticated || !initialized) return;
@@ -235,17 +235,9 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
         const currentMilestone = Math.floor(lifetimeTotal / SIGN_IN_MILESTONE);
         if (currentMilestone <= lastPromptedMilestone.current) return;
 
-        AsyncStorage.getItem(LAST_PROMPT_TIME_KEY).then((timeStr) => {
-            const lastTime = timeStr ? parseInt(timeStr, 10) : 0;
-            if (Date.now() - lastTime < SIGN_IN_COOLDOWN_MS) return;
-
-            setShowSignInSheet(true);
-            lastPromptedMilestone.current = currentMilestone;
-            AsyncStorage.multiSet([
-                [LAST_PROMPT_MILESTONE_KEY, String(currentMilestone)],
-                [LAST_PROMPT_TIME_KEY, String(Date.now())],
-            ]);
-        });
+        setShowAutomatedAuthSheet(true);
+        lastPromptedMilestone.current = currentMilestone;
+        void AsyncStorage.setItem(LAST_PROMPT_MILESTONE_KEY, String(currentMilestone));
     }, [authLoading, isAuthenticated, initialized, lifetimeTotal]);
 
     useEffect(() => {
@@ -1087,6 +1079,14 @@ if (authLoading || !initialized || loading) {
                     </Pressable>
                 </Pressable>
             </Modal>
+            <AutomatedAuthSheet
+                visible={showAutomatedAuthSheet}
+                onDismiss={() => setShowAutomatedAuthSheet(false)}
+                onSignIn={() => {
+                    setShowAutomatedAuthSheet(false);
+                    router.push("/auth/login");
+                }}
+            />
             {confettiKey !== null && (
                 <View pointerEvents="none" style={styles.confettiOverlay}>
                     <Confetti key={confettiKey} onDone={() => setConfettiKey(null)} />
