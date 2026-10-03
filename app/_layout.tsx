@@ -7,6 +7,7 @@ import { recordTasbeehDebug } from "@/services/tasbeehDebug";
 import { subscribeToGlobalRecitations } from "@/services/globalCounter";
 import NetInfo from "@react-native-community/netinfo";
 import { Ionicons } from "@expo/vector-icons";
+import { NavigationBar } from "expo-navigation-bar";
 import { Tabs } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -249,9 +250,10 @@ export default function RootLayout() {
           <AuthProvider>
           <AutoSyncOnReconnect />
           <GlobalCounterSync />
-          <TabBarVisibilityProvider tabBarHeight={68}>
-            <StatusBar style="light" />
-            <RootLayoutContent />
+            <TabBarVisibilityProvider tabBarHeight={68}>
+              <StatusBar style="light" />
+              <NavigationBar style="dark" />
+              <RootLayoutContent />
           </TabBarVisibilityProvider>
         </AuthProvider>
       </SafeAreaProvider>

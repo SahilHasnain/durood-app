@@ -56,6 +56,13 @@ export default {
     },
     plugins: [
       "expo-router",
+      [
+        "expo-navigation-bar",
+        {
+          enforceContrast: false,
+          style: "dark",
+        },
+      ],
       "expo-sqlite",
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
