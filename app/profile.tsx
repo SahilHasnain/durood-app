@@ -73,6 +73,28 @@ export default function Profile() {
         { value: "dark", label: "Dark" },
     ];
 
+    const appearanceCard = (
+        <View style={styles.appearanceCard}>
+            <View>
+                <Text style={styles.appearanceTitle}>Appearance</Text>
+                <Text style={styles.appearanceDescription}>Choose how Durood Moments looks.</Text>
+            </View>
+            <View style={styles.appearanceOptions}>
+                {appearanceOptions.map((option) => (
+                    <TouchableOpacity
+                        key={option.value}
+                        style={[styles.appearanceOption, preference === option.value && styles.appearanceOptionActive]}
+                        onPress={() => void setPreference(option.value)}
+                    >
+                        <Text style={[styles.appearanceOptionText, preference === option.value && styles.appearanceOptionTextActive]}>
+                            {option.label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </View>
+    );
+
     const diagnosticModal = (
         <Modal visible={debugVisible} animationType="slide" onRequestClose={() => setDebugVisible(false)}>
             <SafeAreaView style={styles.debugContainer}>
@@ -95,25 +117,6 @@ export default function Profile() {
                     >
                         <Text style={styles.debugButtonText}>Clear</Text>
                     </TouchableOpacity>
-                    <View style={styles.appearanceCard}>
-                        <View>
-                            <Text style={styles.appearanceTitle}>Appearance</Text>
-                            <Text style={styles.appearanceDescription}>Choose how Durood Moments looks.</Text>
-                        </View>
-                        <View style={styles.appearanceOptions}>
-                            {appearanceOptions.map((option) => (
-                                <TouchableOpacity
-                                    key={option.value}
-                                    style={[styles.appearanceOption, preference === option.value && styles.appearanceOptionActive]}
-                                    onPress={() => void setPreference(option.value)}
-                                >
-                                    <Text style={[styles.appearanceOptionText, preference === option.value && styles.appearanceOptionTextActive]}>
-                                        {option.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
                 </View>
                 <ScrollView style={styles.debugLog} contentContainerStyle={styles.debugLogContent}>
                     <Text selectable style={styles.debugText}>
@@ -151,6 +154,7 @@ export default function Profile() {
                             </>
                         )}
                     </TouchableOpacity>
+                    {appearanceCard}
                 </View>
                 {diagnosticModal}
             </SafeAreaView>
@@ -174,25 +178,7 @@ export default function Profile() {
                     <Ionicons name="log-out-outline" size={20} color={theme.colors.semantic.white} />
                     <Text style={styles.logoutButtonText}>Sign Out</Text>
                     </TouchableOpacity>
-                    <View style={styles.appearanceCard}>
-                        <View>
-                            <Text style={styles.appearanceTitle}>Appearance</Text>
-                            <Text style={styles.appearanceDescription}>Choose how Durood Moments looks.</Text>
-                        </View>
-                        <View style={styles.appearanceOptions}>
-                            {appearanceOptions.map((option) => (
-                                <TouchableOpacity
-                                    key={option.value}
-                                    style={[styles.appearanceOption, preference === option.value && styles.appearanceOptionActive]}
-                                    onPress={() => void setPreference(option.value)}
-                                >
-                                    <Text style={[styles.appearanceOptionText, preference === option.value && styles.appearanceOptionTextActive]}>
-                                        {option.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
+                    {appearanceCard}
             </View>
             {diagnosticModal}
         </SafeAreaView>
