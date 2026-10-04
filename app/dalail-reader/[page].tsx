@@ -3,6 +3,7 @@ import { theme } from "@/constants/theme";
 import { getDalailSectionForPage, DALAIL_TITLE } from "@/data/dalail";
 import { useDalailBookmarks } from "@/hooks/useDalailBookmarks";
 import { useDalailProgress } from "@/hooks/useDalailProgress";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import {
     getDalailDuaLines,
     getDalailDuas,
@@ -28,6 +29,8 @@ type ReaderContent = {
     isArabicSubtitle?: boolean;
 };
 
+const styles = createStyles(theme);
+
 function TextLine({ line, isDesktop, fontsLoaded }: { line: DalailTextLine; isDesktop: boolean; fontsLoaded: boolean }) {
     return (
         <View style={[styles.lineCard, isDesktop && styles.desktopLineCard]}>
@@ -43,6 +46,8 @@ export default function DalailTextReaderScreen() {
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
     const isDesktop = Platform.OS === "web" && width >= 1200;
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
     const headerTranslateY = useSharedValue(0);
     const [fontsLoaded] = useFonts({
         NotoNaskhArabic: require("../../assets/fonts/NotoNaskhArabic.ttf"),
@@ -172,7 +177,8 @@ export default function DalailTextReaderScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background.primary },
     toolbar: { minHeight: 64, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12 },
     desktopToolbar: { width: "100%", maxWidth: 1120, alignSelf: "center", paddingHorizontal: 32 },
@@ -206,3 +212,4 @@ const styles = StyleSheet.create({
     completeButtonText: { color: theme.colors.semantic.onSuccess, fontSize: 14, fontWeight: "900" },
     completeButtonDoneText: { color: theme.colors.primary.main },
 });
+}

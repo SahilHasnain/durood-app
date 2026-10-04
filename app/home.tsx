@@ -3,8 +3,10 @@ import { AutomatedAuthSheet } from "@/components/AutomatedAuthSheet";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Confetti } from "@/components/Confetti";
 import { SimpleHeader } from "@/components/SimpleHeader";
+import { TasbeehRing } from "@/components/TasbeehRing";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasbeehData } from "@/hooks/useTasbeehData";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
@@ -36,10 +38,8 @@ import {
 } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
 
 const TASBEEH_PROGRESS_COLOR = theme.colors.primary.main;
-const RING_PROGRESS_COLOR = theme.colors.primary.main;
 const DEFAULT_SESSION_GOAL = 100;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
@@ -63,6 +63,8 @@ function formatDuration(totalSeconds: number): string {
 }
 
 export default function Home() {
+    const { theme: activeTheme, isDark } = useAppearance();
+    const styles = createStyles(activeTheme);
     const HEADER_HEIGHT = 60;
     const RING_SIZE = 200;
     const RING_STROKE_WIDTH = 8;
@@ -741,48 +743,14 @@ if (authLoading || !initialized || loading) {
 
                     <Pressable style={styles.sessionTapArea} onPress={addToSession}>
                     <View style={styles.sessionRing}>
-                        <Image
-                            source={require("@/assets/images/background-v1.webp")}
-                            style={[
-                                styles.sessionBackground,
-                                { width: RING_SIZE - 17, height: RING_SIZE - 17, borderRadius: (RING_SIZE - 17) / 2 },
-                            ]}
-                            resizeMode="cover"
+                        <TasbeehRing
+                            size={RING_SIZE}
+                            progressOffset={animatedProgressOffset}
+                            circumference={RING_CIRCUMFERENCE}
+                            radius={RING_RADIUS}
+                            strokeWidth={RING_STROKE_WIDTH}
+                            count={formatNumber(displayedSessionCount)}
                         />
-                        <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-                            <Circle
-                                cx={RING_SIZE / 2}
-                                cy={RING_SIZE / 2}
-                                r={RING_RADIUS}
-                                stroke={theme.colors.border.primary}
-                                strokeWidth={RING_STROKE_WIDTH}
-                                fill="none"
-                                opacity={0.3}
-                            />
-                            <Circle
-                                cx={RING_SIZE / 2}
-                                cy={RING_SIZE / 2}
-                                r={RING_RADIUS}
-                                stroke={RING_PROGRESS_COLOR}
-                                strokeWidth={RING_STROKE_WIDTH}
-                                strokeLinecap="round"
-                                strokeDasharray={RING_CIRCUMFERENCE}
-                                strokeDashoffset={animatedProgressOffset}
-                                fill="none"
-                                transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
-                            />
-                        </Svg>
-                        <View style={styles.sessionRingContent}>
-                            <Text
-                                style={styles.sessionCount}
-                                selectable={false}
-                                numberOfLines={1}
-                                adjustsFontSizeToFit
-                                minimumFontScale={0.55}
-                            >
-                                {formatNumber(displayedSessionCount)}
-                            </Text>
-                        </View>
                     </View>
                     </Pressable>
 
@@ -908,52 +876,18 @@ if (authLoading || !initialized || loading) {
                 <View style={[styles.bottomGroup, isDesktopWeb && styles.desktopBottomGroup]}>
                     {/* Counter Ring */}
                     <TouchableOpacity activeOpacity={0.85} onPress={quickCountTap} style={styles.counterContainer}>
-                        <View style={[styles.progressRing, isComplete && styles.progressRingComplete]}>
-                            <Image
-                                source={require("@/assets/images/background-v1.webp")}
-                                style={[
-                                    styles.counterBackground,
-                                    { width: RING_SIZE - 17, height: RING_SIZE - 17, borderRadius: (RING_SIZE - 17) / 2 },
-                                ]}
-                                resizeMode="cover"
-                            />
-                            <Svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-                                <Circle
-                                    cx={RING_SIZE / 2}
-                                    cy={RING_SIZE / 2}
-                                    r={RING_RADIUS}
-                                    stroke={theme.colors.border.primary}
-                                    strokeWidth={RING_STROKE_WIDTH}
-                                    fill="none"
-                                    opacity={0.55}
-                                />
-                                <Circle
-                                    cx={RING_SIZE / 2}
-                                    cy={RING_SIZE / 2}
-                                    r={RING_RADIUS}
-                                    stroke={RING_PROGRESS_COLOR}
-                                    strokeWidth={RING_STROKE_WIDTH}
-                                    strokeLinecap="round"
-                                    strokeDasharray={RING_CIRCUMFERENCE}
-                                    strokeDashoffset={animatedProgressOffset}
-                                    fill="none"
-                                    transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
-                                />
-                            </Svg>
-                            <View style={styles.progressInner}>
-                                <AnimatedNumber
-                                    value={displayedDailyCount}
-                                    formatValue={formatNumber}
-                                    style={styles.count}
-                                />
-                                <Text style={styles.targetText}>of {formatNumber(target)}</Text>
-                                <Text style={[styles.completionText, dailyGoalCompletions > 0 && styles.completionTextComplete]}>
-                                    {dailyGoalCompletions > 0
-                                        ? `Daily goal completed ${dailyGoalCompletions}x`
-                                        : `${formatNumber(remainingToday)} remaining today`}
-                                </Text>
-                            </View>
-                        </View>
+                        <TasbeehRing
+                            size={RING_SIZE}
+                            progressOffset={animatedProgressOffset}
+                            circumference={RING_CIRCUMFERENCE}
+                            radius={RING_RADIUS}
+                            strokeWidth={RING_STROKE_WIDTH}
+                            count={formatNumber(displayedDailyCount)}
+                            target={target}
+                            completionText={dailyGoalCompletions > 0
+                                ? `Daily goal completed ${dailyGoalCompletions}x`
+                                : `${formatNumber(remainingToday)} remaining today`}
+                        />
                     </TouchableOpacity>
 
                 </View>
@@ -981,11 +915,13 @@ if (authLoading || !initialized || loading) {
                             <Text style={styles.actionButtonText}>Manual Add</Text>
                         </TouchableOpacity>
                 </View>
-                <LinearGradient
-                    pointerEvents="none"
-                    colors={[theme.colors.semantic.scrim12, theme.colors.scrim.medium]}
-                    style={styles.eyeComfortOverlay}
-                />
+                {isDark && (
+                    <LinearGradient
+                        pointerEvents="none"
+                        colors={[activeTheme.colors.semantic.scrim12, activeTheme.colors.scrim.medium]}
+                        style={styles.eyeComfortOverlay}
+                    />
+                )}
             </ScrollView>
 
             {/* Manual Add Sheet */}
@@ -1096,7 +1032,8 @@ if (authLoading || !initialized || loading) {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
@@ -1260,45 +1197,6 @@ const styles = StyleSheet.create({
         zIndex: 20,
         elevation: 20,
     },
-    progressRing: {
-        position: "relative",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    counterBackground: {
-        position: "absolute",
-        top: 8.5,
-        left: 8.5,
-        overflow: "hidden",
-        opacity: 0.4,
-    },
-    progressRingComplete: {
-        opacity: 1,
-    },
-    progressInner: {
-        position: "absolute",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    count: {
-        fontSize: 48,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-        marginBottom: 4,
-    },
-    targetText: {
-        fontSize: 16,
-        color: theme.colors.text.secondary,
-    },
-    completionText: {
-        marginTop: 10,
-        fontSize: 13,
-        fontWeight: "600",
-        color: theme.colors.text.tertiary,
-    },
-    completionTextComplete: {
-        color: RING_PROGRESS_COLOR,
-    },
     actionRow: {
         width: "100%",
         flexDirection: "row",
@@ -1458,11 +1356,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: theme.colors.text.secondary,
     },
-    sessionCount: {
-        fontSize: 48,
-        fontWeight: "700",
-        color: theme.colors.text.primary,
-    },
     sessionTapArea: {
         flex: 1,
         justifyContent: "center",
@@ -1474,19 +1367,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 20,
-    },
-    sessionBackground: {
-        position: "absolute",
-        top: 8.5,
-        left: 8.5,
-        overflow: "hidden",
-        opacity: 0.4,
-    },
-    sessionRingContent: {
-        position: "absolute",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "70%",
     },
     sessionActions: {
         flexDirection: "row",
@@ -1610,3 +1490,4 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
 });
+}

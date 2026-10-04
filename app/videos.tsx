@@ -3,6 +3,7 @@ import { SimpleHeader } from "@/components/SimpleHeader";
 import { VideoCard } from "@/components/VideoCard";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { useDuroodVideos } from "@/hooks/useDuroodVideos";
 import { getProgress, getRecentlyWatchedVideoIds } from "@/services/progressTracking";
 import { Durood } from "@/types";
@@ -41,6 +42,8 @@ export default function HomeScreen() {
 
     const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
     const { width } = useWindowDimensions();
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
     const isDesktopWeb = Platform.OS === "web" && width >= 1200;
     const columnCount = isDesktopWeb ? 3 : Platform.OS === "web" && width >= 768 ? 2 : 1;
 
@@ -233,7 +236,8 @@ export default function HomeScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.semantic.black,
@@ -270,3 +274,4 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
 });
+}

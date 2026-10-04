@@ -17,6 +17,83 @@ export const colors = {
   },
 };
 
+export type ThemeMode = "light" | "dark";
+
+export const lightColors = {
+  ...colors,
+  text: {
+    primary: "#17130B",
+    secondary: "#665F52",
+    tertiary: "#8B8375",
+  },
+  background: {
+    primary: "#FCFAF5",
+    secondary: "#F4EFE4",
+    tertiary: "#EAE1D0",
+  },
+};
+
+export function createTheme(mode: ThemeMode) {
+  const isLight = mode === "light";
+  const palette = isLight ? lightColors : colors;
+  const whiteControl = isLight ? "rgba(38, 29, 14, 0.07)" : "rgba(255,255,255,0.08)";
+  const borderPrimary = isLight ? "rgba(38, 29, 14, 0.12)" : "rgba(255,255,255,0.12)";
+  const borderSubtle = isLight ? "rgba(38, 29, 14, 0.08)" : "rgba(255,255,255,0.08)";
+  const surfacePrimary = isLight ? "#FFFFFF" : "#111111";
+  const surfaceSecondary = isLight ? "#F5F0E7" : "#1a1a1a";
+  const surfaceElevated = isLight ? "#FFFFFF" : "#222222";
+  const onSuccess = isLight ? "#FFFFFF" : "#1A1408";
+
+  return {
+    colors: {
+      primary: { main: colors.accent.secondary, light: "#E3BC70", dark: "#A4772F" },
+      accent: colors.accent,
+      text: palette.text,
+      background: palette.background,
+      surface: {
+        primary: surfacePrimary,
+        secondary: surfaceSecondary,
+        elevated: surfaceElevated,
+        subtle: isLight ? "rgba(38,29,14,0.035)" : "rgba(255,255,255,0.035)",
+        soft: isLight ? "rgba(38,29,14,0.05)" : "rgba(255,255,255,0.05)",
+        control: whiteControl,
+      },
+      border: {
+        primary: borderPrimary,
+        secondary: isLight ? "rgba(38, 29, 14, 0.24)" : "rgba(255,255,255,0.24)",
+        subtle: borderSubtle,
+        faint: isLight ? "rgba(38, 29, 14, 0.16)" : "rgba(255,255,255,0.16)",
+      },
+      accentSurface: isLight ? "rgba(212,162,76,0.13)" : "rgba(212,162,76,0.09)",
+      accentActive: isLight ? "rgba(212,162,76,0.18)" : "rgba(212,162,76,0.11)",
+      accentBorder: isLight ? "rgba(164,119,47,0.34)" : "rgba(212,162,76,0.28)",
+      semantic: {
+        ...theme.colors.semantic,
+        onSuccess,
+        black: isLight ? "#17130B" : "#000000",
+        nearBlack: isLight ? "#2B2418" : "#050505",
+        whiteControl,
+        whiteSubtle: isLight ? "rgba(38,29,14,0.04)" : "rgba(255,255,255,0.04)",
+        whiteLight: isLight ? "rgba(38,29,14,0.06)" : "rgba(255,255,255,0.06)",
+        whiteMedium: isLight ? "rgba(38,29,14,0.08)" : "rgba(255,255,255,0.07)",
+        whiteStrong: isLight ? "rgba(38,29,14,0.1)" : "rgba(255,255,255,0.1)",
+        whiteBorder: isLight ? "rgba(38,29,14,0.18)" : "rgba(255,255,255,0.18)",
+        chartGrid: isLight ? "rgba(38,29,14,0.08)" : "rgba(255,255,255,0.05)",
+      },
+      whiteMuted: isLight ? "rgba(38,29,14,0.5)" : "rgba(255,255,255,0.5)",
+      whiteSubtle: isLight ? "rgba(38,29,14,0.15)" : "rgba(255,255,255,0.15)",
+      overlay: isLight ? "rgba(38,29,14,0.45)" : colors.overlay.dark,
+      scrim: {
+        light: isLight ? "rgba(38,29,14,0.12)" : "rgba(0,0,0,0.22)",
+        medium: isLight ? "rgba(38,29,14,0.24)" : "rgba(0,0,0,0.45)",
+        strong: isLight ? "rgba(38,29,14,0.38)" : "rgba(0,0,0,0.6)",
+        dark: isLight ? "rgba(38,29,14,0.5)" : "rgba(0,0,0,0.7)",
+      },
+    },
+    shadows: theme.shadows,
+  };
+}
+
 export const theme = {
   colors: {
     primary: {

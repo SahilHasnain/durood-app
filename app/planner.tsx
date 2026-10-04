@@ -2,6 +2,7 @@ import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -93,6 +94,8 @@ function formatDuration(days: number): string {
 }
 
 export default function Planner() {
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
     const HEADER_HEIGHT = 60;
     const { tabBarHeight, showTabBar } = useTabBarVisibility();
     const { user } = useAuth();
@@ -334,7 +337,8 @@ export default function Planner() {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
@@ -522,3 +526,4 @@ const styles = StyleSheet.create({
         color: theme.colors.semantic.white,
     },
 });
+}

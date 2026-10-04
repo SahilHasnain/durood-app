@@ -1,5 +1,6 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppearance, type AppearancePreference } from "@/contexts/AppearanceContext";
 import { clearTasbeehDebugLog, getTasbeehDebugLog, TasbeehDebugEntry } from "@/services/tasbeehDebug";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useState } from "react";
@@ -8,6 +9,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Profile() {
     const { user, isAuthenticated, logout, signInWithGoogle } = useAuth();
+    const { preference, setPreference, theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
     const [submitting, setSubmitting] = useState(false);
     const [debugVisible, setDebugVisible] = useState(false);
     const [debugEntries, setDebugEntries] = useState<TasbeehDebugEntry[]>([]);
@@ -64,6 +67,12 @@ export default function Profile() {
         setDebugEntries(await getTasbeehDebugLog());
     };
 
+    const appearanceOptions: { value: AppearancePreference; label: string }[] = [
+        { value: "system", label: "System" },
+        { value: "light", label: "Light" },
+        { value: "dark", label: "Dark" },
+    ];
+
     const diagnosticModal = (
         <Modal visible={debugVisible} animationType="slide" onRequestClose={() => setDebugVisible(false)}>
             <SafeAreaView style={styles.debugContainer}>
@@ -86,6 +95,25 @@ export default function Profile() {
                     >
                         <Text style={styles.debugButtonText}>Clear</Text>
                     </TouchableOpacity>
+                    <View style={styles.appearanceCard}>
+                        <View>
+                            <Text style={styles.appearanceTitle}>Appearance</Text>
+                            <Text style={styles.appearanceDescription}>Choose how Durood Moments looks.</Text>
+                        </View>
+                        <View style={styles.appearanceOptions}>
+                            {appearanceOptions.map((option) => (
+                                <TouchableOpacity
+                                    key={option.value}
+                                    style={[styles.appearanceOption, preference === option.value && styles.appearanceOptionActive]}
+                                    onPress={() => void setPreference(option.value)}
+                                >
+                                    <Text style={[styles.appearanceOptionText, preference === option.value && styles.appearanceOptionTextActive]}>
+                                        {option.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
                 </View>
                 <ScrollView style={styles.debugLog} contentContainerStyle={styles.debugLogContent}>
                     <Text selectable style={styles.debugText}>
@@ -142,17 +170,37 @@ export default function Profile() {
                     <Text style={styles.email}>{user?.email}</Text>
                 </View>
 
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Ionicons name="log-out-outline" size={20} color={theme.colors.semantic.white} />
                     <Text style={styles.logoutButtonText}>Sign Out</Text>
-                </TouchableOpacity>
+                    </TouchableOpacity>
+                    <View style={styles.appearanceCard}>
+                        <View>
+                            <Text style={styles.appearanceTitle}>Appearance</Text>
+                            <Text style={styles.appearanceDescription}>Choose how Durood Moments looks.</Text>
+                        </View>
+                        <View style={styles.appearanceOptions}>
+                            {appearanceOptions.map((option) => (
+                                <TouchableOpacity
+                                    key={option.value}
+                                    style={[styles.appearanceOption, preference === option.value && styles.appearanceOptionActive]}
+                                    onPress={() => void setPreference(option.value)}
+                                >
+                                    <Text style={[styles.appearanceOptionText, preference === option.value && styles.appearanceOptionTextActive]}>
+                                        {option.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
             </View>
             {diagnosticModal}
         </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
@@ -217,6 +265,48 @@ const styles = StyleSheet.create({
         width: "100%",
         maxWidth: 560,
         alignSelf: "center",
+    },
+    appearanceCard: {
+        width: "100%",
+        marginTop: 24,
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: theme.colors.surface.primary,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+        gap: 14,
+    },
+    appearanceTitle: {
+        color: theme.colors.text.primary,
+        fontSize: 16,
+        fontWeight: "800",
+    },
+    appearanceDescription: {
+        color: theme.colors.text.secondary,
+        fontSize: 13,
+        marginTop: 4,
+    },
+    appearanceOptions: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    appearanceOption: {
+        flex: 1,
+        alignItems: "center",
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: theme.colors.surface.secondary,
+    },
+    appearanceOptionActive: {
+        backgroundColor: theme.colors.primary.main,
+    },
+    appearanceOptionText: {
+        color: theme.colors.text.secondary,
+        fontSize: 13,
+        fontWeight: "700",
+    },
+    appearanceOptionTextActive: {
+        color: theme.colors.semantic.onSuccess,
     },
     notAuthContainer: {
         flex: 1,
@@ -290,3 +380,4 @@ const styles = StyleSheet.create({
         color: theme.colors.semantic.white,
     },
 });
+}

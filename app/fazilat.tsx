@@ -2,6 +2,7 @@ import { FazilatCard } from "@/components/FazilatCard";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { FazilatEntry, FAZILAT_DATA_URL, FAZILAT_CACHE_KEY, shuffleEntries } from "@/data/fazilat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,6 +36,8 @@ export default function FazilatScreen() {
 
   const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
   const { width } = useWindowDimensions();
+  const { theme: activeTheme } = useAppearance();
+  const styles = createStyles(activeTheme);
   const isDesktopWeb = Platform.OS === "web" && width >= 1200;
   const columnCount = isDesktopWeb ? 3 : Platform.OS === "web" && width >= 768 ? 2 : 1;
 
@@ -180,7 +183,8 @@ export default function FazilatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.semantic.black,
@@ -255,3 +259,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+}

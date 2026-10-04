@@ -4,6 +4,7 @@ import { AutomatedAuthSheet } from "@/components/AutomatedAuthSheet";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -42,6 +43,8 @@ export default function Progress() {
     const HEADER_HEIGHT = 60;
     const { tabBarHeight, showTabBar } = useTabBarVisibility();
     const { user } = useAuth();
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
     const headerTranslateY = useSharedValue(0);
     const { width } = useWindowDimensions();
     const isDesktopWeb = Platform.OS === "web" && width >= 1200;
@@ -224,7 +227,8 @@ export default function Progress() {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
@@ -451,3 +455,4 @@ const styles = StyleSheet.create({
         color: theme.colors.text.tertiary,
     },
 });
+}

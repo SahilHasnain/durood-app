@@ -9,6 +9,7 @@ import {
 import { useDalailBookmarks } from "@/hooks/useDalailBookmarks";
 import { useDalailProgress } from "@/hooks/useDalailProgress";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
@@ -17,6 +18,7 @@ import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const HEADER_HEIGHT = 60;
+const styles = createStyles(theme);
 
 function formatDate(value?: string) {
     if (!value) return "Not started yet";
@@ -53,6 +55,8 @@ export default function DalailScreen() {
     const headerTranslateY = useSharedValue(0);
     const { tabBarHeight } = useTabBarVisibility();
     const { width } = useWindowDimensions();
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
     const isDesktopWeb = Platform.OS === "web" && width >= 1200;
     const { progress, isLoaded, isWirdCompleteToday } = useDalailProgress();
     const { bookmarks } = useDalailBookmarks();
@@ -181,7 +185,8 @@ export default function DalailScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
@@ -442,3 +447,4 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
 });
+}

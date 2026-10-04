@@ -1,4 +1,5 @@
 import { theme } from "@/constants/theme";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,7 +10,11 @@ type AutomatedAuthSheetProps = {
     onSignIn: () => void;
 };
 
+const styles = createStyles(theme);
+
 export function AutomatedAuthSheet({ visible, onDismiss, onSignIn }: AutomatedAuthSheetProps) {
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
     const { width } = useWindowDimensions();
     const isDesktop = Platform.OS === "web" && width >= 900;
 
@@ -65,7 +70,8 @@ function Benefit({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: s
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.background.primary,
@@ -182,3 +188,4 @@ const styles = StyleSheet.create({
         fontWeight: "800",
     },
 });
+}

@@ -1,4 +1,5 @@
 import { theme } from "@/constants/theme";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -22,6 +23,7 @@ export function AnimatedTabBar({
     isFullscreen,
 }: AnimatedTabBarProps) {
     const [learnOpen, setLearnOpen] = useState(false);
+    const { theme: activeTheme } = useAppearance();
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
     const isDesktop = Platform.OS === "web" && width >= DESKTOP_BREAKPOINT;
@@ -64,8 +66,8 @@ export function AnimatedTabBar({
                             width: DESKTOP_NAV_WIDTH,
                             paddingTop: 32,
                             paddingHorizontal: 16,
-                            backgroundColor: theme.colors.background.secondary,
-                            borderRightColor: theme.colors.border.primary,
+                             backgroundColor: activeTheme.colors.background.secondary,
+                             borderRightColor: activeTheme.colors.border.primary,
                             borderRightWidth: 1,
                         }
                         : {
@@ -73,8 +75,8 @@ export function AnimatedTabBar({
                             left: 0,
                             right: 0,
                             flexDirection: "row" as const,
-                            backgroundColor: theme.colors.background.primary,
-                            borderTopColor: theme.colors.border.primary,
+                             backgroundColor: activeTheme.colors.background.primary,
+                             borderTopColor: activeTheme.colors.border.primary,
                             borderTopWidth: 0.5,
                             height: TAB_BAR_HEIGHT + insets.bottom,
                             paddingBottom: insets.bottom + 4,
@@ -102,8 +104,8 @@ export function AnimatedTabBar({
                         accessibilityLabel="Durood Moments logo"
                     />
                     <View>
-                        <Text style={styles.desktopBrandTitle}>Durood Moments</Text>
-                        <Text style={styles.desktopBrandSubtitle}>Your daily salawat</Text>
+                        <Text style={[styles.desktopBrandTitle, { color: activeTheme.colors.text.primary }]}>Durood Moments</Text>
+                        <Text style={[styles.desktopBrandSubtitle, { color: activeTheme.colors.text.tertiary }]}>Your daily salawat</Text>
                     </View>
                 </View>
             )}
@@ -117,7 +119,7 @@ export function AnimatedTabBar({
             ).map((group) => (
                 <React.Fragment key={group.label || "mobile-navigation"}>
                     {isDesktop && group.routes.length > 0 && (
-                        <Text style={styles.desktopSectionLabel}>{group.label}</Text>
+                        <Text style={[styles.desktopSectionLabel, { color: activeTheme.colors.text.tertiary }]}>{group.label}</Text>
                     )}
                     {group.routes.map((route) => {
                 const index = state.routes.indexOf(route);
@@ -153,7 +155,7 @@ export function AnimatedTabBar({
                 const icon = options.tabBarIcon
                     ? options.tabBarIcon({
                         focused: isFocused,
-                        color: isFocused ? theme.colors.text.primary : theme.colors.text.secondary,
+                        color: isFocused ? activeTheme.colors.text.primary : activeTheme.colors.text.secondary,
                         size: isDesktop ? 21 : 24,
                     })
                     : null;
@@ -174,8 +176,8 @@ export function AnimatedTabBar({
                             {icon}
                             <Text
                                 style={isDesktop
-                                    ? [styles.desktopRouteLabel, isFocused && styles.desktopRouteLabelActive]
-                                    : styles.mobileRouteLabel}
+                                     ? [styles.desktopRouteLabel, { color: isFocused ? activeTheme.colors.primary.main : activeTheme.colors.text.secondary }, isFocused && styles.desktopRouteLabelActive]
+                                     : [styles.mobileRouteLabel, { color: activeTheme.colors.text.secondary }]}
                             >
                                 {typeof label === "string" ? label : ""}
                             </Text>
@@ -227,7 +229,7 @@ export function AnimatedTabBar({
                     </View>
                 </>
             )}
-            {isDesktop && <Text style={styles.desktopFooter}>Take a moment for salawat.</Text>}
+             {isDesktop && <Text style={[styles.desktopFooter, { color: activeTheme.colors.text.tertiary }]}>Take a moment for salawat.</Text>}
         </Animated.View>
     );
 }

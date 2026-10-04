@@ -1,4 +1,5 @@
 import { theme } from "@/constants/theme";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +27,7 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === "web" && width >= 1200;
   const globalRecitations = useTasbeehStore((state) => state.globalRecitations);
+  const { theme: activeTheme } = useAppearance();
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -34,7 +36,7 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
   });
 
   return (
-    <Animated.View style={[styles.container, animatedStyle]}>
+    <Animated.View style={[styles.container, { backgroundColor: activeTheme.colors.background.primary, borderBottomColor: activeTheme.colors.background.tertiary }, animatedStyle]}>
       <View
         style={[
           styles.content,
@@ -54,39 +56,39 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
             {!isDesktop && (
               <View
                 accessibilityLabel={`Global recitations: ${globalRecitations ?? "loading"}`}
-                style={styles.globalCounter}
+                 style={[styles.globalCounter, { backgroundColor: activeTheme.colors.accentSurface, borderColor: activeTheme.colors.accentBorder }]}
               >
-                <Ionicons name="globe-outline" size={16} color={theme.colors.primary.main} />
+                 <Ionicons name="globe-outline" size={16} color={activeTheme.colors.primary.main} />
                 <AnimatedNumber
                   value={globalRecitations}
                   formatValue={formatGlobalCount}
-                  style={styles.globalCounterValue}
+                   style={[styles.globalCounterValue, { color: activeTheme.colors.text.primary }]}
                 />
-                <Text style={styles.globalCounterLabel}>global</Text>
+                 <Text style={[styles.globalCounterLabel, { color: activeTheme.colors.text.secondary }]}>global</Text>
                 </View>
             )}
           </View>
           {isDesktop && (
             <View
               accessibilityLabel={`Global recitations: ${globalRecitations ?? "loading"}`}
-              style={[styles.globalCounter, styles.desktopGlobalCounter]}
+               style={[styles.globalCounter, styles.desktopGlobalCounter, { backgroundColor: activeTheme.colors.accentSurface, borderColor: activeTheme.colors.accentBorder }]}
             >
-              <Ionicons name="globe-outline" size={16} color={theme.colors.primary.main} />
+               <Ionicons name="globe-outline" size={16} color={activeTheme.colors.primary.main} />
               <AnimatedNumber
                 value={globalRecitations}
                 formatValue={formatGlobalCount}
-                style={styles.globalCounterValue}
+                 style={[styles.globalCounterValue, { color: activeTheme.colors.text.primary }]}
               />
-              <Text style={styles.globalCounterLabel}>global</Text>
+               <Text style={[styles.globalCounterLabel, { color: activeTheme.colors.text.secondary }]}>global</Text>
             </View>
           )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Open profile"
             onPress={() => router.push("/profile")}
-            style={[styles.profileButton, isDesktop && styles.desktopProfileButton]}
+            style={[styles.profileButton, { backgroundColor: activeTheme.colors.surface.control, borderColor: activeTheme.colors.border.primary }, isDesktop && styles.desktopProfileButton]}
           >
-            <Ionicons name="person-outline" size={20} color={theme.colors.text.primary} />
+            <Ionicons name="person-outline" size={20} color={activeTheme.colors.text.primary} />
           </Pressable>
         </View>
       </View>

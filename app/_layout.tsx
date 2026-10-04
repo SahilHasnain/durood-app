@@ -1,6 +1,7 @@
 import { AnimatedTabBar } from "@/components/AnimatedTabBar";
 import { theme } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AppearanceProvider, useAppearance } from "@/contexts/AppearanceContext";
 import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { recordTasbeehDebug } from "@/services/tasbeehDebug";
@@ -48,6 +49,7 @@ function AutoSyncOnReconnect() {
 
 function RootLayoutContent() {
   const { translateY } = useTabBarVisibility();
+  const { theme: activeTheme } = useAppearance();
   const { width } = useWindowDimensions();
   const isDesktopWeb = Platform.OS === "web" && width >= 1200;
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -64,8 +66,8 @@ function RootLayoutContent() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: theme.colors.primary.main,
-          tabBarInactiveTintColor: theme.colors.text.secondary,
+          tabBarActiveTintColor: activeTheme.colors.primary.main,
+          tabBarInactiveTintColor: activeTheme.colors.text.secondary,
         }}
         tabBar={(props) => <AnimatedTabBar {...props} translateY={translateY} isFullscreen={isFullscreen} />}
       >
@@ -209,11 +211,13 @@ function RootLayoutContent() {
 }
 
 function SystemNavigationBar() {
+  const { isDark } = useAppearance();
+
   useEffect(() => {
     if (Platform.OS === "android") {
-      void setNavigationBarStyle("dark");
+      void setNavigationBarStyle(isDark ? "dark" : "light");
     }
-  }, []);
+  }, [isDark]);
 
   return null;
 }
@@ -253,18 +257,30 @@ function GlobalCounterSync() {
   return null;
 }
 
+function RootLayoutShell() {
+  const { isDark } = useAppearance();
+
+  return (
+    <>
+      <AutoSyncOnReconnect />
+      <GlobalCounterSync />
+      <TabBarVisibilityProvider tabBarHeight={68}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <SystemNavigationBar />
+        <RootLayoutContent />
+      </TabBarVisibilityProvider>
+    </>
+  );
+}
+
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-          <AuthProvider>
-          <AutoSyncOnReconnect />
-          <GlobalCounterSync />
-            <TabBarVisibilityProvider tabBarHeight={68}>
-              <StatusBar style="light" />
-              <SystemNavigationBar />
-              <RootLayoutContent />
-          </TabBarVisibilityProvider>
+        <AuthProvider>
+          <AppearanceProvider>
+            <RootLayoutShell />
+          </AppearanceProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
