@@ -1,5 +1,4 @@
 import { SimpleHeader } from "@/components/SimpleHeader";
-import { theme } from "@/constants/theme";
 import { getDalailSectionForPage, DALAIL_TITLE } from "@/data/dalail";
 import { useDalailBookmarks } from "@/hooks/useDalailBookmarks";
 import { useDalailProgress } from "@/hooks/useDalailProgress";
@@ -29,9 +28,10 @@ type ReaderContent = {
     isArabicSubtitle?: boolean;
 };
 
-const styles = createStyles(theme);
-
 function TextLine({ line, isDesktop, fontsLoaded }: { line: DalailTextLine; isDesktop: boolean; fontsLoaded: boolean }) {
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
+
     return (
         <View style={[styles.lineCard, isDesktop && styles.desktopLineCard]}>
             <Text style={[styles.arabicText, fontsLoaded && styles.arabicFont, isDesktop && styles.desktopArabicText]}>{line.arabic}</Text>
@@ -127,14 +127,14 @@ export default function DalailTextReaderScreen() {
             <SimpleHeader translateY={headerTranslateY} />
             <View style={[styles.toolbar, isDesktop && styles.desktopToolbar, { paddingTop: insets.top ? 8 : 16 }]}>
                 <Pressable style={styles.iconButton} onPress={closeReader} accessibilityLabel="Close reader">
-                    <Ionicons name="chevron-back" size={22} color={theme.colors.text.primary} />
+                    <Ionicons name="chevron-back" size={22} color={activeTheme.colors.text.primary} />
                 </Pressable>
                 <View style={styles.toolbarTitle}>
                     <Text style={styles.readerTitle}>{DALAIL_TITLE}</Text>
                     <Text style={styles.readerMeta} numberOfLines={1}>{pageLabel}</Text>
                 </View>
                 <Pressable style={styles.iconButton} onPress={toggleBookmark} accessibilityLabel="Bookmark this reading">
-                    <Ionicons name={currentBookmarked ? "bookmark" : "bookmark-outline"} size={21} color={theme.colors.primary.main} />
+                 <Ionicons name={currentBookmarked ? "bookmark" : "bookmark-outline"} size={21} color={activeTheme.colors.primary.main} />
                 </Pressable>
             </View>
 
@@ -146,13 +146,13 @@ export default function DalailTextReaderScreen() {
                         <Text style={[styles.subtitle, fontsLoaded && content?.isArabicSubtitle && styles.arabicHeading]}>{content?.subtitle ?? "Arabic with English translation"}</Text>
                     </View>
                     <Pressable style={styles.imageButton} onPress={() => router.push(`/dalail-image/${page}` as never)}>
-                        <Ionicons name="image-outline" size={17} color={theme.colors.primary.main} />
+                         <Ionicons name="image-outline" size={17} color={activeTheme.colors.primary.main} />
                         <Text style={styles.imageButtonText}>Images</Text>
                     </Pressable>
                 </View>
                 {isLoading && (
                     <View style={styles.stateCard}>
-                        <ActivityIndicator color={theme.colors.primary.main} size="large" />
+                         <ActivityIndicator color={activeTheme.colors.primary.main} size="large" />
                         <Text style={styles.stateText}>Preparing the text reader...</Text>
                     </View>
                 )}
@@ -164,7 +164,7 @@ export default function DalailTextReaderScreen() {
                         <Text style={styles.footerText}>{progressLabel}</Text>
                         {!isOpening && (
                             <Pressable style={[styles.completeButton, isComplete && styles.completeButtonDone]} onPress={() => markWirdComplete(section.id)}>
-                                <Ionicons name={isComplete ? "checkmark-circle" : "checkmark-circle-outline"} size={18} color={isComplete ? theme.colors.primary.main : theme.colors.semantic.onSuccess} />
+                                 <Ionicons name={isComplete ? "checkmark-circle" : "checkmark-circle-outline"} size={18} color={isComplete ? activeTheme.colors.primary.main : activeTheme.colors.semantic.onSuccess} />
                                 <Text style={[styles.completeButtonText, isComplete && styles.completeButtonDoneText]}>
                                     {isComplete ? "Wird Complete" : "Mark Wird Complete"}
                                 </Text>

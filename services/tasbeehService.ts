@@ -131,6 +131,8 @@ export async function getUserGoal(authenticatedUserId?: string): Promise<UserGoa
 }
 
 export async function createOrUpdateUserGoal(data: Partial<UserGoal>, authenticatedUserId?: string): Promise<UserGoal | null> {
+  if (!authenticatedUserId || authenticatedUserId.startsWith("anon_")) return null;
+
   try {
     const userId = await getUserId(authenticatedUserId);
     const existing = await getUserGoal(authenticatedUserId);
@@ -208,6 +210,8 @@ export async function createOrUpdateDailyProgress(
   date: string = getTodayKey(),
   sessions?: SessionRecord[]
 ): Promise<DailyProgress | null> {
+  if (!authenticatedUserId || authenticatedUserId.startsWith("anon_")) return null;
+
   try {
     const userId = await getUserId(authenticatedUserId);
     const existing = date === getTodayKey()
@@ -333,6 +337,8 @@ export async function getCurrentMonthHistory(authenticatedUserId?: string): Prom
 
 // Sync Operations
 export async function syncFromLocalStorage(authenticatedUserId?: string): Promise<void> {
+  if (!authenticatedUserId || authenticatedUserId.startsWith("anon_")) return;
+
   try {
     // Get local data
     const [

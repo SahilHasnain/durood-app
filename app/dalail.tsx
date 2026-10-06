@@ -1,5 +1,4 @@
 import { SimpleHeader } from "@/components/SimpleHeader";
-import { theme } from "@/constants/theme";
 import {
     DALAIL_TITLE,
     getDalailWeekSections,
@@ -18,8 +17,6 @@ import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const HEADER_HEIGHT = 60;
-const styles = createStyles(theme);
-
 function formatDate(value?: string) {
     if (!value) return "Not started yet";
     return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
@@ -36,12 +33,15 @@ function SectionCard({
     isComplete: boolean;
     onPress: () => void;
 }) {
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
+
     return (
         <Pressable onPress={onPress} style={[styles.sectionCard, isToday && styles.todaySectionCard]}>
             <View style={styles.sectionTextWrap}>
                 <View style={styles.sectionTitleRow}>
                     <Text style={[styles.sectionTitle, isToday && styles.todaySectionTitle]}>{section.title}</Text>
-                    {isComplete && <Ionicons name="checkmark-circle" size={16} color={theme.colors.semantic.success} />}
+                    {isComplete && <Ionicons name="checkmark-circle" size={16} color={activeTheme.colors.semantic.success} />}
                 </View>
                 {isToday && <Text style={styles.todayBadge}>Today</Text>}
                 <Text style={styles.sectionPageMeta}>Pages {section.startPage}-{section.endPage}</Text>
@@ -81,7 +81,7 @@ export default function DalailScreen() {
             <SafeAreaView style={styles.container} edges={["top"]}>
                 <SimpleHeader translateY={headerTranslateY} />
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator color={theme.colors.semantic.success} size="large" />
+                    <ActivityIndicator color={activeTheme.colors.semantic.success} size="large" />
                     <Text style={styles.mutedText}>Preparing Dalail...</Text>
                 </View>
             </SafeAreaView>
@@ -105,7 +105,7 @@ export default function DalailScreen() {
                     <Text style={styles.heroTitle}>{DALAIL_TITLE}</Text>
                     <View style={styles.heroActions}>
                         <Pressable style={styles.primaryButton} onPress={() => openPage(todaySection.startPage)}>
-                            <Ionicons name="book" size={18} color={theme.colors.semantic.onSuccess} />
+                            <Ionicons name="book" size={18} color={activeTheme.colors.semantic.onSuccess} />
                             <Text style={styles.primaryButtonText}>{todayComplete ? "Read Again" : "Today"}</Text>
                         </Pressable>
                         <Pressable style={styles.secondaryButton} onPress={() => openPage(progress.lastPage)}>
@@ -118,7 +118,7 @@ export default function DalailScreen() {
                     <View style={styles.todayTextWrap}>
                         <View style={styles.todayHeaderRow}>
                             <View style={styles.todayLabelRow}>
-                                <Ionicons name="calendar-outline" size={14} color={theme.colors.semantic.success} />
+                                <Ionicons name="calendar-outline" size={14} color={activeTheme.colors.semantic.success} />
                                 <Text style={styles.cardLabel}>{todaySections.length > 1 ? "Today’s Portions" : "Today’s Portion"}</Text>
                             </View>
                             <View style={[styles.statusPill, todayComplete && styles.completePill]}>
@@ -142,7 +142,7 @@ export default function DalailScreen() {
                     </View>
                     <View style={styles.todayOpenAction}>
                         <Text style={styles.todayOpenText}>Open</Text>
-                        <Ionicons name="chevron-forward" size={18} color={theme.colors.semantic.success} />
+                        <Ionicons name="chevron-forward" size={18} color={activeTheme.colors.semantic.success} />
                     </View>
                 </Pressable>
 

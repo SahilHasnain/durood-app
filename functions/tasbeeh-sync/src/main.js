@@ -11,8 +11,8 @@ function response(res, statusCode, body) {
   return res.json(body, statusCode);
 }
 
-function getUserId(req, payload) {
-  return req.headers["x-appwrite-user-id"] || payload.userId;
+function getUserId(req) {
+  return req.headers["x-appwrite-user-id"];
 }
 
 export default async ({ req, res, log, error }) => {
@@ -34,9 +34,13 @@ export default async ({ req, res, log, error }) => {
   const eventId = typeof payload.eventId === "string" ? payload.eventId : "";
   const date = typeof payload.date === "string" ? payload.date : "";
   const amount = Number(payload.amount);
-  const userId = getUserId(req, payload);
+  const userId = getUserId(req);
 
-  if (!eventId || !userId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(amount) || amount <= 0) {
+  if (!userId || userId.startsWith("anon_")) {
+    return response(res, 401, { error: "An authenticated Appwrite user is required." });
+  }
+
+  if (payload.type !== "migration" && (!eventId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(amount) || amount <= 0)) {
     return response(res, 400, { error: "eventId, userId, date, and positive integer amount are required." });
   }
 
@@ -45,6 +49,65 @@ export default async ({ req, res, log, error }) => {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
     .setKey(process.env.APPWRITE_API_KEY);
   const databases = new Databases(client);
+
+  if (payload.type === "migration") {
+    const records = Array.isArray(payload.records) ? payload.records : [];
+    if (records.length > 365 || records.some((record) =>
+      typeof record.eventId !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(record.date) ||
+      !Number.isInteger(record.amount) || record.amount <= 0 ||
+      !Number.isInteger(record.target) || record.target <= 0
+    )) {
+      return response(res, 400, { error: "Invalid migration records." });
+    }
+
+    for (const record of records) {
+      try {
+        await databases.createDocument(databaseId, eventsCollectionId, record.eventId, {
+          eventId: record.eventId,
+          userId,
+          date: record.date,
+          amount: record.amount,
+          sessionId: "",
+          createdAt: new Date().toISOString(),
+        });
+      } catch (eventError) {
+        if (eventError?.code === 409) continue;
+        throw eventError;
+      }
+
+      const progressResponse = await databases.listDocuments(databaseId, progressCollectionId, [
+        Query.equal("userId", userId), Query.equal("date", record.date), Query.limit(1),
+      ]);
+      const progress = progressResponse.documents[0];
+      if (progress) {
+        await databases.incrementDocumentAttribute(databaseId, progressCollectionId, progress.$id, "count", record.amount);
+      } else {
+        await databases.createDocument(databaseId, progressCollectionId, ID.unique(), {
+          userId, date: record.date, count: record.amount, target: record.target,
+          sessions: "[]", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        });
+      }
+
+      const goalResponse = await databases.listDocuments(databaseId, goalsCollectionId, [
+        Query.equal("userId", userId), Query.limit(1),
+      ]);
+      const goal = goalResponse.documents[0];
+      if (goal) {
+        await databases.incrementDocumentAttribute(databaseId, goalsCollectionId, goal.$id, "lifetimeTotal", record.amount);
+      } else {
+        await databases.createDocument(databaseId, goalsCollectionId, ID.unique(), {
+          userId, totalGoal: 10000000, lifetimeTotal: record.amount, currentStreak: 1,
+          longestStreak: 1, dailyTarget: record.target, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        });
+      }
+
+      await databases.incrementDocumentAttribute(databaseId, globalStatsCollectionId, globalStatsDocumentId, "totalRecitations", record.amount);
+    }
+
+    return response(res, 200, { accepted: true, migrationId: payload.migrationId || null, records: records.length });
+  }
+
   let eventCreated = false;
 
   try {

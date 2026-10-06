@@ -27,7 +27,16 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === "web" && width >= 1200;
   const globalRecitations = useTasbeehStore((state) => state.globalRecitations);
-  const { theme: activeTheme } = useAppearance();
+  const { preference, setPreference, theme: activeTheme } = useAppearance();
+
+  const cycleAppearance = () => {
+    const nextPreference = preference === "system"
+      ? "light"
+      : preference === "light"
+        ? "dark"
+        : "system";
+    void setPreference(nextPreference);
+  };
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -84,6 +93,18 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
           )}
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={`Theme: ${preference}. Change theme`}
+            onPress={cycleAppearance}
+            style={[styles.themeButton, { backgroundColor: activeTheme.colors.surface.control, borderColor: activeTheme.colors.border.primary }, isDesktop && styles.desktopThemeButton]}
+          >
+            <Ionicons
+              name={preference === "dark" ? "moon-outline" : preference === "light" ? "sunny-outline" : "contrast-outline"}
+              size={19}
+              color={activeTheme.colors.text.primary}
+            />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
             accessibilityLabel="Open profile"
             onPress={() => router.push("/profile")}
             style={[styles.profileButton, { backgroundColor: activeTheme.colors.surface.control, borderColor: activeTheme.colors.border.primary }, isDesktop && styles.desktopProfileButton]}
@@ -118,10 +139,11 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
+    justifyContent: "flex-start",
+    gap: 6,
   },
   logoContainer: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -179,7 +201,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.surface.control,
   },
+  themeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.surface.control,
+    borderWidth: 1,
+    borderColor: theme.colors.surface.control,
+    marginRight: 0,
+  },
+  desktopThemeButton: {
+    marginRight: 8,
+  },
   desktopProfileButton: {
-    marginLeft: "auto",
+    marginLeft: 0,
   },
 });

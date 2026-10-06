@@ -160,7 +160,11 @@ export default function Planner() {
     }
 
     const lifetimeTotal = progressStats?.lifetimeTotal ?? plannerData.lifetimeTotal;
-    const currentAvg = progressStats?.averagePerDay ?? 0;
+    // Home displays the remainder after each goal cycle. Planner comparisons must
+    // use the full daily total so completed cycles are not discarded.
+    const currentAvg = progressStats
+        ? Math.max(progressStats.averagePerDay, progressStats.todayCount)
+        : 0;
     const goal = parseAmount(goalInput) || plannerData.totalGoal;
     const remaining = Math.max(0, goal - lifetimeTotal);
     const targetDays = daysBetween(targetDate);
@@ -317,7 +321,7 @@ export default function Planner() {
                     </View>
                     <View style={styles.divider} />
                     <View style={styles.previewRow}>
-                        <Text style={styles.previewLabel}>Versus current avg</Text>
+                        <Text style={styles.previewLabel}>Daily Pace Difference</Text>
                         <Text style={[styles.previewValue, paceGap > 0 ? styles.warningText : styles.goodText]}>
                             {paceGap > 0 ? `+${formatNumber(paceGap)}/day` : "On pace"}
                         </Text>

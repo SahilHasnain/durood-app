@@ -1,11 +1,15 @@
 import client from "@/config/appwrite";
-import { getTodayKey, getUserId } from "@/services/tasbeehService";
+import { getTodayKey } from "@/services/tasbeehService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Functions } from "appwrite";
 import { recordTasbeehDebug } from "@/services/tasbeehDebug";
 
 const SYNC_EVENTS_KEY = "tasbeeh_sync_events";
 const SYNC_FUNCTION_ID = "tasbeeh-sync";
+const DAILY_HISTORY_KEY = "tasbeeh_daily_history";
+const MIGRATION_ID_KEY = "tasbeeh_guest_migration_id";
+export const GUEST_DATA_PENDING_KEY = "tasbeeh_guest_data_pending";
+const GUEST_BASELINE_HISTORY_KEY = "tasbeeh_guest_baseline_history";
 
 export interface SyncEvent {
   eventId: string;
@@ -57,13 +61,13 @@ export async function enqueueSyncEvent(
   userId?: string,
   sessionId?: string
 ): Promise<void> {
-  if (!amount || amount <= 0) return;
+  // Anonymous progress is local-only and must never enter the sync queue.
+  if (!amount || amount <= 0 || !userId || userId.startsWith("anon_")) return;
 
-  const resolvedUserId = userId ?? (await getUserId());
   const events = await readEvents();
   events.push({
     eventId: generateEventId(),
-    userId: resolvedUserId,
+    userId,
     date: getTodayKey(),
     amount,
     target: target || 100,
@@ -105,7 +109,8 @@ async function applyEvent(event: SyncEvent): Promise<boolean> {
 }
 
 async function flushOnce(): Promise<number> {
-  const events = await readEvents();
+  const events = (await readEvents()).filter((event) => !event.userId.startsWith("anon_"));
+  await writeEvents(events);
   if (events.length === 0) return 0;
   void recordTasbeehDebug("queue:flush-start", { pendingCount: events.length });
 
@@ -138,4 +143,79 @@ export function flushPendingEventQueue(): Promise<number> {
     });
   }
   return flushPromise;
+}
+
+export async function migrateGuestData(authenticatedUserId: string): Promise<boolean> {
+  if (!authenticatedUserId || authenticatedUserId.startsWith("anon_")) return false;
+
+  const pendingGuestData = await AsyncStorage.getItem(GUEST_DATA_PENDING_KEY);
+  if (pendingGuestData !== "true") return true;
+
+  const rawHistory = await AsyncStorage.getItem(DAILY_HISTORY_KEY);
+  if (!rawHistory) {
+    await AsyncStorage.removeItem(GUEST_DATA_PENDING_KEY);
+    return true;
+  }
+
+  let history: { date?: string; count?: number; target?: number }[];
+  try {
+    history = JSON.parse(rawHistory);
+  } catch {
+    return false;
+  }
+
+  let baseline: { date?: string; count?: number }[] = [];
+  const rawBaseline = await AsyncStorage.getItem(GUEST_BASELINE_HISTORY_KEY);
+  if (rawBaseline) {
+    try {
+      baseline = JSON.parse(rawBaseline);
+    } catch {
+      baseline = [];
+    }
+  }
+  const baselineByDate = new Map(baseline.map((record) => [record.date, record.count ?? 0]));
+
+  const migrationId = (await AsyncStorage.getItem(MIGRATION_ID_KEY)) || `guest-migration-${Date.now()}`;
+  await AsyncStorage.setItem(MIGRATION_ID_KEY, migrationId);
+
+  const records = history
+    .filter((record) => typeof record.date === "string" && Number.isInteger(record.count) && record.count > 0)
+    .map((record) => ({
+      eventId: `${migrationId}:${record.date}`,
+      date: record.date,
+      amount: (record.count ?? 0) - (baselineByDate.get(record.date) ?? 0),
+      target: record.target || 100,
+    }))
+    .filter((record) => record.amount > 0);
+
+  if (records.length === 0) {
+    await AsyncStorage.multiRemove([GUEST_DATA_PENDING_KEY, MIGRATION_ID_KEY, GUEST_BASELINE_HISTORY_KEY]);
+    return true;
+  }
+
+  const execution = await functions.createExecution(
+    SYNC_FUNCTION_ID,
+    JSON.stringify({ type: "migration", migrationId, records }),
+    false,
+  );
+  if (execution.responseStatusCode !== 200 || !execution.responseBody) return false;
+
+  const body = JSON.parse(execution.responseBody);
+  if (body?.accepted !== true) return false;
+
+  await AsyncStorage.multiRemove([
+    DAILY_HISTORY_KEY,
+    MIGRATION_ID_KEY,
+    GUEST_DATA_PENDING_KEY,
+    GUEST_BASELINE_HISTORY_KEY,
+  ]);
+  return true;
+}
+
+export async function markGuestBaseline(): Promise<void> {
+  const history = await AsyncStorage.getItem(DAILY_HISTORY_KEY);
+  if (history) {
+    await AsyncStorage.setItem(GUEST_BASELINE_HISTORY_KEY, history);
+  }
+  await AsyncStorage.multiRemove([GUEST_DATA_PENDING_KEY, MIGRATION_ID_KEY]);
 }

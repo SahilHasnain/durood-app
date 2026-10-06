@@ -1,5 +1,6 @@
 import { getAppwriteUser, signInWithAppwriteGoogle, signOutFromAppwrite } from "@/services/appwriteAuth";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
+import { markGuestBaseline, migrateGuestData } from "@/services/tasbeehEventSync";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         await signOutFromAppwrite();
+        await markGuestBaseline();
         await AsyncStorage.removeItem(CACHED_USER_KEY);
         setUser(null);
         useTasbeehStore.getState().reset();
@@ -67,6 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const signInWithGoogle = async () => {
         await signInWithAppwriteGoogle();
         const appwriteUser = await getAppwriteUser();
+        try {
+            await migrateGuestData(appwriteUser.$id);
+        } catch (error) {
+            console.error("Guest data migration failed:", error);
+        }
         setUser({
             id: appwriteUser.$id,
             email: appwriteUser.email || "",

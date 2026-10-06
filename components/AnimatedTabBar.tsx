@@ -196,16 +196,16 @@ export function AnimatedTabBar({
                     style={[styles.mobileRoute, isLearnActive && styles.mobileRouteActive]}
                 >
                     <View style={styles.mobileRouteContent}>
-                        <Ionicons name={isLearnActive ? "school" : "school-outline"} size={24} color={isLearnActive ? theme.colors.primary.main : theme.colors.text.secondary} />
-                        <Text style={[styles.mobileRouteLabel, isLearnActive && styles.mobileRouteLabelActive]}>Learn</Text>
+                        <Ionicons name={isLearnActive ? "school" : "school-outline"} size={24} color={isLearnActive ? activeTheme.colors.primary.main : activeTheme.colors.text.secondary} />
+                        <Text style={[styles.mobileRouteLabel, { color: isLearnActive ? activeTheme.colors.primary.main : activeTheme.colors.text.secondary }, isLearnActive && styles.mobileRouteLabelActive]}>Learn</Text>
                     </View>
                 </Pressable>
             )}
             {!isDesktop && learnOpen && (
                 <>
                     <Pressable style={styles.learnDismiss} onPress={() => setLearnOpen(false)} />
-                    <View style={styles.learnPopover}>
-                        <Text style={styles.learnPopoverTitle}>Learn</Text>
+                    <View style={[styles.learnPopover, { backgroundColor: activeTheme.colors.background.secondary, borderColor: activeTheme.colors.border.primary }]}>
+                        <Text style={[styles.learnPopoverTitle, { color: activeTheme.colors.text.tertiary }]}>Learn</Text>
                         <Pressable
                             style={styles.learnPopoverItem}
                             onPress={() => {
@@ -213,8 +213,8 @@ export function AnimatedTabBar({
                                 navigation.navigate("fazilat");
                             }}
                         >
-                            <Ionicons name="book-outline" size={18} color={theme.colors.primary.main} />
-                            <Text style={styles.learnPopoverLabel}>Durood</Text>
+                            <Ionicons name="book-outline" size={18} color={activeTheme.colors.primary.main} />
+                            <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Durood</Text>
                         </Pressable>
                         <Pressable
                             style={styles.learnPopoverItem}
@@ -223,8 +223,8 @@ export function AnimatedTabBar({
                                 navigation.navigate("videos");
                             }}
                         >
-                            <Ionicons name="videocam-outline" size={18} color={theme.colors.primary.main} />
-                            <Text style={styles.learnPopoverLabel}>Videos</Text>
+                            <Ionicons name="videocam-outline" size={18} color={activeTheme.colors.primary.main} />
+                            <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Videos</Text>
                         </Pressable>
                     </View>
                 </>

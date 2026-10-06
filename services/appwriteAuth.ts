@@ -35,6 +35,12 @@ export async function signInWithAppwriteGoogle(): Promise<void> {
 
   GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
   await GoogleSignin.hasPlayServices();
+  // Clear the cached Google account so the account chooser appears again.
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    // No cached Google session is a valid first-sign-in state.
+  }
   const response = await GoogleSignin.signIn();
   if (!isSuccessResponse(response) || !response.data.idToken) {
     throw new Error("Google did not return an ID token.");

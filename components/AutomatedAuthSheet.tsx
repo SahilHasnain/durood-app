@@ -1,4 +1,3 @@
-import { theme } from "@/constants/theme";
 import { useAppearance } from "@/contexts/AppearanceContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -9,8 +8,6 @@ type AutomatedAuthSheetProps = {
     onDismiss: () => void;
     onSignIn: () => void;
 };
-
-const styles = createStyles(theme);
 
 export function AutomatedAuthSheet({ visible, onDismiss, onSignIn }: AutomatedAuthSheetProps) {
     const { theme: activeTheme } = useAppearance();
@@ -25,13 +22,13 @@ export function AutomatedAuthSheet({ visible, onDismiss, onSignIn }: AutomatedAu
                     <View style={styles.topBar}>
                         <View style={styles.handle} />
                         <Pressable style={styles.closeButton} onPress={onDismiss} accessibilityLabel="Close sign in prompt">
-                            <Ionicons name="close" size={22} color={theme.colors.text.secondary} />
+                            <Ionicons name="close" size={22} color={activeTheme.colors.text.secondary} />
                         </Pressable>
                     </View>
 
                     <View style={styles.content}>
                         <View style={styles.iconCircle}>
-                            <Ionicons name="cloud-upload-outline" size={32} color={theme.colors.primary.main} />
+                            <Ionicons name="cloud-upload-outline" size={32} color={activeTheme.colors.primary.main} />
                         </View>
                         <Text style={styles.eyebrow}>Keep your journey</Text>
                         <Text style={styles.title}>Save your progress everywhere</Text>
@@ -48,7 +45,7 @@ export function AutomatedAuthSheet({ visible, onDismiss, onSignIn }: AutomatedAu
 
                     <View style={styles.actions}>
                         <Pressable style={styles.primaryButton} onPress={onSignIn}>
-                            <Ionicons name="logo-google" size={18} color={theme.colors.semantic.onSuccess} />
+                            <Ionicons name="logo-google" size={18} color={activeTheme.colors.semantic.onSuccess} />
                             <Text style={styles.primaryButtonText}>Continue with Google</Text>
                         </Pressable>
                         <Pressable style={styles.secondaryButton} onPress={onDismiss}>
@@ -62,9 +59,12 @@ export function AutomatedAuthSheet({ visible, onDismiss, onSignIn }: AutomatedAu
 }
 
 function Benefit({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+    const { theme: activeTheme } = useAppearance();
+    const styles = createStyles(activeTheme);
+
     return (
         <View style={styles.benefitRow}>
-            <Ionicons name={icon} size={20} color={theme.colors.primary.main} />
+            <Ionicons name={icon} size={20} color={activeTheme.colors.primary.main} />
             <Text style={styles.benefitText}>{text}</Text>
         </View>
     );
