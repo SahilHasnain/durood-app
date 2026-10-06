@@ -1,5 +1,5 @@
 import { FazilatEntry } from "@/data/fazilat";
-import { theme } from "@/constants/theme";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -9,6 +9,9 @@ interface FazilatCardProps {
 }
 
 export const FazilatCard: React.FC<FazilatCardProps> = ({ entry, grid = false }) => {
+  const { theme } = useAppearance();
+  const styles = createStyles(theme);
+
   return (
     <View style={[styles.card, grid && styles.gridCard]}>
       <View style={styles.accentLine} />
@@ -26,7 +29,8 @@ export const FazilatCard: React.FC<FazilatCardProps> = ({ entry, grid = false })
   );
 };
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
   card: {
     flexDirection: "row",
     backgroundColor: theme.colors.surface.primary,
@@ -76,3 +80,4 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 });
+}

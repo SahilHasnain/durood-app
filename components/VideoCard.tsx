@@ -1,4 +1,4 @@
-import { theme } from "@/constants/theme";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { Durood } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -27,6 +27,8 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     onPress,
     progressPercentage,
 }) => {
+    const { theme } = useAppearance();
+    const styles = createStyles(theme);
     const [imageError, setImageError] = React.useState(false);
     const [imageLoading, setImageLoading] = React.useState(true);
 
@@ -111,7 +113,8 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     thumbnailContainer: {
         width: "100%",
         height: 200,
@@ -198,4 +201,5 @@ const styles = StyleSheet.create({
         color: theme.colors.text.primary,
     },
 });
+}
 

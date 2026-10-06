@@ -1,7 +1,6 @@
 import EmptyState from "@/components/EmptyState";
 import { SimpleHeader } from "@/components/SimpleHeader";
 import { VideoCard } from "@/components/VideoCard";
-import { theme } from "@/constants/theme";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useAppearance } from "@/contexts/AppearanceContext";
 import { useDuroodVideos } from "@/hooks/useDuroodVideos";
@@ -21,11 +20,9 @@ import {
     useWindowDimensions,
 } from "react-native";
 import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-const SCROLL_THRESHOLD = 5;
-const HEADER_HEIGHT = 60;
 
 interface VideoProgress {
     percentage: number;
@@ -36,11 +33,8 @@ export default function HomeScreen() {
     const { videos, loading, error, hasMore, loadMore, refresh } = useDuroodVideos();
     const [progressData, setProgressData] = useState<Record<string, VideoProgress>>({});
     const headerTranslateY = useSharedValue(0);
-    const insets = useSafeAreaInsets();
-    const previousScrollY = React.useRef(0);
-    const lastDirection = React.useRef<"up" | "down">("up");
 
-    const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
+    const { showTabBar } = useTabBarVisibility();
     const { width } = useWindowDimensions();
     const { theme: activeTheme } = useAppearance();
     const styles = createStyles(activeTheme);
@@ -78,63 +72,9 @@ export default function HomeScreen() {
                 duration: 300,
                 easing: Easing.out(Easing.ease),
             });
-            previousScrollY.current = 0;
-            lastDirection.current = "up";
             refresh();
         }, [headerTranslateY, showTabBar, refresh])
     );
-
-    const handleScroll = useCallback((event: any) => {
-        const currentScrollY = event.nativeEvent.contentOffset.y;
-
-        if (currentScrollY <= 0) {
-            headerTranslateY.value = withTiming(0, {
-                duration: 300,
-                easing: Easing.out(Easing.ease),
-            });
-            tabBarTranslateY.value = withTiming(0, {
-                duration: 300,
-                easing: Easing.out(Easing.ease),
-            });
-            previousScrollY.current = currentScrollY;
-            lastDirection.current = "up";
-            return;
-        }
-
-        const scrollDiff = currentScrollY - previousScrollY.current;
-        if (Math.abs(scrollDiff) <= SCROLL_THRESHOLD) {
-            return;
-        }
-
-        const direction = scrollDiff > 0 ? "down" : "up";
-        if (direction !== lastDirection.current) {
-            lastDirection.current = direction;
-
-            headerTranslateY.value = withTiming(
-                direction === "down" ? -(HEADER_HEIGHT + insets.top + 20) : 0,
-                {
-                    duration: 300,
-                    easing:
-                        direction === "down"
-                            ? Easing.in(Easing.ease)
-                            : Easing.out(Easing.ease),
-                }
-            );
-
-            tabBarTranslateY.value = withTiming(
-                direction === "down" ? tabBarHeight + 50 : 0,
-                {
-                    duration: 300,
-                    easing:
-                        direction === "down"
-                            ? Easing.in(Easing.ease)
-                            : Easing.out(Easing.ease),
-                }
-            );
-        }
-
-        previousScrollY.current = currentScrollY;
-    }, [headerTranslateY, insets.top, tabBarHeight, tabBarTranslateY]);
 
     const handleVideoPress = useCallback((video: Durood) => {
         router.push({
@@ -169,7 +109,7 @@ export default function HomeScreen() {
         if (!loading || videos.length === 0) return null;
         return (
             <View style={styles.footer}>
-                <ActivityIndicator size="small" color={theme.colors.accent.secondary} />
+                <ActivityIndicator size="small" color={activeTheme.colors.accent.secondary} />
             </View>
         );
     };
@@ -178,7 +118,7 @@ export default function HomeScreen() {
         if (loading && videos.length === 0) {
             return (
                 <View style={styles.emptyContainer}>
-                    <ActivityIndicator size="large" color={theme.colors.accent.secondary} />
+                    <ActivityIndicator size="large" color={activeTheme.colors.accent.secondary} />
                     <Text style={styles.emptyText}>Loading videos...</Text>
                 </View>
             );
@@ -217,14 +157,12 @@ export default function HomeScreen() {
                     }
                 }}
                 onEndReachedThreshold={0.5}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
                 refreshControl={
                     <RefreshControl
                         refreshing={loading && videos.length > 0}
                         onRefresh={refresh}
-                        colors={[theme.colors.accent.secondary]}
-                        tintColor={theme.colors.accent.secondary}
+                        colors={[activeTheme.colors.accent.secondary]}
+                        tintColor={activeTheme.colors.accent.secondary}
                     />
                 }
                 removeClippedSubviews
@@ -240,7 +178,7 @@ function createStyles(theme: ReturnType<typeof import("@/constants/theme").creat
 return StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.semantic.black,
+        backgroundColor: theme.colors.background.primary,
     },
     contentContainer: {
         flexGrow: 1,
