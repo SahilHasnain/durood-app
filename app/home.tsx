@@ -622,7 +622,7 @@ if (authLoading || !initialized || loading) {
         return (
             <SafeAreaView style={styles.container} edges={["top"]}>
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={theme.colors.primary.main} />
+                    <ActivityIndicator size="large" color={activeTheme.colors.primary.main} />
                     <Text style={styles.loadingText}>Loading your progress...</Text>
                 </View>
             </SafeAreaView>

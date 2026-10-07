@@ -1,10 +1,13 @@
-import { theme } from "@/constants/theme";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { SQLiteProvider } from "expo-sqlite";
 import { Stack } from "expo-router";
 import { Suspense } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 function DatabaseLoadingState() {
+    const { theme } = useAppearance();
+    const styles = createStyles(theme);
+
     return (
         <View style={styles.loadingState}>
             <ActivityIndicator color={theme.colors.primary.main} size="large" />
@@ -27,7 +30,8 @@ export default function DalailReaderLayout() {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     loadingState: {
         flex: 1,
         alignItems: "center",
@@ -40,3 +44,4 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
 });
+}

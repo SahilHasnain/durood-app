@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { theme } from "@/constants/theme";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { cacheAllDalailAssets } from "@/services/dalailAssetCache";
 import NetInfo from "@react-native-community/netinfo";
@@ -9,6 +9,8 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 export default function Index() {
   const { loading: authLoading, user } = useAuth();
+  const { theme: activeTheme } = useAppearance();
+  const styles = createStyles(activeTheme);
   const initialized = useTasbeehStore((state) => state.initialized);
   const initializedUserId = useTasbeehStore((state) => state.initializedUserId);
   const loading = useTasbeehStore((state) => state.loading);
@@ -39,7 +41,7 @@ export default function Index() {
       <View style={styles.container}>
         <Text style={styles.arabicMain}>صَلُّوا عَلَى الْحَبِيب</Text>
         <Text style={styles.arabicSub}>صَلَّى اللَّهُ عَلَى مُحَمَّد</Text>
-        <ActivityIndicator size="large" color={theme.colors.semantic.success} style={styles.spinner} />
+        <ActivityIndicator size="large" color={activeTheme.colors.semantic.success} style={styles.spinner} />
       </View>
     );
   }
@@ -47,12 +49,13 @@ export default function Index() {
   return <Redirect href="/home" />;
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: theme.colors.semantic.black,
+    backgroundColor: theme.colors.background.primary,
   },
   arabicMain: {
     fontSize: 28,
@@ -63,7 +66,7 @@ const styles = StyleSheet.create({
   },
   arabicSub: {
     fontSize: 16,
-    color: theme.colors.semantic.whiteMuted,
+    color: theme.colors.text.secondary,
     textAlign: "center",
     marginBottom: 40,
   },
@@ -71,3 +74,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 });
+}
