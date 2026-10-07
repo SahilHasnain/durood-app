@@ -13,7 +13,6 @@ import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { SessionRecord } from "@/services/tasbeehService";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Asset } from "expo-asset";
 import * as Haptics from "expo-haptics";
 import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,7 +22,6 @@ import {
     Animated,
     AppState,
     BackHandler,
-    Image,
     Keyboard,
     Modal,
     Platform,
@@ -44,13 +42,8 @@ const DEFAULT_SESSION_GOAL = 100;
 const SESSION_GOAL_KEY = "tasbeeh_session_goal";
 const FULLSCREEN_PREF_KEY = "tasbeeh_fullscreen_pref";
 const SESSION_RECOVERY_KEY = "tasbeeh_session_recovery";
-const SESSION_IMAGE_KEY = "tasbeeh_session_image";
 const SIGN_IN_MILESTONE = 5000;
 const LAST_PROMPT_MILESTONE_KEY = "sign_in_last_prompt_milestone";
-const SESSION_IMAGES = [
-    require("@/assets/images/gumbad.png"),
-    require("@/assets/images/jalian-mubarak-v1.png"),
-];
 
 function formatNumber(value: number): string {
     return new Intl.NumberFormat("en-IN").format(value);
@@ -91,7 +84,6 @@ export default function Home() {
 const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionGoalInput, setSessionGoalInput] = useState("");
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
-    const [sessionImageIndex, setSessionImageIndex] = useState(0);
     const [sessionToastCount, setSessionToastCount] = useState<number | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const fullscreenPrefRef = useRef(false);
@@ -105,7 +97,7 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
 
     const { translateY: tabBarTranslateY, tabBarHeight, showTabBar } = useTabBarVisibility();
     const insets = useSafeAreaInsets();
-    const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+    const { width: windowWidth } = useWindowDimensions();
     const isDesktopWeb = Platform.OS === "web" && windowWidth >= 1200;
     const headerTranslateY = useSharedValue(0);
 
@@ -120,7 +112,6 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
             : quickCount;
     const progress = target > 0 ? (displayedDailyCount / target) * 100 : 0;
     const progressOffset = RING_CIRCUMFERENCE - (progress / 100) * RING_CIRCUMFERENCE;
-    const sessionImageHeight = windowHeight * 0.4;
 
     const effectiveSessionGoal = sessionGoal ?? preferredSessionGoal;
     const displayedSessionCount =
@@ -164,26 +155,9 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
             })
             .catch(() => {});
 
-        AsyncStorage.getItem(SESSION_IMAGE_KEY)
-            .then((savedImageIndex) => {
-                const parsedIndex = savedImageIndex ? parseInt(savedImageIndex, 10) : 0;
-                if (mounted && parsedIndex >= 0 && parsedIndex < SESSION_IMAGES.length) {
-                    setSessionImageIndex(parsedIndex);
-                }
-            })
-            .catch(() => {});
-
         return () => {
             mounted = false;
         };
-    }, []);
-
-    useEffect(() => {
-        if (Platform.OS !== "web") return;
-
-        void Promise.all(
-            SESSION_IMAGES.map((source) => Asset.fromModule(source).downloadAsync().catch(() => undefined)),
-        );
     }, []);
 
     useEffect(() => {
@@ -555,14 +529,6 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
         Keyboard.dismiss();
     };
 
-    const changeSessionImage = useCallback((direction: 1 | -1 = 1) => {
-        setSessionImageIndex((currentIndex) => {
-            const nextIndex = (currentIndex + direction + SESSION_IMAGES.length) % SESSION_IMAGES.length;
-            void AsyncStorage.setItem(SESSION_IMAGE_KEY, String(nextIndex)).catch(() => {});
-            return nextIndex;
-        });
-    }, []);
-
     const toggleFullscreen = useCallback(() => {
         if (Platform.OS !== "web") return;
         const doc = document as any;
@@ -611,15 +577,7 @@ if (!sessionActive && (key === "s" || key === "f")) {
 
             if (!sessionActive) return;
 
-            if (key === "arrowleft" || key === "j") {
-                event.preventDefault();
-                changeSessionImage(-1);
-                clearKeyboardFocus();
-            } else if (key === "arrowright" || key === "l") {
-                event.preventDefault();
-                changeSessionImage(1);
-                clearKeyboardFocus();
-            } else if (key === "escape") {
+            if (key === "escape") {
                 event.preventDefault();
                 if (isFullscreen || document.fullscreenElement) {
                     document.exitFullscreen?.();
@@ -636,7 +594,7 @@ if (!sessionActive && (key === "s" || key === "f")) {
 
 document.addEventListener("keydown", handleKeyDown);
         return () => document.removeEventListener("keydown", handleKeyDown);
-    }, [beginSession, changeSessionImage, endSession, isFullscreen, quickCountTap, sessionActive, toggleFullscreen]);
+    }, [beginSession, endSession, isFullscreen, quickCountTap, sessionActive, toggleFullscreen]);
 
     useEffect(() => {
         const subscription = AppState.addEventListener("change", (nextAppState) => {
@@ -677,30 +635,6 @@ if (authLoading || !initialized || loading) {
                 style={[styles.sessionContainer, isDesktopWeb && styles.desktopSessionContainer]}
                 edges={["top", "bottom"]}
             >
-                <View
-                    style={[
-                        styles.sessionImageArea,
-                        { height: sessionImageHeight },
-                        isDesktopWeb && styles.desktopSessionImageArea,
-                        isDesktopWeb && isFullscreen && styles.desktopFullscreenSessionImageArea,
-                    ]}
-                >
-                    <Image
-                        source={SESSION_IMAGES[sessionImageIndex]}
-                        style={styles.sessionImage}
-                        resizeMode="cover"
-                    />
-                    <TouchableOpacity
-                        accessibilityLabel="Change session image"
-                        activeOpacity={0.72}
-                        hitSlop={10}
-                        onPress={changeSessionImage}
-                        style={styles.sessionImageButton}
-                    >
-                            <Ionicons name="chevron-forward" size={18} color={theme.colors.text.primary} />
-                    </TouchableOpacity>
-                </View>
-
                 <View style={isDesktopWeb ? styles.desktopSessionContent : styles.mobileSessionContent}>
                     {isDesktopWeb && !isFullscreen && (
                         <View style={styles.sessionTopBar}>
@@ -1286,14 +1220,6 @@ return StyleSheet.create({
         flexDirection: "row",
         paddingHorizontal: 0,
     },
-    desktopSessionImageArea: {
-        width: "50%",
-        height: "100%",
-        marginHorizontal: 0,
-    },
-    desktopFullscreenSessionImageArea: {
-        width: "60%",
-    },
     desktopSessionContent: {
         flex: 1,
         minWidth: 0,
@@ -1326,28 +1252,6 @@ return StyleSheet.create({
         fontSize: 13,
         fontWeight: "500",
     },
-    sessionImageArea: {
-        marginHorizontal: -24,
-        overflow: "hidden",
-        backgroundColor: theme.colors.surface.primary,
-    },
-    sessionImage: {
-        width: "100%",
-        height: "100%",
-    },
-    sessionImageButton: {
-        position: "absolute",
-        right: 14,
-        bottom: 14,
-        width: 34,
-        height: 34,
-        borderRadius: 17,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme.colors.scrim.light,
-        borderWidth: 1,
-        borderColor: theme.colors.border.faint,
-    },
     sessionHeader: {
         alignItems: "center",
         paddingTop: 20,
@@ -1358,7 +1262,7 @@ return StyleSheet.create({
     },
     sessionTapArea: {
         flex: 1,
-        justifyContent: "center",
+        justifyContent: "flex-end",
         alignItems: "center",
         userSelect: "none",
     },
