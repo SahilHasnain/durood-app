@@ -67,6 +67,12 @@ export default {
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
       [
+        "expo-location",
+        {
+          locationWhenInUsePermission: "Allow Durood Moments to use your location once to suggest your city for the optional city leaderboard.",
+        },
+      ],
+      [
         "expo-splash-screen",
         {
           backgroundColor: "#0A0A0F",

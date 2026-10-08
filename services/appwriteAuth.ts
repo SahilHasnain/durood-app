@@ -56,6 +56,14 @@ export async function getAppwriteUser() {
   return authAccount.get();
 }
 
+export async function getAppwriteUserPrefs(): Promise<Record<string, unknown>> {
+  return authAccount.getPrefs();
+}
+
+export async function updateAppwriteUserPrefs(prefs: Record<string, unknown>): Promise<void> {
+  await (authAccount as any).updatePrefs({ prefs });
+}
+
 export async function signOutFromAppwrite(): Promise<void> {
   await authAccount.deleteSession("current");
 }

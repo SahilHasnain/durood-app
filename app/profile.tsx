@@ -1,10 +1,12 @@
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppearance, type AppearancePreference } from "@/contexts/AppearanceContext";
+import { getAppwriteUserPrefs, updateAppwriteUserPrefs } from "@/services/appwriteAuth";
 import { clearTasbeehDebugLog, getTasbeehDebugLog, TasbeehDebugEntry } from "@/services/tasbeehDebug";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import * as Location from "expo-location";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Profile() {
@@ -14,8 +16,112 @@ export default function Profile() {
     const [submitting, setSubmitting] = useState(false);
     const [debugVisible, setDebugVisible] = useState(false);
     const [debugEntries, setDebugEntries] = useState<TasbeehDebugEntry[]>([]);
+    const [city, setCity] = useState("");
+    const [country, setCountry] = useState("");
+    const [cityLoading, setCityLoading] = useState(false);
+    const [citySaving, setCitySaving] = useState(false);
+    const [cityMessage, setCityMessage] = useState("");
     const { width } = useWindowDimensions();
     const isDesktopWeb = Platform.OS === "web" && width >= 1200;
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        let active = true;
+        getAppwriteUserPrefs()
+            .then((prefs) => {
+                const savedCity = prefs.leaderboardCity as { city?: string; country?: string } | undefined;
+                if (active && savedCity) {
+                    setCity(savedCity.city ?? "");
+                    setCountry(savedCity.country ?? "");
+                }
+            })
+            .catch((error) => console.warn("Could not load city preference:", error));
+        return () => { active = false; };
+    }, [isAuthenticated, user?.id]);
+
+    const normalizedCityId = (cityName: string, countryName: string) => {
+        const slug = (value: string) => value
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "");
+        return `${slug(countryName)}:${slug(cityName)}`;
+    };
+
+    const handleUseCurrentCity = async () => {
+        setCityMessage("");
+        try {
+            setCityLoading(true);
+            const permission = await Location.requestForegroundPermissionsAsync();
+            if (permission.status !== "granted") {
+                setCityMessage("Location permission was not granted. You can enter your city manually.");
+                return;
+            }
+            const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const [address] = await Location.reverseGeocodeAsync({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            });
+            const suggestedCity = address?.city ?? address?.district ?? address?.subregion ?? address?.region;
+            if (!suggestedCity) {
+                setCityMessage("Could not identify a city from your location. Please enter it manually.");
+                return;
+            }
+            setCity(suggestedCity);
+            setCountry(address?.country ?? "");
+            setCityMessage("City suggested. Save to opt into the city leaderboard.");
+        } catch (error) {
+            console.error("Could not resolve current city:", error);
+            setCityMessage("Could not determine your city. You can enter it manually.");
+        } finally {
+            setCityLoading(false);
+        }
+    };
+
+    const handleSaveCity = async () => {
+        const cityName = city.trim();
+        const countryName = country.trim();
+        if (!cityName || !countryName) {
+            setCityMessage("Enter both a city and country to join the city leaderboard.");
+            return;
+        }
+        try {
+            setCitySaving(true);
+            const currentPrefs = await getAppwriteUserPrefs();
+            await updateAppwriteUserPrefs({
+                ...currentPrefs,
+                leaderboardCity: {
+                    city: cityName,
+                    country: countryName,
+                    cityId: normalizedCityId(cityName, countryName),
+                },
+            });
+            setCityMessage(`City leaderboard set to ${cityName}, ${countryName}.`);
+        } catch (error) {
+            console.error("Could not save city preference:", error);
+            setCityMessage("Could not save your city. Please try again.");
+        } finally {
+            setCitySaving(false);
+        }
+    };
+
+    const handleRemoveCity = async () => {
+        try {
+            setCitySaving(true);
+            const currentPrefs = await getAppwriteUserPrefs();
+            const { leaderboardCity: _removedCity, ...remainingPrefs } = currentPrefs;
+            await updateAppwriteUserPrefs(remainingPrefs);
+            setCity("");
+            setCountry("");
+            setCityMessage("You have left the city leaderboard.");
+        } catch (error) {
+            console.error("Could not remove city preference:", error);
+            setCityMessage("Could not remove your city. Please try again.");
+        } finally {
+            setCitySaving(false);
+        }
+    };
 
     const handleGoogleSignIn = useCallback(async () => {
         try {
@@ -163,7 +269,11 @@ export default function Profile() {
 
     return (
         <SafeAreaView style={styles.container} edges={["top"]}>
-            <View style={[styles.content, isDesktopWeb && styles.desktopProfileContent]}>
+        <ScrollView
+            contentContainerStyle={[styles.content, isDesktopWeb && styles.desktopProfileContent]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+        >
                 <View style={styles.header}>
                     <View style={styles.avatarContainer}>
                         <TouchableOpacity onLongPress={openDebugLog} delayLongPress={1200}>
@@ -178,8 +288,70 @@ export default function Profile() {
                     <Ionicons name="log-out-outline" size={20} color={theme.colors.semantic.white} />
                     <Text style={styles.logoutButtonText}>Sign Out</Text>
                     </TouchableOpacity>
+                    <View style={styles.cityCard}>
+                        <View style={styles.cityHeader}>
+                            <View style={styles.cityTitleWrap}>
+                                <Text style={styles.appearanceTitle}>City leaderboard</Text>
+                                <Text style={styles.appearanceDescription}>
+                                    Optional. Share your city to join its leaderboard. We save city and country only—not your coordinates.
+                                </Text>
+                            </View>
+                            <Ionicons name="location-outline" size={21} color={activeTheme.colors.primary.main} />
+                        </View>
+                        {Platform.OS !== "web" ? (
+                            <TouchableOpacity
+                                style={[styles.locationButton, cityLoading && styles.disabledButton]}
+                                onPress={handleUseCurrentCity}
+                                disabled={cityLoading || citySaving}
+                            >
+                                {cityLoading ? (
+                                    <ActivityIndicator size="small" color={activeTheme.colors.primary.main} />
+                                ) : (
+                                    <Ionicons name="navigate-outline" size={17} color={activeTheme.colors.primary.main} />
+                                )}
+                                <Text style={styles.locationButtonText}>{cityLoading ? "Finding your city..." : "Suggest my current city"}</Text>
+                            </TouchableOpacity>
+                        ) : null}
+                        <TextInput
+                            style={styles.cityInput}
+                            value={city}
+                            onChangeText={setCity}
+                            placeholder="City"
+                            placeholderTextColor={activeTheme.colors.text.tertiary}
+                            autoCapitalize="words"
+                            maxLength={80}
+                        />
+                        <TextInput
+                            style={styles.cityInput}
+                            value={country}
+                            onChangeText={setCountry}
+                            placeholder="Country"
+                            placeholderTextColor={activeTheme.colors.text.tertiary}
+                            autoCapitalize="words"
+                            maxLength={80}
+                        />
+                        {cityMessage ? <Text style={styles.cityMessage}>{cityMessage}</Text> : null}
+                        <View style={styles.cityActions}>
+                            <TouchableOpacity
+                                style={[styles.citySaveButton, citySaving && styles.disabledButton]}
+                                onPress={handleSaveCity}
+                                disabled={citySaving || cityLoading}
+                            >
+                                <Text style={styles.citySaveText}>{citySaving ? "Saving..." : "Join / Update city"}</Text>
+                            </TouchableOpacity>
+                            {(city || country) && (
+                                <TouchableOpacity
+                                    style={styles.cityRemoveButton}
+                                    onPress={handleRemoveCity}
+                                    disabled={citySaving || cityLoading}
+                                >
+                                    <Text style={styles.cityRemoveText}>Leave</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
                     {appearanceCard}
-            </View>
+        </ScrollView>
             {diagnosticModal}
         </SafeAreaView>
     );
@@ -243,7 +415,7 @@ return StyleSheet.create({
         lineHeight: 16,
     },
     content: {
-        flex: 1,
+        flexGrow: 1,
         paddingHorizontal: 20,
         paddingVertical: 24,
     },
@@ -261,6 +433,85 @@ return StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.border.primary,
         gap: 14,
+    },
+    cityCard: {
+        width: "100%",
+        marginTop: 24,
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: theme.colors.surface.primary,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+        gap: 12,
+    },
+    cityHeader: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
+    },
+    cityTitleWrap: {
+        flex: 1,
+    },
+    locationButton: {
+        minHeight: 42,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        borderRadius: 10,
+        backgroundColor: theme.colors.accentSurface,
+        borderWidth: 1,
+        borderColor: theme.colors.accentBorder,
+    },
+    locationButtonText: {
+        color: theme.colors.primary.main,
+        fontSize: 13,
+        fontWeight: "700",
+    },
+    cityInput: {
+        minHeight: 46,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        backgroundColor: theme.colors.surface.secondary,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+        color: theme.colors.text.primary,
+        fontSize: 15,
+    },
+    cityMessage: {
+        color: theme.colors.text.secondary,
+        fontSize: 12,
+        lineHeight: 18,
+    },
+    cityActions: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    citySaveButton: {
+        flex: 1,
+        minHeight: 44,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+        backgroundColor: theme.colors.primary.main,
+    },
+    citySaveText: {
+        color: theme.colors.semantic.onSuccess,
+        fontSize: 13,
+        fontWeight: "800",
+    },
+    cityRemoveButton: {
+        minHeight: 44,
+        paddingHorizontal: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+        backgroundColor: theme.colors.surface.secondary,
+    },
+    cityRemoveText: {
+        color: theme.colors.text.secondary,
+        fontSize: 13,
+        fontWeight: "700",
     },
     appearanceTitle: {
         color: theme.colors.text.primary,

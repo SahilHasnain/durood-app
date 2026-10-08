@@ -179,7 +179,7 @@ export async function migrateGuestData(authenticatedUserId: string): Promise<boo
   await AsyncStorage.setItem(MIGRATION_ID_KEY, migrationId);
 
   const records = history
-    .filter((record) => typeof record.date === "string" && Number.isInteger(record.count) && record.count > 0)
+    .filter((record) => typeof record.date === "string" && record.count !== undefined && Number.isInteger(record.count) && record.count > 0)
     .map((record) => ({
       eventId: `${migrationId}:${record.date}`,
       date: record.date,
