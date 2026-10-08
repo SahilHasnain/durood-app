@@ -79,6 +79,7 @@ export function createTheme(mode: ThemeMode) {
         whiteStrong: isLight ? "rgba(38,29,14,0.1)" : "rgba(255,255,255,0.1)",
         whiteBorder: isLight ? "rgba(38,29,14,0.18)" : "rgba(255,255,255,0.18)",
         chartGrid: isLight ? "rgba(38,29,14,0.08)" : "rgba(255,255,255,0.05)",
+        chartUnderTarget: isLight ? "#9A7137" : "rgba(255,255,255,0.32)",
       },
       whiteMuted: isLight ? "rgba(38,29,14,0.5)" : "rgba(255,255,255,0.5)",
       whiteSubtle: isLight ? "rgba(38,29,14,0.15)" : "rgba(255,255,255,0.15)",

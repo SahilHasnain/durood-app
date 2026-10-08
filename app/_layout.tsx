@@ -1,5 +1,4 @@
 import { AnimatedTabBar } from "@/components/AnimatedTabBar";
-import { theme } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppearanceProvider, useAppearance } from "@/contexts/AppearanceContext";
 import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
@@ -146,6 +145,15 @@ function RootLayoutContent() {
               size={24}
               color={color}
             />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: "Community",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "podium" : "podium-outline"} size={24} color={color} />
           ),
         }}
       />

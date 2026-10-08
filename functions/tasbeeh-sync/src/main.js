@@ -15,6 +15,16 @@ function getUserId(req) {
   return req.headers["x-appwrite-user-id"];
 }
 
+function normalizeCityId(city, country) {
+  const slug = (value) => value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${slug(country)}:${slug(city)}`;
+}
+
 export default async ({ req, res, log, error }) => {
   if (req.method !== "POST") {
     return response(res, 405, { error: "Only POST is supported." });
@@ -40,7 +50,8 @@ export default async ({ req, res, log, error }) => {
     return response(res, 401, { error: "An authenticated Appwrite user is required." });
   }
 
-  if (payload.type !== "migration" && (!eventId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(amount) || amount <= 0)) {
+  if (!new Set(["migration", "city-leaderboard"]).has(payload.type) &&
+    (!eventId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(amount) || amount <= 0)) {
     return response(res, 400, { error: "eventId, userId, date, and positive integer amount are required." });
   }
 
@@ -49,6 +60,98 @@ export default async ({ req, res, log, error }) => {
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
     .setKey(process.env.APPWRITE_API_KEY);
   const databases = new Databases(client);
+
+  if (payload.type === "city-leaderboard") {
+    const goalsCollectionId = process.env.APPWRITE_GOALS_COLLECTION_ID || "tasbeeh_progress_goals";
+    const userGoals = await databases.listDocuments(databaseId, goalsCollectionId, [
+      Query.equal("userId", userId),
+      Query.limit(1),
+    ]);
+    const ownGoal = userGoals.documents[0];
+
+    if (payload.action === "join") {
+      const city = typeof payload.city === "string" ? payload.city.trim() : "";
+      const country = typeof payload.country === "string" ? payload.country.trim() : "";
+      if (!city || !country || city.length > 80 || country.length > 80) {
+        return response(res, 400, { error: "A valid city and country are required." });
+      }
+
+      const cityId = normalizeCityId(city, country);
+      const displayName = typeof payload.displayName === "string"
+        ? payload.displayName.replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, 40)
+        : "";
+      const membership = {
+        cityId,
+        cityName: city,
+        country,
+        displayName: displayName || "Community member",
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (ownGoal) {
+        await databases.updateDocument(databaseId, goalsCollectionId, ownGoal.$id, membership);
+      } else {
+        await databases.createDocument(databaseId, goalsCollectionId, ID.unique(), {
+          userId,
+          totalGoal: 10000000,
+          lifetimeTotal: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          dailyTarget: 100,
+          ...membership,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      return response(res, 200, { accepted: true, cityId, city, country });
+    }
+
+    if (payload.action === "leave") {
+      if (ownGoal) {
+        await databases.updateDocument(databaseId, goalsCollectionId, ownGoal.$id, {
+          cityId: "",
+          cityName: "",
+          country: "",
+          displayName: "",
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      return response(res, 200, { accepted: true, optedIn: false });
+    }
+
+    if (payload.action === "list") {
+      if (!ownGoal?.cityId) {
+        return response(res, 200, { accepted: true, optedIn: false, city: null, entries: [] });
+      }
+      const cityGoals = await databases.listDocuments(databaseId, goalsCollectionId, [
+        Query.equal("cityId", ownGoal.cityId),
+        Query.orderDesc("lifetimeTotal"),
+        Query.limit(100),
+      ]);
+      const entries = cityGoals.documents
+        .filter((goal) => goal.cityId === ownGoal.cityId)
+        .map((goal, index) => ({
+          rank: index + 1,
+          displayName: goal.displayName || "Community member",
+          lifetimeTotal: goal.lifetimeTotal || 0,
+          isYou: goal.userId === userId,
+        }));
+      const ownEntry = entries.find((entry) => entry.isYou);
+      const yourRank = ownEntry?.rank ?? (await databases.listDocuments(databaseId, goalsCollectionId, [
+        Query.equal("cityId", ownGoal.cityId),
+        Query.greaterThan("lifetimeTotal", ownGoal.lifetimeTotal || 0),
+        Query.limit(1),
+      ])).total + 1;
+      return response(res, 200, {
+        accepted: true,
+        optedIn: true,
+        city: { cityId: ownGoal.cityId, cityName: ownGoal.cityName, country: ownGoal.country },
+        yourRank,
+        entries,
+      });
+    }
+
+    return response(res, 400, { error: "Unknown city leaderboard action." });
+  }
 
   if (payload.type === "migration") {
     const records = Array.isArray(payload.records) ? payload.records : [];

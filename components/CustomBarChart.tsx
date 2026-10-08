@@ -1,4 +1,4 @@
-import { theme } from "@/constants/theme";
+import { useAppearance } from "@/contexts/AppearanceContext";
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -13,6 +13,8 @@ interface CustomBarChartProps {
 }
 
 export function CustomBarChart({ data }: CustomBarChartProps) {
+    const { theme } = useAppearance();
+    const styles = createStyles(theme);
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
     if (data.length === 0) return null;
@@ -88,7 +90,7 @@ export function CustomBarChart({ data }: CustomBarChartProps) {
                                 styles.tooltip,
                                 selectedIndex === 0 && styles.tooltipLeft,
                                 selectedIndex === displayData.length - 1 && styles.tooltipRight,
-                                selectedIndex !== 0 && selectedIndex !== displayData.length - 1 && {
+                                selectedIndex !== null && selectedIndex !== 0 && selectedIndex !== displayData.length - 1 && {
                                     left: `${((selectedIndex + 0.5) / displayData.length) * 100}%`,
                                     transform: [{ translateX: -59 }],
                                 },
@@ -133,7 +135,8 @@ export function CustomBarChart({ data }: CustomBarChartProps) {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: ReturnType<typeof import("@/constants/theme").createTheme>) {
+return StyleSheet.create({
     container: {
         marginTop: 18,
     },
@@ -254,3 +257,4 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
 });
+}

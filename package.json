@@ -13,6 +13,7 @@
     "build:prev": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android",
     "setup:appwrite": "node scripts/setup-appwrite.js",
+    "provision:tasbeeh-sync": "node scripts/provision-tasbeeh-sync.mjs",
     "test:connection": "node scripts/test-connection.js",
     "add:channel": "node scripts/add-channel.js",
     "ingest:videos": "node scripts/ingest-videos.js",

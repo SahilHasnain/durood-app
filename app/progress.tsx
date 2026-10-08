@@ -8,9 +8,9 @@ import { useAppearance } from "@/contexts/AppearanceContext";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,7 +42,7 @@ const PROGRESS_VISIT_LIMIT = 10;
 export default function Progress() {
     const HEADER_HEIGHT = 60;
     const { tabBarHeight, showTabBar } = useTabBarVisibility();
-    const { user } = useAuth();
+    const { user, signInWithGoogle } = useAuth();
     const { theme: activeTheme } = useAppearance();
     const styles = createStyles(activeTheme);
     const headerTranslateY = useSharedValue(0);
@@ -90,9 +90,13 @@ export default function Progress() {
         <AutomatedAuthSheet
             visible={showAuthPrompt}
             onDismiss={() => setShowAuthPrompt(false)}
-            onSignIn={() => {
+            onSignIn={async () => {
                 setShowAuthPrompt(false);
-                router.push("/auth/login");
+                try {
+                    await signInWithGoogle();
+                } catch (error) {
+                    Alert.alert("Sign In Failed", error instanceof Error ? error.message : "Could not complete Google sign-in.");
+                }
             }}
         />
     );

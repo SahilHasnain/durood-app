@@ -19,6 +19,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Animated,
     AppState,
     BackHandler,
@@ -80,7 +81,7 @@ export default function Home() {
     const [preferredSessionGoal, setPreferredSessionGoal] = useState(DEFAULT_SESSION_GOAL);
     const [showSignInSheet, setShowSignInSheet] = useState(false);
     const [showAutomatedAuthSheet, setShowAutomatedAuthSheet] = useState(false);
-    const { isAuthenticated, loading: authLoading } = useAuth();
+    const { isAuthenticated, loading: authLoading, signInWithGoogle } = useAuth();
 const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionGoalInput, setSessionGoalInput] = useState("");
     const [showSessionGoalSheet, setShowSessionGoalSheet] = useState(false);
@@ -504,10 +505,13 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
 
         const amount = parseInt(manualAddValue.replace(/,/g, ""), 10);
         if (!amount || amount <= 0) return;
-        await applyIncrement(amount);
+        const incrementPromise = applyIncrement(amount);
         setManualAddValue("");
         setShowManualSheet(false);
         Keyboard.dismiss();
+        void incrementPromise.catch((error) => {
+            console.error("Manual add sync failed:", error);
+        });
     };
 
     const handleSetSessionGoal = async () => {
@@ -952,9 +956,13 @@ if (authLoading || !initialized || loading) {
             <AutomatedAuthSheet
                 visible={showAutomatedAuthSheet}
                 onDismiss={() => setShowAutomatedAuthSheet(false)}
-                onSignIn={() => {
+                onSignIn={async () => {
                     setShowAutomatedAuthSheet(false);
-                    router.push("/auth/login");
+                    try {
+                        await signInWithGoogle();
+                    } catch (error) {
+                        Alert.alert("Sign In Failed", error instanceof Error ? error.message : "Could not complete Google sign-in.");
+                    }
                 }}
             />
             {confettiKey !== null && (

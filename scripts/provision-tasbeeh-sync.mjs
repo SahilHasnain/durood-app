@@ -13,6 +13,7 @@ const apiKey = process.env.APPWRITE_API_KEY;
 const databaseId = process.env.APPWRITE_DATABASE_ID || "69d787ad002831c59b48";
 const functionId = process.env.APPWRITE_TASBEEH_SYNC_FUNCTION_ID || "tasbeeh-sync";
 const eventsCollectionId = "tasbeeh_sync_events";
+const goalsCollectionId = "tasbeeh_progress_goals";
 
 if (!apiKey) {
   throw new Error("APPWRITE_API_KEY is required in .env.local");
@@ -105,6 +106,40 @@ async function ensureEventsCollectionSchema() {
   }
 }
 
+async function ensureGoalLeaderboardSchema() {
+  for (const [key, size] of [["cityId", 180], ["cityName", 80], ["country", 80], ["displayName", 80]]) {
+    try {
+      await request(`/databases/${databaseId}/collections/${goalsCollectionId}/attributes/${key}`);
+    } catch (error) {
+      if (error.status !== 404) throw error;
+      await request(`/databases/${databaseId}/collections/${goalsCollectionId}/attributes/string`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, size, required: false }),
+      });
+      console.log(`Created leaderboard attribute: ${key}`);
+    }
+  }
+
+  const indexId = "city_lifetime_rank";
+  try {
+    await request(`/databases/${databaseId}/collections/${goalsCollectionId}/indexes/${indexId}`);
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    await request(`/databases/${databaseId}/collections/${goalsCollectionId}/indexes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key: indexId,
+        type: "key",
+        attributes: ["cityId", "lifetimeTotal"],
+        orders: ["ASC", "DESC"],
+      }),
+    });
+    console.log(`Created leaderboard index: ${indexId}`);
+  }
+}
+
 async function ensureFunction() {
   try {
     const existing = await request(`/functions/${functionId}`);
@@ -191,6 +226,7 @@ async function deployFunction() {
 }
 
 await ensureEventsCollectionSchema();
+await ensureGoalLeaderboardSchema();
 await ensureFunction();
 await configureFunctionVariables();
 await deployFunction();
