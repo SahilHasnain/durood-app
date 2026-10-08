@@ -227,6 +227,8 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       ]);
 
       const currentState = get();
+      const lastActiveDate = await AsyncStorage.getItem(LAST_ACTIVE_DATE_KEY);
+      const hasLocalCountForToday = lastActiveDate === getTodayKey();
       // A load can finish after local increments have already been applied.
       // Never replace a newer local total with an older server snapshot.
       const appwriteLifetime = Math.max(
@@ -235,8 +237,8 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       );
       const appwriteStreak = Math.max(calculatedStreak.currentStreak, currentState.streak);
       const appwriteCount = Math.max(
-        resolvedTodayProgress?.count ?? currentState.count,
-        currentState.count
+        resolvedTodayProgress?.count ?? 0,
+        hasLocalCountForToday ? currentState.count : 0
       );
       const appwriteTarget = resolvedGoal?.dailyTarget ?? get().target;
       void recordTasbeehDebug("loadData:server-result", {
@@ -356,14 +358,16 @@ export const useTasbeehStore = create<TasbeehState & TasbeehActions>((set, get) 
       if (hasData) {
         // Monotonic guard: never let count/lifetimeTotal/streak regress from a stale read.
         const latestState = get();
+        const lastActiveDate = await AsyncStorage.getItem(LAST_ACTIVE_DATE_KEY);
+        const hasLocalCountForToday = lastActiveDate === getTodayKey();
         const appwriteLifetime = Math.max(
           resolvedGoal?.lifetimeTotal ?? latestState.lifetimeTotal,
           latestState.lifetimeTotal
         );
         const appwriteStreak = Math.max(calculatedStreak.currentStreak, latestState.streak);
         const appwriteCount = Math.max(
-          resolvedTodayProgress?.count ?? latestState.count,
-          latestState.count
+          resolvedTodayProgress?.count ?? 0,
+          hasLocalCountForToday ? latestState.count : 0
         );
         const appwriteTarget = resolvedGoal?.dailyTarget ?? latestState.target;
         void recordTasbeehDebug("refreshData:server-result", {
