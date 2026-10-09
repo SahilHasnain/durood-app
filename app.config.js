@@ -28,8 +28,8 @@ export default {
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: ["duroodapp", "appwrite-callback-6946f98a001db8a3ab3a"],
-    userInterfaceStyle: "automatic",
+      scheme: ["duroodapp", "appwrite-callback-6946f98a001db8a3ab3a"],
+      userInterfaceStyle: "automatic",
     newArchEnabled: true,
     splash: {
       image: "./assets/images/icon.png",
@@ -40,9 +40,10 @@ export default {
       supportsTablet: true,
       bundleIdentifier: getUniqueIdentifier(),
     },
-    android: {
-      adaptiveIcon: {
-        foregroundImage: "./assets/images/icon.png",
+      android: {
+        adaptiveIcon: {
+          foregroundImage: "./assets/android-launcher-icons/adaptive-foreground.png",
+          backgroundColor: "#075B46",
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
@@ -80,6 +81,7 @@ export default {
           imageWidth: 200,
         },
       ],
+      "./plugins/withAndroidLauncherIcons.js",
     ],
     experiments: {
       typedRoutes: true,
