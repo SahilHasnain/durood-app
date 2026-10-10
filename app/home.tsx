@@ -1116,8 +1116,10 @@ return StyleSheet.create({
     },
     desktopSummaryCard: {
         flexDirection: "row",
-        gap: 12,
-        padding: 8,
+        gap: 16,
+        marginTop: 24,
+        paddingHorizontal: 24,
+        paddingVertical: 16,
     },
     summaryRow: {
         flexDirection: "row",
@@ -1130,7 +1132,7 @@ return StyleSheet.create({
         alignItems: "center",
         gap: 10,
         borderRadius: 18,
-        paddingHorizontal: 12,
+        paddingHorizontal: 30,
         paddingVertical: 12,
         backgroundColor: theme.colors.surface.primary,
     },
