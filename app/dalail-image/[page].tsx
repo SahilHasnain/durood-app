@@ -10,6 +10,7 @@ import {
 import { useDalailBookmarks } from "@/hooks/useDalailBookmarks";
 import { useDalailProgress } from "@/hooks/useDalailProgress";
 import { useResolvedDalailPage } from "@/hooks/useResolvedDalailPage";
+import { handleDalailActivity } from "@/services/dalailReminder";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -114,6 +115,7 @@ export default function DalailReaderScreen() {
     useFocusEffect(
         useCallback(() => {
             tabBarTranslateY.value = withTiming(tabBarHeight + 50, { duration: 200 });
+            void handleDalailActivity("reader");
             const backSubscription = BackHandler.addEventListener("hardwareBackPress", () => {
                 closeReader();
                 return true;

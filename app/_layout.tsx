@@ -6,6 +6,7 @@ import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { recordTasbeehDebug } from "@/services/tasbeehDebug";
 import { subscribeToGlobalRecitations } from "@/services/globalCounter";
 import { configureNotifications, ensureAndroidChannel } from "@/services/notifications";
+import { evaluateDalailReminder } from "@/services/dalailReminder";
 import NetInfo from "@react-native-community/netinfo";
 import { Ionicons } from "@expo/vector-icons";
 import { setStyle as setNavigationBarStyle } from "expo-navigation-bar";
@@ -236,6 +237,9 @@ function NotificationSetup() {
     configureNotifications();
     ensureAndroidChannel().catch((error) => {
       console.error("Failed to create notification channel:", error);
+    });
+    evaluateDalailReminder().catch((error) => {
+      console.error("Failed to evaluate dalail reminder:", error);
     });
   }, []);
 

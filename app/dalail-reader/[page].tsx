@@ -2,6 +2,7 @@ import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { getDalailSectionForPage } from "@/data/dalail";
 import { useDalailProgress } from "@/hooks/useDalailProgress";
 import { useAppearance } from "@/contexts/AppearanceContext";
+import { handleDalailActivity } from "@/services/dalailReminder";
 import {
     getDalailDuaLines,
     getDalailDuas,
@@ -130,6 +131,7 @@ export default function DalailTextReaderScreen() {
     useFocusEffect(
         useCallback(() => {
             tabBarTranslateY.value = withTiming(tabBarHeight + 50, { duration: 200 });
+            void handleDalailActivity("reader");
             const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
                 closeReader();
                 return true;

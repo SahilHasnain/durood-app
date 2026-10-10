@@ -7,6 +7,7 @@ import {
 } from "@/data/dalail";
 import { useDalailBookmarks } from "@/hooks/useDalailBookmarks";
 import { useDalailProgress } from "@/hooks/useDalailProgress";
+import { handleDalailActivity } from "@/services/dalailReminder";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { useAppearance } from "@/contexts/AppearanceContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -69,6 +70,7 @@ export default function DalailScreen() {
     useFocusEffect(
         useCallback(() => {
             headerTranslateY.value = 0;
+            void handleDalailActivity("list");
         }, [headerTranslateY])
     );
 
