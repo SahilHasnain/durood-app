@@ -7,6 +7,7 @@ import { recordTasbeehDebug } from "@/services/tasbeehDebug";
 import { subscribeToGlobalRecitations } from "@/services/globalCounter";
 import { configureNotifications, ensureAndroidChannel } from "@/services/notifications";
 import { evaluateDalailReminder } from "@/services/dalailReminder";
+import { evaluateStreakReminder } from "@/services/streakReminder";
 import NetInfo from "@react-native-community/netinfo";
 import { Ionicons } from "@expo/vector-icons";
 import { setStyle as setNavigationBarStyle } from "expo-navigation-bar";
@@ -233,6 +234,8 @@ function SystemNavigationBar() {
 }
 
 function NotificationSetup() {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     configureNotifications();
     ensureAndroidChannel().catch((error) => {
@@ -241,6 +244,25 @@ function NotificationSetup() {
     evaluateDalailReminder().catch((error) => {
       console.error("Failed to evaluate dalail reminder:", error);
     });
+    evaluateStreakReminder().catch((error) => {
+      console.error("Failed to evaluate streak reminder:", error);
+    });
+
+    const unsubscribe = useTasbeehStore.subscribe((state, prevState) => {
+      if (state.count === prevState.count) return;
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        evaluateStreakReminder().catch((error) => {
+          console.error("Failed to evaluate streak reminder:", error);
+        });
+      }, 3000);
+    });
+
+    return () => {
+      unsubscribe();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, []);
 
   return null;
