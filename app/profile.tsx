@@ -525,7 +525,7 @@ export default function Profile() {
                         )}
                     </TouchableOpacity>
                     {appearanceCard}
-                    {notificationsCard}
+                    {Platform.OS !== "web" ? notificationsCard : null}
                 </View>
                 </ScrollView>
                 {diagnosticModal}
@@ -627,7 +627,7 @@ export default function Profile() {
                         </TouchableOpacity>
                     </View>
                     {appearanceCard}
-                    {notificationsCard}
+                    {Platform.OS !== "web" ? notificationsCard : null}
         </ScrollView>
             {diagnosticModal}
             {leaveCityConfirmModal}
