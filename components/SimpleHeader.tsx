@@ -78,39 +78,43 @@ export function SimpleHeader({ translateY }: SimpleHeaderProps) {
             )}
           </View>
           {isDesktop && (
-            <View
-              accessibilityLabel={`Global recitations: ${globalRecitations ?? "loading"}`}
-               style={[styles.globalCounter, styles.desktopGlobalCounter, { backgroundColor: activeTheme.colors.accentSurface, borderColor: activeTheme.colors.accentBorder }]}
-            >
-               <Ionicons name="globe-outline" size={16} color={activeTheme.colors.primary.main} />
-              <AnimatedNumber
-                value={globalRecitations}
-                formatValue={formatGlobalCount}
-                 style={[styles.globalCounterValue, { color: activeTheme.colors.text.primary }]}
-              />
-               <Text style={[styles.globalCounterLabel, { color: activeTheme.colors.text.secondary }]}>global</Text>
+            <View style={styles.desktopGlobalCounterWrap} pointerEvents="none">
+              <View
+                accessibilityLabel={`Global recitations: ${globalRecitations ?? "loading"}`}
+                style={[styles.globalCounter, { backgroundColor: activeTheme.colors.accentSurface, borderColor: activeTheme.colors.accentBorder }]}
+              >
+                <Ionicons name="globe-outline" size={16} color={activeTheme.colors.primary.main} />
+                <AnimatedNumber
+                  value={globalRecitations}
+                  formatValue={formatGlobalCount}
+                  style={[styles.globalCounterValue, { color: activeTheme.colors.text.primary }]}
+                />
+                <Text style={[styles.globalCounterLabel, { color: activeTheme.colors.text.secondary }]}>global</Text>
+              </View>
             </View>
           )}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Theme: ${preference}. Change theme`}
-            onPress={cycleAppearance}
-            style={[styles.themeButton, { backgroundColor: activeTheme.colors.surface.control, borderColor: activeTheme.colors.border.primary }, isDesktop && styles.desktopThemeButton]}
-          >
-            <Ionicons
-              name={preference === "dark" ? "moon-outline" : preference === "light" ? "sunny-outline" : "contrast-outline"}
-              size={19}
-              color={activeTheme.colors.text.primary}
-            />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-            onPress={() => router.push("/profile")}
-            style={[styles.profileButton, { backgroundColor: activeTheme.colors.surface.control, borderColor: activeTheme.colors.border.primary }, isDesktop && styles.desktopProfileButton]}
-          >
-            <Ionicons name="person-outline" size={20} color={activeTheme.colors.text.primary} />
-          </Pressable>
+          <View style={[styles.headerActions, isDesktop && styles.desktopHeaderActions]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Theme: ${preference}. Change theme`}
+              onPress={cycleAppearance}
+              style={[styles.themeButton, { backgroundColor: activeTheme.colors.surface.control, borderColor: activeTheme.colors.border.primary }]}
+            >
+              <Ionicons
+                name={preference === "dark" ? "moon-outline" : preference === "light" ? "sunny-outline" : "contrast-outline"}
+                size={19}
+                color={activeTheme.colors.text.primary}
+              />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open profile"
+              onPress={() => router.push("/profile")}
+              style={[styles.profileButton, { backgroundColor: activeTheme.colors.surface.control, borderColor: activeTheme.colors.border.primary }]}
+            >
+              <Ionicons name="person-outline" size={20} color={activeTheme.colors.text.primary} />
+            </Pressable>
+          </View>
         </View>
       </View>
     </Animated.View>
@@ -139,8 +143,16 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "flex-end",
     gap: 6,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  desktopHeaderActions: {
+    gap: 16,
   },
   logoContainer: {
     flex: 1,
@@ -150,6 +162,13 @@ const styles = StyleSheet.create({
   },
   desktopLogoContainer: {
     display: "none",
+  },
+  desktopGlobalCounterWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
   logoWrapper: {
     width: 32,
@@ -176,10 +195,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accentSurface,
     borderWidth: 1,
     borderColor: theme.colors.accentBorder,
-  },
-  desktopGlobalCounter: {
-    marginLeft: "auto",
-    marginRight: 12,
   },
   globalCounterValue: {
     color: theme.colors.text.primary,
@@ -210,12 +225,5 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface.control,
     borderWidth: 1,
     borderColor: theme.colors.surface.control,
-    marginRight: 0,
-  },
-  desktopThemeButton: {
-    marginRight: 8,
-  },
-  desktopProfileButton: {
-    marginLeft: 0,
   },
 });

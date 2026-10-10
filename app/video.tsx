@@ -4,11 +4,12 @@ import { config } from "@/config/appwrite";
 import { useTabBarVisibility } from "@/contexts/TabBarVisibilityContext";
 import { getProgress, markVideoWatched, saveProgress } from "@/services/progressTracking";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { VideoPlayer } from "expo-video";
 import React from "react";
 import {
     AppState,
+    BackHandler,
     StatusBar,
     StyleSheet,
     View
@@ -22,6 +23,8 @@ export default function VideoScreen() {
         title?: string;
         duroodId?: string;
     }>();
+
+    const router = useRouter();
 
     const [videoPlaying, setVideoPlaying] = React.useState(false);
     const [videoDuration, setVideoDuration] = React.useState(0);
@@ -79,6 +82,16 @@ export default function VideoScreen() {
                 }
             };
         }, [tabBarTranslateY, tabBarHeight]),
+    );
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+                router.replace("/videos" as never);
+                return true;
+            });
+            return () => subscription.remove();
+        }, [router]),
     );
 
     React.useEffect(() => {

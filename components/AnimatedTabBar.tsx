@@ -240,7 +240,7 @@ export function AnimatedTabBar({
                             style={styles.learnPopoverItem}
                             onPress={() => openLearn("fazilat")}
                         >
-                            <Ionicons name="book-outline" size={18} color={activeTheme.colors.primary.main} />
+                            <Ionicons name="flower-outline" size={18} color={activeTheme.colors.primary.main} />
                             <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Durood</Text>
                         </Pressable>
                         <Pressable
