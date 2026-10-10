@@ -5,6 +5,7 @@ import { TabBarVisibilityProvider, useTabBarVisibility } from "@/contexts/TabBar
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { recordTasbeehDebug } from "@/services/tasbeehDebug";
 import { subscribeToGlobalRecitations } from "@/services/globalCounter";
+import { configureNotifications, ensureAndroidChannel } from "@/services/notifications";
 import NetInfo from "@react-native-community/netinfo";
 import { Ionicons } from "@expo/vector-icons";
 import { setStyle as setNavigationBarStyle } from "expo-navigation-bar";
@@ -230,6 +231,17 @@ function SystemNavigationBar() {
   return null;
 }
 
+function NotificationSetup() {
+  useEffect(() => {
+    configureNotifications();
+    ensureAndroidChannel().catch((error) => {
+      console.error("Failed to create notification channel:", error);
+    });
+  }, []);
+
+  return null;
+}
+
 function GlobalCounterSync() {
   useEffect(() => {
     const setGlobalRecitations = useTasbeehStore.getState().setGlobalRecitations;
@@ -272,6 +284,7 @@ function RootLayoutShell() {
     <>
       <AutoSyncOnReconnect />
       <GlobalCounterSync />
+      <NotificationSetup />
       <TabBarVisibilityProvider tabBarHeight={68}>
         <StatusBar style={isDark ? "light" : "dark"} />
         <SystemNavigationBar />

@@ -63,9 +63,15 @@ export default {
           enforceContrast: false,
           style: "dark",
         },
-      ],
+],
       "expo-sqlite",
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          color: "#075B46",
+        },
+      ],
       "@react-native-google-signin/google-signin",
       [
         "expo-location",
