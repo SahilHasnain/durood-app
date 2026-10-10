@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getDalailInterest, recordDalailActivity, type DalailActivityType } from "@/services/dalailActivity";
+import { getNotificationSettings } from "@/services/notificationSettings";
 import {
     cancelScheduledNotification,
     hasNotificationPermission,
@@ -7,8 +8,6 @@ import {
 } from "@/services/notifications";
 
 const REMINDER_ID_KEY = "dalail_reminder_notification_id";
-export const DEFAULT_DALIAL_REMINDER_HOUR = 20;
-export const DEFAULT_DALIAL_REMINDER_MINUTE = 0;
 
 async function getReminderId(): Promise<string | null> {
     try {
@@ -19,11 +18,21 @@ async function getReminderId(): Promise<string | null> {
 }
 
 export async function evaluateDalailReminder(): Promise<void> {
+    const settings = await getNotificationSettings();
+    const existingId = await getReminderId();
+
+    if (!settings.dalailEnabled) {
+        if (existingId) {
+            await cancelScheduledNotification(existingId);
+            await AsyncStorage.removeItem(REMINDER_ID_KEY);
+        }
+        return;
+    }
+
     const granted = await hasNotificationPermission();
     if (!granted) return;
 
     const interest = await getDalailInterest();
-    const existingId = await getReminderId();
 
     if (!interest.interested) {
         if (existingId) {
@@ -38,8 +47,8 @@ export async function evaluateDalailReminder(): Promise<void> {
     const id = await scheduleDailyReminder({
         title: "Dalail reminder",
         body: "It's time for your daily Dalail reading.",
-        hour: DEFAULT_DALIAL_REMINDER_HOUR,
-        minute: DEFAULT_DALIAL_REMINDER_MINUTE,
+        hour: settings.dalailHour,
+        minute: settings.dalailMinute,
     });
     await AsyncStorage.setItem(REMINDER_ID_KEY, id);
 }

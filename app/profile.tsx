@@ -2,13 +2,22 @@ import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppearance, type AppearancePreference } from "@/contexts/AppearanceContext";
 import { getAppwriteUserPrefs, updateAppwriteUserPrefs } from "@/services/appwriteAuth";
+import { requestNotificationPermission } from "@/services/notifications";
+import {
+    DEFAULT_NOTIFICATION_SETTINGS,
+    getNotificationSettings,
+    updateNotificationSettings,
+    type NotificationSettings,
+} from "@/services/notificationSettings";
+import { evaluateDalailReminder } from "@/services/dalailReminder";
+import { evaluateStreakReminder } from "@/services/streakReminder";
 import { joinCityLeaderboard, leaveCityLeaderboard } from "@/services/cityLeaderboard";
 import { clearTasbeehDebugLog, getTasbeehDebugLog, TasbeehDebugEntry } from "@/services/tasbeehDebug";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Location from "expo-location";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Profile() {
@@ -26,8 +35,23 @@ export default function Profile() {
     const [showLeaveCityConfirm, setShowLeaveCityConfirm] = useState(false);
     const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
     const [accountMessage, setAccountMessage] = useState("");
+    const [notifSettings, setNotifSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
+    const [notificationMessage, setNotificationMessage] = useState("");
+    const [timeSheet, setTimeSheet] = useState<"streak" | "dalail" | null>(null);
+    const [timeHour, setTimeHour] = useState("");
+    const [timeMinute, setTimeMinute] = useState("");
     const { width } = useWindowDimensions();
     const isDesktopWeb = Platform.OS === "web" && width >= 1200;
+
+    useEffect(() => {
+        let active = true;
+        getNotificationSettings()
+            .then((settings) => {
+                if (active) setNotifSettings(settings);
+            })
+            .catch(() => {});
+        return () => { active = false; };
+    }, []);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -168,6 +192,63 @@ export default function Profile() {
         setDebugEntries(await getTasbeehDebugLog());
     };
 
+    const formatTime = (hour: number, minute: number) =>
+        `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+
+    const toggleReminder = async (kind: "streak" | "dalail", enabled: boolean) => {
+        setNotificationMessage("");
+        if (enabled) {
+            const granted = await requestNotificationPermission();
+            if (!granted) {
+                setNotificationMessage("Notifications are blocked. Allow notifications in your device settings to use reminders.");
+                return;
+            }
+        }
+        const next = kind === "streak"
+            ? { ...notifSettings, streakEnabled: enabled }
+            : { ...notifSettings, dalailEnabled: enabled };
+        setNotifSettings(next);
+        await updateNotificationSettings(next);
+        if (kind === "streak") {
+            await evaluateStreakReminder().catch((error) => console.error("Failed to update streak reminder:", error));
+        } else {
+            await evaluateDalailReminder().catch((error) => console.error("Failed to update dalail reminder:", error));
+        }
+    };
+
+    const openTimeSheet = (kind: "streak" | "dalail") => {
+        setNotificationMessage("");
+        setTimeHour(String(kind === "streak" ? notifSettings.streakHour : notifSettings.dalailHour));
+        setTimeMinute(String(kind === "streak" ? notifSettings.streakMinute : notifSettings.dalailMinute));
+        setTimeSheet(kind);
+    };
+
+    const handleSaveTime = async () => {
+        const hour = parseInt(timeHour, 10);
+        const minute = parseInt(timeMinute, 10);
+        if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+            setNotificationMessage("Enter an hour between 0 and 23.");
+            return;
+        }
+        if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
+            setNotificationMessage("Enter minutes between 0 and 59.");
+            return;
+        }
+        const kind = timeSheet;
+        const patch = kind === "streak"
+            ? { streakHour: hour, streakMinute: minute }
+            : { dalailHour: hour, dalailMinute: minute };
+        const next = { ...notifSettings, ...patch };
+        setNotifSettings(next);
+        setTimeSheet(null);
+        await updateNotificationSettings(next);
+        if (kind === "streak") {
+            await evaluateStreakReminder().catch((error) => console.error("Failed to update streak reminder:", error));
+        } else {
+            await evaluateDalailReminder().catch((error) => console.error("Failed to update dalail reminder:", error));
+        }
+    };
+
     const appearanceOptions: { value: AppearancePreference; label: string }[] = [
         { value: "system", label: "System" },
         { value: "light", label: "Light" },
@@ -194,6 +275,116 @@ export default function Profile() {
                 ))}
             </View>
         </View>
+    );
+
+    const notificationsCard = (
+        <View style={styles.appearanceCard}>
+            <View>
+                <Text style={styles.appearanceTitle}>Notifications</Text>
+                <Text style={styles.appearanceDescription}>Daily reminders to protect your streak and your Dalail reading.</Text>
+            </View>
+
+            <View style={styles.notificationRow}>
+                <View style={styles.notificationInfo}>
+                    <Text style={styles.notificationLabel}>Streak reminder</Text>
+                    <Text style={styles.notificationHint}>Reminds you to recite if you haven&apos;t yet today.</Text>
+                </View>
+                <Switch
+                    value={notifSettings.streakEnabled}
+                    onValueChange={(enabled) => void toggleReminder("streak", enabled)}
+                    trackColor={{ false: activeTheme.colors.border.primary, true: activeTheme.colors.primary.main }}
+                    thumbColor={activeTheme.colors.surface.elevated}
+                />
+            </View>
+            {notifSettings.streakEnabled && (
+                <TouchableOpacity style={styles.notificationTimeButton} onPress={() => openTimeSheet("streak")}>
+                    <Ionicons name="time-outline" size={17} color={activeTheme.colors.primary.main} />
+                    <Text style={styles.notificationTimeText}>{formatTime(notifSettings.streakHour, notifSettings.streakMinute)}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={activeTheme.colors.text.tertiary} />
+                </TouchableOpacity>
+            )}
+
+            <View style={styles.notificationRow}>
+                <View style={styles.notificationInfo}>
+                    <Text style={styles.notificationLabel}>Dalail reminder</Text>
+                    <Text style={styles.notificationHint}>Reminds you to read your Dalail for the day.</Text>
+                </View>
+                <Switch
+                    value={notifSettings.dalailEnabled}
+                    onValueChange={(enabled) => void toggleReminder("dalail", enabled)}
+                    trackColor={{ false: activeTheme.colors.border.primary, true: activeTheme.colors.primary.main }}
+                    thumbColor={activeTheme.colors.surface.elevated}
+                />
+            </View>
+            {notifSettings.dalailEnabled && (
+                <TouchableOpacity style={styles.notificationTimeButton} onPress={() => openTimeSheet("dalail")}>
+                    <Ionicons name="time-outline" size={17} color={activeTheme.colors.primary.main} />
+                    <Text style={styles.notificationTimeText}>{formatTime(notifSettings.dalailHour, notifSettings.dalailMinute)}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={activeTheme.colors.text.tertiary} />
+                </TouchableOpacity>
+            )}
+
+            {(notificationMessage || Platform.OS === "web") ? (
+                <Text style={styles.notificationFootnote}>
+                    {notificationMessage || "Notifications are only available in the mobile app."}
+                </Text>
+            ) : null}
+        </View>
+    );
+
+    const timeSheetModal = (
+        <Modal
+            visible={timeSheet !== null}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setTimeSheet(null)}
+        >
+            <View style={styles.confirmOverlay}>
+                <View style={styles.confirmCard}>
+                    <Text style={styles.confirmTitle}>Reminder time</Text>
+                    <Text style={styles.confirmMessage}>
+                        {timeSheet === "streak"
+                            ? "Fires once a day at this time if you haven't recited yet."
+                            : "Fires daily at this time as a Dalail reading nudge."}
+                    </Text>
+                    <View style={styles.timeInputRow}>
+                        <TextInput
+                            style={styles.timeInput}
+                            value={timeHour}
+                            onChangeText={setTimeHour}
+                            keyboardType="number-pad"
+                            maxLength={2}
+                            placeholder="HH"
+                            placeholderTextColor={activeTheme.colors.text.tertiary}
+                        />
+                        <Text style={styles.timeSeparator}>:</Text>
+                        <TextInput
+                            style={styles.timeInput}
+                            value={timeMinute}
+                            onChangeText={setTimeMinute}
+                            keyboardType="number-pad"
+                            maxLength={2}
+                            placeholder="MM"
+                            placeholderTextColor={activeTheme.colors.text.tertiary}
+                        />
+                    </View>
+                    <View style={styles.confirmActions}>
+                        <TouchableOpacity
+                            style={styles.confirmCancelButton}
+                            onPress={() => setTimeSheet(null)}
+                        >
+                            <Text style={styles.confirmCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.timeSaveButton}
+                            onPress={() => void handleSaveTime()}
+                        >
+                            <Text style={styles.timeSaveText}>Save</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
     );
 
     const diagnosticModal = (
@@ -334,9 +525,11 @@ export default function Profile() {
                         )}
                     </TouchableOpacity>
                     {appearanceCard}
+                    {notificationsCard}
                 </View>
                 </ScrollView>
                 {diagnosticModal}
+            {timeSheetModal}
             </SafeAreaView>
         );
     }
@@ -434,10 +627,12 @@ export default function Profile() {
                         </TouchableOpacity>
                     </View>
                     {appearanceCard}
+                    {notificationsCard}
         </ScrollView>
             {diagnosticModal}
             {leaveCityConfirmModal}
             {signOutConfirmModal}
+            {timeSheetModal}
         </SafeAreaView>
     );
 }
@@ -780,6 +975,86 @@ return StyleSheet.create({
         color: theme.colors.semantic.error,
         fontSize: 13,
         textAlign: "center",
+    },
+    notificationRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+    },
+    notificationInfo: {
+        flex: 1,
+    },
+    notificationLabel: {
+        color: theme.colors.text.primary,
+        fontSize: 15,
+        fontWeight: "700",
+    },
+    notificationHint: {
+        color: theme.colors.text.secondary,
+        fontSize: 12,
+        lineHeight: 17,
+        marginTop: 2,
+    },
+    notificationTimeButton: {
+        minHeight: 42,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        backgroundColor: theme.colors.accentSurface,
+        borderWidth: 1,
+        borderColor: theme.colors.accentBorder,
+    },
+    notificationTimeText: {
+        color: theme.colors.primary.main,
+        fontSize: 13,
+        fontWeight: "800",
+        fontVariant: ["tabular-nums"],
+    },
+    notificationFootnote: {
+        color: theme.colors.text.secondary,
+        fontSize: 12,
+        lineHeight: 18,
+    },
+    timeInputRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginTop: 16,
+    },
+    timeInput: {
+        flex: 1,
+        minHeight: 46,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        backgroundColor: theme.colors.surface.secondary,
+        borderWidth: 1,
+        borderColor: theme.colors.border.primary,
+        color: theme.colors.text.primary,
+        fontSize: 18,
+        fontWeight: "700",
+        textAlign: "center",
+    },
+    timeSeparator: {
+        color: theme.colors.text.secondary,
+        fontSize: 18,
+        fontWeight: "700",
+    },
+    timeSaveButton: {
+        minHeight: 42,
+        minWidth: 84,
+        paddingHorizontal: 16,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+        backgroundColor: theme.colors.primary.main,
+    },
+    timeSaveText: {
+        color: theme.colors.semantic.white,
+        fontSize: 14,
+        fontWeight: "800",
     },
 });
 }

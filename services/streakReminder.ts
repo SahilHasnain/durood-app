@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getNotificationSettings } from "@/services/notificationSettings";
 import {
     cancelScheduledNotification,
     hasNotificationPermission,
@@ -6,8 +7,6 @@ import {
 } from "@/services/notifications";
 
 const ARMED_KEY = "tasbeeh_streak_reminder";
-export const STREAK_REMINDER_HOUR = 20;
-export const STREAK_REMINDER_MINUTE = 0;
 
 type ArmedReminder = {
     notificationId: string;
@@ -21,9 +20,9 @@ function getTodayKey(): string {
     ).padStart(2, "0")}`;
 }
 
-function getNextWarnDate(): Date {
+function getNextWarnDate(hour: number, minute: number): Date {
     const date = new Date();
-    date.setHours(STREAK_REMINDER_HOUR, STREAK_REMINDER_MINUTE, 0, 0);
+    date.setHours(hour, minute, 0, 0);
     if (date.getTime() <= Date.now()) {
         date.setDate(date.getDate() + 1);
     }
@@ -58,12 +57,22 @@ async function readArmed(): Promise<ArmedReminder | null> {
 }
 
 export async function evaluateStreakReminder(): Promise<void> {
+    const settings = await getNotificationSettings();
+    const armed = await readArmed();
+
+    if (!settings.streakEnabled) {
+        if (armed) {
+            await cancelScheduledNotification(armed.notificationId);
+            await AsyncStorage.removeItem(ARMED_KEY);
+        }
+        return;
+    }
+
     const granted = await hasNotificationPermission();
     if (!granted) return;
 
     const today = getTodayKey();
     const snapshot = await readStreakSnapshot();
-    const armed = await readArmed();
 
     const hasRecited = snapshot.count > 0;
 
@@ -87,7 +96,7 @@ export async function evaluateStreakReminder(): Promise<void> {
             snapshot.streak > 0
                 ? `You're on a ${snapshot.streak}-day streak. Recite once today to keep it.`
                 : `Recite at least once today to start your streak.`,
-        date: getNextWarnDate(),
+        date: getNextWarnDate(settings.streakHour, settings.streakMinute),
     });
     await AsyncStorage.setItem(ARMED_KEY, JSON.stringify({ notificationId, dateKey: today }));
 }
