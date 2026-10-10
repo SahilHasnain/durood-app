@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTasbeehData } from "@/hooks/useTasbeehData";
 import { useTasbeehStore } from "@/stores/tasbeehStore";
 import { SessionRecord } from "@/services/tasbeehService";
+import { getAppwriteSessionGoal, setAppwriteSessionGoal } from "@/services/appwriteAuth";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
@@ -160,6 +161,35 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
             mounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        let mounted = true;
+        void (async () => {
+            try {
+                const remoteGoal = await getAppwriteSessionGoal();
+                if (!mounted) return;
+                if (remoteGoal !== null) {
+                    setPreferredSessionGoal(remoteGoal);
+                    void AsyncStorage.setItem(SESSION_GOAL_KEY, remoteGoal.toString()).catch(() => {});
+                } else {
+                    // No server value yet — initialize it with the current local preference.
+                    const localStr = await AsyncStorage.getItem(SESSION_GOAL_KEY).catch(() => null);
+                    const localGoal = localStr ? parseInt(localStr, 10) : DEFAULT_SESSION_GOAL;
+                    if (Number.isFinite(localGoal) && localGoal > 0) {
+                        await setAppwriteSessionGoal(localGoal);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to sync session goal with Appwrite:", error);
+            }
+        })();
+
+        return () => {
+            mounted = false;
+        };
+    }, [isAuthenticated]);
 
     useEffect(() => {
         AsyncStorage.getItem(SESSION_RECOVERY_KEY)
@@ -519,9 +549,18 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
         if (!nextGoal || nextGoal <= 0) return;
         setPreferredSessionGoal(nextGoal);
         setSessionGoal(nextGoal);
-        await AsyncStorage.setItem(SESSION_GOAL_KEY, nextGoal.toString());
         setShowSessionGoalSheet(false);
         Keyboard.dismiss();
+
+        await AsyncStorage.setItem(SESSION_GOAL_KEY, nextGoal.toString()).catch((error) => {
+            console.error("Failed to save session goal locally:", error);
+        });
+
+        if (isAuthenticated) {
+            setAppwriteSessionGoal(nextGoal).catch((error) => {
+                console.error("Failed to sync session goal to Appwrite:", error);
+            });
+        }
     };
 
     const toggleFullscreen = useCallback(() => {

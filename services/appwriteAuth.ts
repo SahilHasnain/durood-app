@@ -72,3 +72,22 @@ export const appwriteAuthConfig = {
   endpoint: config.endpoint,
   projectId: config.projectId,
 };
+
+const SESSION_GOAL_PREF_KEY = "sessionGoal";
+
+export async function getAppwriteSessionGoal(): Promise<number | null> {
+  try {
+    const prefs = await getAppwriteUserPrefs();
+    const raw = prefs[SESSION_GOAL_PREF_KEY];
+    const goal = typeof raw === "number" ? raw : typeof raw === "string" ? parseInt(raw, 10) : NaN;
+    return Number.isFinite(goal) && goal > 0 ? goal : null;
+  } catch (error) {
+    console.error("Failed to get session goal preference:", error);
+    return null;
+  }
+}
+
+export async function setAppwriteSessionGoal(goal: number): Promise<void> {
+  const currentPrefs = await getAppwriteUserPrefs();
+  await updateAppwriteUserPrefs({ ...currentPrefs, [SESSION_GOAL_PREF_KEY]: goal });
+}
