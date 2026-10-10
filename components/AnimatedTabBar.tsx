@@ -2,8 +2,8 @@ import { theme } from "@/constants/theme";
 import { useAppearance } from "@/contexts/AppearanceContext";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
-import { Image, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { BackHandler, Image, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { SharedValue, useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -50,6 +50,28 @@ export function AnimatedTabBar({
     useEffect(() => {
         if (isLearnActive) setLearnOpen(false);
     }, [isLearnActive]);
+
+    const learnOriginRef = useRef<string | null>(null);
+
+    const openLearn = (routeName: string) => {
+        setLearnOpen(false);
+        if (activeRouteName !== routeName) {
+            learnOriginRef.current = activeRouteName ?? "home";
+        }
+        navigation.navigate(routeName);
+    };
+
+    useEffect(() => {
+        if (Platform.OS === "web") return;
+        const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (!isLearnActive) return false;
+            const origin = learnOriginRef.current;
+            if (!origin) return false;
+            navigation.navigate(origin);
+            return true;
+        });
+        return () => subscription.remove();
+    }, [isLearnActive, navigation]);
 
     if (isDesktop && isFullscreen) return null;
 
@@ -209,30 +231,21 @@ export function AnimatedTabBar({
                         <Text style={[styles.learnPopoverTitle, { color: activeTheme.colors.text.tertiary }]}>Learn</Text>
                         <Pressable
                             style={styles.learnPopoverItem}
-                            onPress={() => {
-                                setLearnOpen(false);
-                                navigation.navigate("dalail");
-                            }}
+                            onPress={() => openLearn("dalail")}
                         >
                             <Ionicons name="book-outline" size={18} color={activeTheme.colors.primary.main} />
                             <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Dalail</Text>
                         </Pressable>
                         <Pressable
                             style={styles.learnPopoverItem}
-                            onPress={() => {
-                                setLearnOpen(false);
-                                navigation.navigate("fazilat");
-                            }}
+                            onPress={() => openLearn("fazilat")}
                         >
                             <Ionicons name="book-outline" size={18} color={activeTheme.colors.primary.main} />
                             <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Durood</Text>
                         </Pressable>
                         <Pressable
                             style={styles.learnPopoverItem}
-                            onPress={() => {
-                                setLearnOpen(false);
-                                navigation.navigate("videos");
-                            }}
+                            onPress={() => openLearn("videos")}
                         >
                             <Ionicons name="videocam-outline" size={18} color={activeTheme.colors.primary.main} />
                             <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Videos</Text>
