@@ -5,7 +5,7 @@ node_modules/
 .expo/
 dist/
 build/
-android/
+/android/
 ios/build/
 ios/Pods/
 
