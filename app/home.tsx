@@ -524,15 +524,6 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
         Keyboard.dismiss();
     };
 
-    const handleClearSessionGoal = async () => {
-        setPreferredSessionGoal(DEFAULT_SESSION_GOAL);
-        setSessionGoal(null);
-        setSessionGoalInput("");
-        await AsyncStorage.removeItem(SESSION_GOAL_KEY);
-        setShowSessionGoalSheet(false);
-        Keyboard.dismiss();
-    };
-
     const toggleFullscreen = useCallback(() => {
         if (Platform.OS !== "web") return;
         const doc = document as any;
@@ -736,11 +727,6 @@ if (authLoading || !initialized || loading) {
                         <TouchableOpacity onPress={handleSetSessionGoal} style={styles.sheetButton}>
                             <Text style={styles.sheetButtonText}>Set Goal</Text>
                         </TouchableOpacity>
-                        {effectiveSessionGoal !== DEFAULT_SESSION_GOAL && (
-                            <TouchableOpacity onPress={handleClearSessionGoal} style={styles.sessionGoalClearButton}>
-                                <Text style={styles.sessionGoalClearButtonText}>Clear Goal</Text>
-                            </TouchableOpacity>
-                        )}
                         <KeyboardSpacer />
                     </View>
                 )}
@@ -1318,15 +1304,6 @@ return StyleSheet.create({
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: 24,
-    },
-    sessionGoalClearButton: {
-        padding: 16,
-        alignItems: "center",
-    },
-    sessionGoalClearButtonText: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: theme.colors.text.secondary,
     },
     fullscreenExitHint: {
         position: "absolute",
