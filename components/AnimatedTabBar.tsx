@@ -135,7 +135,8 @@ export function AnimatedTabBar({
                 ? [
                     { label: "Practice", routes: visibleRoutes.filter((route) => ["home", "progress", "planner"].includes(route.name)) },
                     { label: "Community", routes: visibleRoutes.filter((route) => route.name === "leaderboard") },
-                    { label: "Learn", routes: visibleRoutes.filter((route) => ["dalail", "fazilat", "videos", "books"].includes(route.name)) },
+                    { label: "Reading", routes: visibleRoutes.filter((route) => ["books", "dalail"].includes(route.name)) },
+                    { label: "Explore", routes: visibleRoutes.filter((route) => ["fazilat", "videos"].includes(route.name)) },
                     { label: "Account", routes: visibleRoutes.filter((route) => route.name === "profile") },
                 ]
                 : [{ label: "", routes: mobileRoutes }]
@@ -229,6 +230,14 @@ export function AnimatedTabBar({
                     <Pressable style={styles.learnDismiss} onPress={() => setLearnOpen(false)} />
                     <View style={[styles.learnPopover, { backgroundColor: activeTheme.colors.background.secondary, borderColor: activeTheme.colors.border.primary }]}>
                         <Text style={[styles.learnPopoverTitle, { color: activeTheme.colors.text.tertiary }]}>Learn</Text>
+                        <Text style={[styles.learnPopoverSection, { color: activeTheme.colors.text.tertiary }]}>Reading</Text>
+                        <Pressable
+                            style={styles.learnPopoverItem}
+                            onPress={() => openLearn("books")}
+                        >
+                            <Ionicons name="library-outline" size={18} color={activeTheme.colors.primary.main} />
+                            <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Books</Text>
+                        </Pressable>
                         <Pressable
                             style={styles.learnPopoverItem}
                             onPress={() => openLearn("dalail")}
@@ -236,6 +245,7 @@ export function AnimatedTabBar({
                             <Ionicons name="book-outline" size={18} color={activeTheme.colors.primary.main} />
                             <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Dalail</Text>
                         </Pressable>
+                        <Text style={[styles.learnPopoverSection, styles.learnPopoverSectionSpaced, { color: activeTheme.colors.text.tertiary }]}>Explore</Text>
                         <Pressable
                             style={styles.learnPopoverItem}
                             onPress={() => openLearn("fazilat")}
@@ -249,13 +259,6 @@ export function AnimatedTabBar({
                         >
                             <Ionicons name="videocam-outline" size={18} color={activeTheme.colors.primary.main} />
                             <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Videos</Text>
-                        </Pressable>
-                        <Pressable
-                            style={styles.learnPopoverItem}
-                            onPress={() => openLearn("books")}
-                        >
-                            <Ionicons name="library-outline" size={18} color={activeTheme.colors.primary.main} />
-                            <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Books</Text>
                         </Pressable>
                     </View>
                 </>
@@ -369,7 +372,7 @@ const styles = {
         position: "absolute" as const,
         right: 12,
         bottom: 64,
-        width: 172,
+        width: 204,
         padding: 8,
         borderRadius: 16,
         backgroundColor: theme.colors.background.secondary,
@@ -390,6 +393,20 @@ const styles = {
         paddingHorizontal: 10,
         paddingVertical: 6,
         textTransform: "uppercase" as const,
+    },
+    learnPopoverSection: {
+        paddingHorizontal: 10,
+        paddingTop: 7,
+        paddingBottom: 3,
+        fontSize: 9,
+        fontWeight: "900" as const,
+        letterSpacing: 0.9,
+        textTransform: "uppercase" as const,
+    },
+    learnPopoverSectionSpaced: {
+        marginTop: 5,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border.subtle,
     },
     learnPopoverItem: {
         minHeight: 42,
