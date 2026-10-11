@@ -152,6 +152,19 @@ function RootLayoutContent() {
         }}
       />
       <Tabs.Screen
+        name="books"
+        options={{
+          title: "Books",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "library" : "library-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="leaderboard"
         options={{
           title: "Community",

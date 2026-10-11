@@ -43,9 +43,9 @@ export function AnimatedTabBar({
             && !route.name.startsWith("dalail-reader")
             && !route.name.startsWith("dalail-image");
     });
-    const mobileRoutes = visibleRoutes.filter((route) => !["dalail", "fazilat", "videos"].includes(route.name));
+    const mobileRoutes = visibleRoutes.filter((route) => !["dalail", "fazilat", "videos", "books"].includes(route.name));
     const activeRouteName = state.routes[state.index]?.name;
-    const isLearnActive = ["dalail", "fazilat", "videos"].includes(activeRouteName ?? "");
+    const isLearnActive = ["dalail", "fazilat", "videos", "books"].includes(activeRouteName ?? "");
 
     useEffect(() => {
         if (isLearnActive) setLearnOpen(false);
@@ -135,7 +135,7 @@ export function AnimatedTabBar({
                 ? [
                     { label: "Practice", routes: visibleRoutes.filter((route) => ["home", "progress", "planner"].includes(route.name)) },
                     { label: "Community", routes: visibleRoutes.filter((route) => route.name === "leaderboard") },
-                     { label: "Learn", routes: visibleRoutes.filter((route) => ["dalail", "fazilat", "videos"].includes(route.name)) },
+                    { label: "Learn", routes: visibleRoutes.filter((route) => ["dalail", "fazilat", "videos", "books"].includes(route.name)) },
                     { label: "Account", routes: visibleRoutes.filter((route) => route.name === "profile") },
                 ]
                 : [{ label: "", routes: mobileRoutes }]
@@ -249,6 +249,13 @@ export function AnimatedTabBar({
                         >
                             <Ionicons name="videocam-outline" size={18} color={activeTheme.colors.primary.main} />
                             <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Videos</Text>
+                        </Pressable>
+                        <Pressable
+                            style={styles.learnPopoverItem}
+                            onPress={() => openLearn("books")}
+                        >
+                            <Ionicons name="library-outline" size={18} color={activeTheme.colors.primary.main} />
+                            <Text style={[styles.learnPopoverLabel, { color: activeTheme.colors.text.primary }]}>Books</Text>
                         </Pressable>
                     </View>
                 </>
