@@ -628,6 +628,18 @@ export default function Profile() {
                     </View>
                     {appearanceCard}
                     {Platform.OS !== "web" ? notificationsCard : null}
+                    {user?.labels.includes("admin") ? (
+                        <TouchableOpacity style={styles.adminToolsCard} onPress={() => router.push("/admin-users" as never)}>
+                            <View style={styles.adminToolsIcon}>
+                                <Ionicons name="shield-checkmark-outline" size={19} color={activeTheme.colors.primary.main} />
+                            </View>
+                            <View style={styles.adminToolsCopy}>
+                                <Text style={styles.adminToolsTitle}>Admin users</Text>
+                                <Text style={styles.adminToolsDescription}>View registered accounts and tasbeeh progress.</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color={activeTheme.colors.text.tertiary} />
+                        </TouchableOpacity>
+                    ) : null}
         </ScrollView>
             {diagnosticModal}
             {leaveCityConfirmModal}
@@ -715,6 +727,31 @@ return StyleSheet.create({
         borderColor: theme.colors.border.primary,
         gap: 14,
     },
+    adminToolsCard: {
+        width: "100%",
+        minHeight: 76,
+        marginTop: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderRadius: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        backgroundColor: theme.colors.accentSurface,
+        borderWidth: 1,
+        borderColor: theme.colors.accentBorder,
+    },
+    adminToolsIcon: {
+        width: 38,
+        height: 38,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 12,
+        backgroundColor: theme.colors.surface.primary,
+    },
+    adminToolsCopy: { flex: 1, gap: 3 },
+    adminToolsTitle: { color: theme.colors.text.primary, fontSize: 14, fontWeight: "800" },
+    adminToolsDescription: { color: theme.colors.text.secondary, fontSize: 11, lineHeight: 16 },
     cityCard: {
         width: "100%",
         marginTop: 24,

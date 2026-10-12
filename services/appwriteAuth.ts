@@ -1,5 +1,5 @@
-import { OAuthProvider } from "appwrite";
-import { Account as NativeAccount, Client as NativeClient, IdTokenProvider } from "react-native-appwrite";
+import { Functions as WebFunctions, OAuthProvider } from "appwrite";
+import { Account as NativeAccount, Client as NativeClient, Functions as NativeFunctions, IdTokenProvider } from "react-native-appwrite";
 import { GoogleSignin, isSuccessResponse } from "@react-native-google-signin/google-signin";
 import { Platform } from "react-native";
 import { account, config } from "@/config/appwrite";
@@ -54,6 +54,18 @@ export async function signInWithAppwriteGoogle(): Promise<void> {
 
 export async function getAppwriteUser() {
   return authAccount.get();
+}
+
+export async function executeAuthenticatedAppwriteFunction(functionId: string, body: Record<string, unknown>) {
+  const functions = Platform.OS === "web"
+    ? new WebFunctions(account.client)
+    : new NativeFunctions(nativeClient);
+
+  return functions.createExecution({
+    functionId,
+    body: JSON.stringify(body),
+    async: false,
+  });
 }
 
 export async function getAppwriteUserPrefs(): Promise<Record<string, unknown>> {

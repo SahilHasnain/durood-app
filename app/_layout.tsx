@@ -224,6 +224,12 @@ function RootLayoutContent() {
         }}
       />
       <Tabs.Screen
+        name="admin-users"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           href: null,

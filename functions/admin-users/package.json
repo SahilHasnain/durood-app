@@ -1,0 +1,8 @@
+{
+  "name": "admin-users",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^23.1.0"
+  }
+}

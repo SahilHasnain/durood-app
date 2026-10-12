@@ -10,6 +10,7 @@ interface User {
     email: string;
     name: string;
     emailVerified: boolean;
+    labels: string[];
 }
 
 interface AuthContextType {
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     email: appwriteUser.email || "",
                     name: appwriteUser.name || "User",
                     emailVerified: !!appwriteUser.emailVerification,
+                    labels: Array.isArray(appwriteUser.labels) ? appwriteUser.labels : [],
                 };
                 setUser(nextUser);
                 void AsyncStorage.setItem(CACHED_USER_KEY, JSON.stringify(nextUser));
@@ -50,7 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         return;
                     }
                     const cached = await AsyncStorage.getItem(CACHED_USER_KEY);
-                    if (cached) setUser(JSON.parse(cached) as User);
+                    if (cached) {
+                        const cachedUser = JSON.parse(cached) as Partial<User>;
+                        if (typeof cachedUser.id === "string") {
+                            setUser({
+                                id: cachedUser.id,
+                                email: cachedUser.email ?? "",
+                                name: cachedUser.name ?? "User",
+                                emailVerified: cachedUser.emailVerified ?? false,
+                                labels: Array.isArray(cachedUser.labels) ? cachedUser.labels : [],
+                            });
+                        }
+                    }
                 } catch {
                     // Keep the initial anonymous state when no cached user exists.
                 }
@@ -79,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: appwriteUser.email || "",
             name: appwriteUser.name || "User",
             emailVerified: !!appwriteUser.emailVerification,
+            labels: Array.isArray(appwriteUser.labels) ? appwriteUser.labels : [],
         });
         await AsyncStorage.setItem(
             CACHED_USER_KEY,
@@ -87,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 email: appwriteUser.email || "",
                 name: appwriteUser.name || "User",
                 emailVerified: !!appwriteUser.emailVerification,
+                labels: Array.isArray(appwriteUser.labels) ? appwriteUser.labels : [],
             }),
         );
     };
