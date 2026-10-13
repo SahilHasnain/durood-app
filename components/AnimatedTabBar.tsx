@@ -35,7 +35,7 @@ export function AnimatedTabBar({
             : [{ translateY: translateY.value }],
     }));
 
- const hiddenRouteNames = new Set(["index", "video", "auth", "privacy-policy"]);
+ const hiddenRouteNames = new Set(["index", "video", "auth", "privacy-policy", "admin-users"]);
     const visibleRoutes = state.routes.filter((route) => {
         if (route.name === "shorts") return false;
         if (!isDesktop && route.name === "profile") return false;

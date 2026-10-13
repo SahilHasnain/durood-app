@@ -89,6 +89,7 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
     const [sessionToastCount, setSessionToastCount] = useState<number | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const fullscreenPrefRef = useRef(false);
+    const focusHistoryGuardRef = useRef(false);
     const [quickCountBuffer, setQuickCountBuffer] = useState(0);
     const quickCountBufferRef = useRef(0);
     const quickFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -517,6 +518,34 @@ const [sessionGoal, setSessionGoal] = useState<number | null>(null);
         tabBarTranslateY,
         applyIncrement,
     ]);
+    const endSessionRef = useRef(endSession);
+    endSessionRef.current = endSession;
+
+    useEffect(() => {
+        if (Platform.OS !== "web" || !sessionActive) return;
+
+        const currentState = window.history.state;
+        const focusState = currentState && typeof currentState === "object"
+            ? { ...currentState, __duroodFocusMode: true }
+            : { __duroodFocusMode: true };
+        window.history.pushState(focusState, "", window.location.href);
+        focusHistoryGuardRef.current = true;
+
+        const handleBrowserBack = () => {
+            window.removeEventListener("popstate", handleBrowserBack);
+            focusHistoryGuardRef.current = false;
+            void endSessionRef.current();
+        };
+
+        window.addEventListener("popstate", handleBrowserBack);
+        return () => {
+            window.removeEventListener("popstate", handleBrowserBack);
+            if (focusHistoryGuardRef.current) {
+                focusHistoryGuardRef.current = false;
+                window.history.back();
+            }
+        };
+    }, [sessionActive]);
 
     const pauseSession = useCallback(() => {
         if (!sessionActive || sessionPaused) return;
@@ -670,11 +699,11 @@ if (authLoading || !initialized || loading) {
                 edges={["top", "bottom"]}
             >
                 <View style={isDesktopWeb ? styles.desktopSessionContent : styles.mobileSessionContent}>
-                    {isDesktopWeb && !isFullscreen && (
-                        <View style={styles.sessionTopBar}>
+                    {(!isDesktopWeb || !isFullscreen) && (
+                        <View style={[styles.sessionTopBar, !isDesktopWeb && styles.mobileSessionTopBar]}>
                             <TouchableOpacity
                                 accessibilityRole="button"
-                                accessibilityLabel="Return to Home"
+                                accessibilityLabel="Exit Focus Mode and return home"
                                 activeOpacity={0.6}
                                 onPress={endSession}
                                 style={styles.sessionBackButton}
@@ -682,15 +711,17 @@ if (authLoading || !initialized || loading) {
                                 <Ionicons name="chevron-back" size={16} color={theme.colors.text.secondary} />
                                 <Text style={styles.sessionBackText}>Back</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                                accessibilityRole="button"
-                                accessibilityLabel="Enter fullscreen"
-                                activeOpacity={0.6}
-                                onPress={toggleFullscreen}
-                                style={styles.sessionBackButton}
-                            >
-                                <Ionicons name="expand" size={16} color={theme.colors.text.secondary} />
-                            </TouchableOpacity>
+                            {isDesktopWeb && (
+                                <TouchableOpacity
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Enter fullscreen"
+                                    activeOpacity={0.6}
+                                    onPress={toggleFullscreen}
+                                    style={styles.sessionBackButton}
+                                >
+                                    <Ionicons name="expand" size={16} color={theme.colors.text.secondary} />
+                                </TouchableOpacity>
+                            )}
                         </View>
                     )}
                     {isDesktopWeb && isFullscreen && (
@@ -1271,6 +1302,10 @@ return StyleSheet.create({
         alignItems: "center",
         gap: 6,
         alignSelf: "flex-start",
+    },
+    mobileSessionTopBar: {
+        minHeight: 48,
+        paddingTop: 4,
     },
     sessionBackButton: {
         minHeight: 36,
