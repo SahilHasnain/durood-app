@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Durood Stories — Video Layout Review</title>
+<style>
+:root { color-scheme: dark; --amber:#e4ad55; --cream:#fff4df; --muted:#c9a66f; --brown:#21140c; }
+* { box-sizing:border-box; }
+body { margin:0; padding:40px clamp(18px,4vw,64px) 60px; background:#100b07; color:var(--cream); font-family:Arial, sans-serif; }
+header { max-width:1180px; margin:0 auto 34px; }
+h1 { margin:0 0 10px; color:var(--amber); font:700 clamp(26px,4vw,42px) Georgia,serif; }
+header p { margin:0; color:#d8c7aa; line-height:1.6; }
+.frames { max-width:1180px; margin:auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr)); gap:28px; }
+.review { min-width:0; }
+.frame { position:relative; isolation:isolate; aspect-ratio:16/9; overflow:hidden; padding:4.2% 5.3%; border:1px solid rgba(228,173,85,.62); border-radius:14px; background:radial-gradient(ellipse at 50% 42%,#54351b 0,#382312 43%,#20130c 100%); box-shadow:0 18px 55px #0008; }
+.frame::before { position:absolute; z-index:-1; inset:12px; border:1px solid rgba(228,173,85,.2); border-radius:8px; content:""; }
+.frame-top { position:absolute; top:9%; left:0; width:100%; color:var(--muted); text-align:center; font-size:clamp(9px,.85vw,13px); letter-spacing:.2em; }
+.brand { display:inline-flex; align-items:center; justify-content:center; gap:.7em; color:var(--amber); font-weight:700; }
+.rosette { width:1.45em; height:1.45em; flex:none; }
+h2 { position:absolute; top:43%; left:10%; width:80%; max-height:2.5em; overflow:hidden; transform:translateY(-50%); margin:0; color:var(--cream); text-align:center; font:600 clamp(20px,2.9vw,38px)/1.2 Georgia,serif; text-wrap:balance; }
+.caption-wrap { position:absolute; left:8%; bottom:10%; width:84%; min-height:clamp(74px,12vw,130px); padding:clamp(12px,2vw,22px) clamp(16px,3vw,34px); display:grid; place-items:center; border:1px solid rgba(228,173,85,.78); border-radius:10px; background:rgba(12,8,5,.9); box-shadow:0 8px 28px #0007; }
+.caption { margin:0; color:#fff9ee; font:500 clamp(16px,2.25vw,28px)/1.35 Arial,sans-serif; text-align:center; text-wrap:pretty; }
+.frame-label { margin:10px 2px 0; color:var(--amber); font-size:13px; letter-spacing:.12em; text-transform:uppercase; }
+@media (max-width:600px) { body { padding-top:24px; } }
+</style></head><body>
+<header><h1>Video layout review · Allama Iqbal&#x27;s One Crore Durood</h1><p>Five consecutive caption moments from the manuscript. Captions have a fixed lower-third panel; the title and branding stay in their own upper area.</p></header>
+<main class="frames"><article class="review"><div class="frame" aria-label="Video frame 1">
+  <div class="frame-top"><span class="brand"><svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg>DUROOD STORIES<svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg></span></div>
+  <h2>Allama Iqbal&#x27;s One Crore Durood</h2>
+  <div class="caption-wrap"><p class="caption">Dr. Muhammad Iqbal — the poet-philosopher</p></div>
+</div><p class="frame-label">Frame 01</p></article>
+<article class="review"><div class="frame" aria-label="Video frame 2">
+  <div class="frame-top"><span class="brand"><svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg>DUROOD STORIES<svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg></span></div>
+  <h2>Allama Iqbal&#x27;s One Crore Durood</h2>
+  <div class="caption-wrap"><p class="caption">who helped inspire the creation of Pakistan</p></div>
+</div><p class="frame-label">Frame 02</p></article>
+<article class="review"><div class="frame" aria-label="Video frame 3">
+  <div class="frame-top"><span class="brand"><svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg>DUROOD STORIES<svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg></span></div>
+  <h2>Allama Iqbal&#x27;s One Crore Durood</h2>
+  <div class="caption-wrap"><p class="caption">— had a deep, personal connection with</p></div>
+</div><p class="frame-label">Frame 03</p></article>
+<article class="review"><div class="frame" aria-label="Video frame 4">
+  <div class="frame-top"><span class="brand"><svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg>DUROOD STORIES<svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg></span></div>
+  <h2>Allama Iqbal&#x27;s One Crore Durood</h2>
+  <div class="caption-wrap"><p class="caption">durood. The story begins when he visited</p></div>
+</div><p class="frame-label">Frame 04</p></article>
+<article class="review"><div class="frame" aria-label="Video frame 5">
+  <div class="frame-top"><span class="brand"><svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg>DUROOD STORIES<svg class="rosette" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1 19 11 27 5 21 13 31 16 21 19 27 27 19 21 16 31 13 21 5 27 11 19 1 16 11 13 5 5 13 11Z" fill="currentColor"/><circle cx="16" cy="16" r="2.4" fill="#fff4df"/></svg></span></div>
+  <h2>Allama Iqbal&#x27;s One Crore Durood</h2>
+  <div class="caption-wrap"><p class="caption">a friend who worked at the airport.</p></div>
+</div><p class="frame-label">Frame 05</p></article></main></body></html>
