@@ -46,7 +46,7 @@ export default function PrivacyPolicy() {
                             color: theme.colors.semantic.privacyBody,
                             lineHeight: "1.75"
                         }}>
-                            Welcome to Durood Moments. We respect your privacy and are committed to
+                            Welcome to Durood Time. We respect your privacy and are committed to
                             protecting your personal data. This privacy policy explains how we
                             handle your information when you use our mobile application.
                         </p>
@@ -67,7 +67,7 @@ export default function PrivacyPolicy() {
                             lineHeight: "1.75",
                             marginBottom: "8px"
                         }}>
-                            Durood Moments is designed with privacy in mind. We collect minimal
+                            Durood Time is designed with privacy in mind. We collect minimal
                             information:
                         </p>
                         <ul style={{
@@ -292,7 +292,7 @@ export default function PrivacyPolicy() {
                         fontSize: "14px",
                         color: theme.colors.semantic.privacyMuted
                     }}>
-                        © {new Date().getFullYear()} Durood Moments. All rights reserved.
+                        © {new Date().getFullYear()} Durood Time. All rights reserved.
                     </p>
                 </div>
             </div>

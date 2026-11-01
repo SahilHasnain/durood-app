@@ -259,7 +259,7 @@ export default function Profile() {
         <View style={styles.appearanceCard}>
             <View>
                 <Text style={styles.appearanceTitle}>Appearance</Text>
-                <Text style={styles.appearanceDescription}>Choose how Durood Moments looks.</Text>
+                <Text style={styles.appearanceDescription}>Choose how Durood Time looks.</Text>
             </View>
             <View style={styles.appearanceOptions}>
                 {appearanceOptions.map((option) => (

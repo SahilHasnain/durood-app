@@ -172,9 +172,9 @@ def main() -> int:
             renderer = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(renderer)
             full_story = "\n\n".join(renderer.plain_text(paragraph) for paragraph in story["paragraphs"])
-            default_description = f"{full_story}\n\nRead more similar stories: {STORIES_URL}\nDownload the Durood Moments app: {APP_URL}\n\n{HASHTAGS}"
+            default_description = f"{full_story}\n\nRead more similar stories: {STORIES_URL}\nDownload the Durood Time app: {APP_URL}\n\n{HASHTAGS}"
         else:
-            default_description = f"Read more similar stories: {STORIES_URL}\nDownload the Durood Moments app: {APP_URL}\n\n{HASHTAGS}"
+            default_description = f"Read more similar stories: {STORIES_URL}\nDownload the Durood Time app: {APP_URL}\n\n{HASHTAGS}"
         description = args.description or default_description
         tags = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
         print(f"Video: {video_path}")
@@ -201,7 +201,7 @@ def main() -> int:
         video_id = result["id"]
         video_url = f"https://www.youtube.com/watch?v={video_id}"
         print(f"Uploaded: {video_url}")
-        comment = f"Download the Durood Moments app on Google Play: {APP_URL}"
+        comment = f"Download the Durood Time app on Google Play: {APP_URL}"
         try:
             youtube.commentThreads().insert(
                 part="snippet",

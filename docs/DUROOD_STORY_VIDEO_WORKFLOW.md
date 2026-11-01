@@ -57,8 +57,8 @@ The generated video folders are production outputs and are not committed by defa
 ## Upload to YouTube
 
 Uploads are public by default. The selected YouTube account/channel is determined by the Google account used in the browser authorization flow.
-For a story-number upload, the description is the complete plain-text story from the manuscript, followed by links to [durood.live](https://durood.live) and the [Durood Moments app on Google Play](https://play.google.com/store/apps/details?id=com.duroodepak), plus the hashtags `#DuroodStories #DuroodSharif #IslamicStories #AsgharHussainDuroodi #MuslimsBelieve`.
-After a successful upload, the workflow also posts a top-level comment with the Durood Moments Play Store download link. If comments are disabled for the video, the upload still succeeds and the script reports that the comment was not posted.
+For a story-number upload, the description is the complete plain-text story from the manuscript, followed by links to [durood.live](https://durood.live) and the [Durood Time app on Google Play](https://play.google.com/store/apps/details?id=com.duroodepak), plus the hashtags `#DuroodStories #DuroodSharif #IslamicStories #AsgharHussainDuroodi #MuslimsBelieve`.
+After a successful upload, the workflow also posts a top-level comment with the Durood Time Play Store download link. If comments are disabled for the video, the upload still succeeds and the script reports that the comment was not posted.
 
 Run the browser consent flow without uploading a video:
 

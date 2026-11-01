@@ -123,10 +123,10 @@ export function AnimatedTabBar({
                     <Image
                         source={require("@/assets/images/icon.png")}
                         style={styles.desktopLogoMark}
-                        accessibilityLabel="Durood Moments logo"
+                        accessibilityLabel="Durood Time logo"
                     />
                     <View>
-                        <Text style={[styles.desktopBrandTitle, { color: activeTheme.colors.text.primary }]}>Durood Moments</Text>
+                        <Text style={[styles.desktopBrandTitle, { color: activeTheme.colors.text.primary }]}>Durood Time</Text>
                         <Text style={[styles.desktopBrandSubtitle, { color: activeTheme.colors.text.tertiary }]}>Your daily salawat</Text>
                     </View>
                 </View>

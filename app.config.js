@@ -13,12 +13,12 @@ const getUniqueIdentifier = () => {
 
 const getAppName = () => {
   if (IS_DEV) {
-    return "Durood Moments (Dev)";
+    return "Durood Time (Dev)";
   }
   if (IS_PREVIEW) {
-    return "Durood Moments (Preview)";
+    return "Durood Time (Preview)";
   }
-  return "Durood Moments";
+  return "Durood Time";
 };
 
 export default {
@@ -76,7 +76,7 @@ export default {
       [
         "expo-location",
         {
-          locationWhenInUsePermission: "Allow Durood Moments to use your location once to suggest your city for the optional city leaderboard.",
+          locationWhenInUsePermission: "Allow Durood Time to use your location once to suggest your city for the optional city leaderboard.",
         },
       ],
       [
