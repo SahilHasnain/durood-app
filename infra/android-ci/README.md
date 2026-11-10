@@ -17,6 +17,10 @@ The workflow generates android/ with Expo prebuild on the GitHub runner. Keep th
 - fastlane/Fastfile
 - scripts/patch-android-release-signing.mjs
 
+## VersionCode increments
+
+When **increment_version_code** is enabled, the workflow bumps the expo.android.versionCode value in app.config.js/app.config.ts (or app.json when no app config file exists) and commits the change. It never edits the generated android/ folder, because Expo prebuild would overwrite it.
+
 ## GitHub Actions secrets
 
 - ANDROID_KEYSTORE_BASE64
