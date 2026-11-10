@@ -1,11 +1,49 @@
 import fs from "node:fs";
+import path from "node:path";
 
-const gradlePath = "android/app/build.gradle";
+const projectRoot = process.cwd();
+const androidProjectPath = process.env.ANDROID_PROJECT_DIR || "android";
+const gradlePath = path.join(androidProjectPath, "app", "build.gradle");
 const keystorePath = process.env.ANDROID_KEYSTORE_PATH;
-const versionCode = process.env.ANDROID_VERSION_CODE;
+
+const appConfigCandidates = [
+  "app.config.js",
+  "app.config.ts",
+  "app.config.mjs",
+  "app.config.cjs",
+  "app.json",
+];
+
+function readVersionCodeFromAppConfig() {
+  const configPath = appConfigCandidates
+    .map((file) => path.join(projectRoot, file))
+    .find((file) => fs.existsSync(file));
+
+  if (!configPath) {
+    return undefined;
+  }
+
+  const content = fs.readFileSync(configPath, "utf8");
+
+  if (configPath.endsWith(".json")) {
+    const config = JSON.parse(content);
+    const versionCode = config?.expo?.android?.versionCode;
+    return versionCode == null ? undefined : String(versionCode);
+  }
+
+  const match = content.match(/versionCode\s*:\s*(\d+)/);
+  return match ? match[1] : undefined;
+}
+
+// Prefer an explicit override. Otherwise use the Expo app config so the AAB
+// matches the versionCode that android-ci incremented and committed.
+const versionCode = process.env.ANDROID_VERSION_CODE || readVersionCodeFromAppConfig();
 
 if (!keystorePath || !versionCode || !/^\d+$/.test(versionCode)) {
-  throw new Error("Production signing path and numeric version code are required.");
+  throw new Error(
+    "Production signing path and numeric versionCode are required. " +
+      "Set ANDROID_VERSION_CODE or define expo.android.versionCode in app.config.js/app.json.",
+  );
 }
 
 let gradle = fs.readFileSync(gradlePath, "utf8");
@@ -39,4 +77,4 @@ if (!gradle.includes(`versionCode ${versionCode}`)) {
 }
 
 fs.writeFileSync(gradlePath, gradle);
-console.log("Configured Android release signing and CI version code.");
+console.log(`Configured Android release signing with versionCode ${versionCode}.`);

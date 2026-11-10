@@ -183,7 +183,7 @@ jobs:
         if: ${{ env.BUILD_TARGET == 'production' }}
         env:
           ANDROID_KEYSTORE_PATH: /tmp/release.keystore
-          ANDROID_VERSION_CODE: ${{ github.run_number }}
+          ANDROID_PROJECT_DIR: android
         run: node scripts/patch-android-release-signing.mjs
 
       - name: Build debug APK
